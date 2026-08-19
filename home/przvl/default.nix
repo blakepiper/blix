@@ -355,6 +355,14 @@ services.wayle = {
 
     modules = {
       clock.format = "%a %b %d  %H:%M";
+      network.label-show = false;
+      volume.label-show = false;
+      brightness.label-show = false;
+      battery.label-show = false;
+      hyprland-workspaces = {
+        display-mode = "none";
+        app-icons-show = true;
+      };
       battery.thresholds = [
         {
           below = 30;
