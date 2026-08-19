@@ -269,6 +269,9 @@ wayland.windowManager.hyprland = {
     local terminal = "alacritty"
 
     hl.config({
+      monitor = {
+        "HDMI-A-2,2560x1440@59.95,1280x0,1.5",
+      },
       input = {
         natural_scroll = true,
         repeat_delay = 300,
