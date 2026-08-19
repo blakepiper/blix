@@ -21,9 +21,18 @@ programs.hyprland.enable = true;
 # This is a single-user machine: start the desktop directly after boot.
 services.greetd = {
   enable = true;
-  settings.initial_session = {
-    command = "${pkgs.hyprland}/bin/Hyprland";
-    user = "przvl";
+  settings = {
+    # `initial_session` starts this single-user desktop automatically once.
+    initial_session = {
+      command = "${pkgs.hyprland}/bin/Hyprland";
+      user = "przvl";
+    };
+
+    # greetd requires a fallback session after the initial session exits.
+    default_session = {
+      command = "${pkgs.greetd}/bin/agreety --cmd ${pkgs.hyprland}/bin/Hyprland";
+      user = "greeter";
+    };
   };
 };
 
