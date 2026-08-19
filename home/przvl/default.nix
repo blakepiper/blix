@@ -553,11 +553,19 @@ services.wayle = {
       button-gap = 0.4;
       button-rounding = "none";
       button-group-rounding = "none";
+      button-group-opacity = 0;
+      button-group-padding = 1.0;
       layout = [
         {
           monitor = "*";
           left = [ "hyprland-workspaces" ];
-          center = [ "hyprsunset" "idle-inhibit" "clock" ];
+          center = [
+            {
+              name = "status-controls";
+              modules = [ "hyprsunset" "idle-inhibit" ];
+            }
+            "clock"
+          ];
           right = [ "custom-ai-usage" "network" "volume" "brightness" "battery" ];
         }
       ];
