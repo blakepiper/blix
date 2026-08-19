@@ -65,6 +65,18 @@ programs.hyprlock = {
         blur_size = 8;
       }
     ];
+    label = [
+      {
+        monitor = "";
+        text = "$TIME";
+        color = "rgb(3a1911)";
+        font_size = 72;
+        font_family = "JetBrainsMono Nerd Font";
+        position = "0, 100";
+        halign = "center";
+        valign = "center";
+      }
+    ];
     "input-field" = [
       {
         size = "240, 54";
@@ -76,7 +88,7 @@ programs.hyprlock = {
         inner_color = "rgba(f5e4d8aa)";
         outer_color = "rgb(563819)";
         outline_thickness = 3;
-        placeholder_text = "<i>Password...</i>";
+        placeholder_text = "";
       }
     ];
   };
