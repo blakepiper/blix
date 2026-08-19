@@ -19,6 +19,8 @@ fd
 alacritty
 nodejs
 codex
+claude-code
+opencode
 brightnessctl
 networkmanagerapplet
 pavucontrol

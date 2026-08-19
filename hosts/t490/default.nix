@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 {
 imports = [
 ./hardware-configuration.nix
@@ -13,6 +13,7 @@ networking.networkmanager = {
 };
 time.timeZone = "America/New_York";
 nix.settings.experimental-features = [ "nix-command" "flakes" ];
+nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [ "claude-code" ];
 home-manager.useGlobalPkgs = true;
 home-manager.useUserPackages = true;
 home-manager.users.przvl = import ../../home/przvl;
