@@ -39,7 +39,6 @@ ffmpegthumbnailer
 vscodium
 python3
 uv
-fastfetch
 btop
 grim
 slurp
@@ -58,6 +57,14 @@ programs.firefox = {
     install_url = "https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi";
     installation_mode = "force_installed";
     private_browsing = true;
+  };
+};
+
+programs.fastfetch = {
+  enable = true;
+  settings.logo = {
+    source = "nixos_small";
+    padding.right = 1;
   };
 };
 
