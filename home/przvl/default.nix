@@ -129,6 +129,16 @@ services.hypridle = {
   };
 };
 
+services.hyprsunset = {
+  enable = true;
+  settings.profile = [
+    {
+      time = "00:00";
+      identity = true;
+    }
+  ];
+};
+
 services.hyprpaper = {
   enable = true;
   settings = {
@@ -388,7 +398,7 @@ services.wayle = {
         {
           monitor = "*";
           left = [ "hyprland-workspaces" ];
-          center = [ "clock" ];
+          center = [ "hyprsunset" "idle-inhibit" "clock" ];
           right = [ "network" "volume" "brightness" "battery" ];
         }
       ];
@@ -396,6 +406,14 @@ services.wayle = {
 
     modules = {
       clock.format = "%a %b %d  %H:%M";
+      hyprsunset = {
+        temperature = 3500;
+        label-show = false;
+      };
+      idle-inhibit = {
+        label-show = false;
+        left-click = "wayle idle toggle --indefinite";
+      };
       network.label-show = false;
       volume.label-show = false;
       brightness.label-show = false;
