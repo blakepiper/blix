@@ -6,15 +6,6 @@ let
     hash = "sha256-iOBqjWHqqPaTNbFfKryBRF+P3A0MLSjqlYrH6sr5iqk=";
   };
 
-  togglePowerProfile = pkgs.writeShellScript "toggle-power-profile" ''
-    if [ "$(${pkgs.power-profiles-daemon}/bin/powerprofilesctl get)" = "power-saver" ]; then
-      next_profile="balanced"
-    else
-      next_profile="power-saver"
-    fi
-
-    exec ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set "$next_profile"
-  '';
 in
 
 {
@@ -134,24 +125,6 @@ services.hypridle = {
   };
 };
 
-services.mako = {
-  enable = true;
-  settings = {
-    text-color = "#3a1911";
-    border-color = "#563819";
-    background-color = "#f5e4d8";
-    width = 420;
-    height = 110;
-    padding = 10;
-    border-size = 2;
-    font = "JetBrainsMono Nerd Font 11";
-    anchor = "top-right";
-    outer-margin = 20;
-    default-timeout = 5000;
-    max-icon-size = 32;
-  };
-};
-
 services.hyprpaper = {
   enable = true;
   settings = {
@@ -250,19 +223,6 @@ services.udiskie = {
 };
 
 systemd.user.services = {
-  mako = {
-    Unit = {
-      Description = "Mako notification daemon";
-      PartOf = [ "graphical-session.target" ];
-      After = [ "graphical-session.target" ];
-    };
-    Service = {
-      ExecStart = "${pkgs.mako}/bin/mako";
-      Restart = "on-failure";
-    };
-    Install.WantedBy = [ "graphical-session.target" ];
-  };
-
   polkit-gnome-authentication-agent = {
     Unit = {
       Description = "Polkit authentication agent";
@@ -350,109 +310,56 @@ wayland.windowManager.hyprland = {
   '';
 };
 
-programs.waybar = {
+services.wayle = {
   enable = true;
-  systemd.enable = true;
-  settings.mainBar = {
-    layer = "top";
-    position = "top";
-    height = 30;
-    spacing = 8;
-    modules-left = [ "hyprland/workspaces" ];
-    modules-center = [ "clock" ];
-    modules-right = [ "network" "pulseaudio" "backlight" "battery" "tray" ];
-
-    "hyprland/workspaces" = {
-      format = "{name}";
-    };
-
-    clock = {
-      format = "󰥔  {:%a %b %d  %H:%M}";
-      tooltip-format = "{:%Y-%m-%d}\nClick to copy the current timestamp";
-      on-click = "${pkgs.coreutils}/bin/date --iso-8601=seconds | ${pkgs.wl-clipboard}/bin/wl-copy";
-    };
-
-    network = {
-      format-wifi = "󰖩  {signalStrength}%";
-      format-ethernet = "󰈀";
-      format-disconnected = "󰖪";
-      tooltip-format-wifi = "{essid} ({signalStrength}%)\nClick to manage connections";
-      tooltip-format-ethernet = "{ifname}\nClick to manage connections";
-      tooltip-format-disconnected = "Disconnected\nClick to manage connections";
-      on-click = "${pkgs.networkmanagerapplet}/bin/nm-connection-editor";
-    };
-
-    pulseaudio = {
-      format = "{icon}  {volume}%";
-      format-muted = "󰝟";
-      format-icons = [ "" "" "" ];
-      tooltip-format = "{desc}\nClick for audio controls; right-click to mute";
-      on-click = "${pkgs.pavucontrol}/bin/pavucontrol";
-      on-click-right = "${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle";
-      on-scroll-up = "${pkgs.wireplumber}/bin/wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+";
-      on-scroll-down = "${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-";
-    };
-
-    backlight = {
-      format = "{icon}  {percent}%";
-      format-icons = [ "󰃞" "󰃟" "󰃠" ];
-      tooltip-format = "Brightness: {percent}%\nLeft/right click to adjust";
-      on-click = "${pkgs.brightnessctl}/bin/brightnessctl set 10%+";
-      on-click-right = "${pkgs.brightnessctl}/bin/brightnessctl set 10%-";
-      on-scroll-up = "${pkgs.brightnessctl}/bin/brightnessctl set 5%+";
-      on-scroll-down = "${pkgs.brightnessctl}/bin/brightnessctl set 5%-";
-    };
-
-    battery = {
-      states = {
-        warning = 30;
-        critical = 15;
+  settings = {
+    styling = {
+      theme-provider = "wayle";
+      rounding = "sm";
+      palette = {
+        bg = "#f5e4d8";
+        surface = "#f6e7dc";
+        elevated = "#ead6c7";
+        fg = "#3a1911";
+        fg-muted = "#7f7974";
+        primary = "#805f36";
+        red = "#562b00";
+        yellow = "#7b5521";
+        green = "#653e00";
+        blue = "#805f36";
       };
-      format = "{icon}  {capacity}%";
-      format-charging = "  {capacity}%";
-      format-plugged = "  {capacity}%";
-      format-icons = [ "" "" "" "" "" ];
-      tooltip-format = "{time}\nClick to toggle balanced/power-saver mode";
-      on-click = "${togglePowerProfile}";
     };
 
-    tray.spacing = 8;
+    bar = {
+      location = "top";
+      rounding = "none";
+      layout = [
+        {
+          monitor = "*";
+          left = [ "hyprland-workspaces" ];
+          center = [ "clock" ];
+          right = [ "network" "volume" "brightness" "battery" "systray" ];
+        }
+      ];
+    };
+
+    modules = {
+      clock.format = "%a %b %d  %H:%M";
+      battery.thresholds = [
+        {
+          below = 30;
+          icon-color = "yellow";
+        }
+        {
+          below = 15;
+          icon-color = "red";
+          label-color = "red";
+        }
+      ];
+    };
   };
-  style = ''
-    * {
-      font-family: "JetBrainsMono Nerd Font", sans-serif;
-      font-size: 13px;
-    }
-
-    window#waybar {
-      background: #f5e4d8;
-      color: #3a1911;
-    }
-
-    #workspaces button,
-    #clock,
-    #network,
-    #pulseaudio,
-    #backlight,
-    #battery,
-    #tray {
-      padding: 0 8px;
-    }
-
-    #clock:hover,
-    #network:hover,
-    #pulseaudio:hover,
-    #backlight:hover,
-    #battery:hover {
-      background: #f6e7dc;
-      border-radius: 6px;
-    }
-
-    #workspaces button.active { color: #805f36; }
-    #battery.warning { color: #7b5521; }
-    #battery.critical { color: #562b00; }
-    #pulseaudio.muted,
-    #network.disconnected { color: #7f7974; }
-  '';
 };
+
+# Stop the previous notification daemon before Wayle claims the notification bus.
+systemd.user.services.wayle.Unit.Conflicts = [ "mako.service" ];
 }
