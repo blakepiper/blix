@@ -16,7 +16,16 @@ nix.settings.experimental-features = [ "nix-command" "flakes" ];
 home-manager.useGlobalPkgs = true;
 home-manager.useUserPackages = true;
 home-manager.users.przvl = import ../../home/przvl;
-programs.hyprland.enable = true;
+programs.hyprland = {
+  enable = true;
+  withUWSM = true;
+};
+
+programs.uwsm.waylandCompositors.hyprland = {
+  prettyName = "Hyprland";
+  comment = "Hyprland compositor managed by UWSM";
+  binPath = "/run/current-system/sw/bin/Hyprland";
+};
 
 # This is a single-user machine: start the desktop directly after boot.
 services.greetd = {
@@ -24,13 +33,13 @@ services.greetd = {
   settings = {
     # `initial_session` starts this single-user desktop automatically once.
     initial_session = {
-      command = "${pkgs.hyprland}/bin/Hyprland";
+      command = "${pkgs.uwsm}/bin/uwsm start hyprland-uwsm.desktop";
       user = "przvl";
     };
 
     # greetd requires a fallback session after the initial session exits.
     default_session = {
-      command = "${pkgs.greetd}/bin/agreety --cmd ${pkgs.hyprland}/bin/Hyprland";
+      command = "${pkgs.greetd}/bin/agreety --cmd '${pkgs.uwsm}/bin/uwsm start hyprland-uwsm.desktop'";
       user = "greeter";
     };
   };
