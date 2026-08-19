@@ -31,8 +31,8 @@ let
   };
 
   nightPlusIcon = pkgs.fetchurl {
-    url = "https://raw.githubusercontent.com/lucide-icons/lucide/59978cecf84986af59f1f9f503bcebdc89c6d166/icons/moon-star.svg";
-    hash = "sha256-J2tx4AXE27f//f4F0OZmKGdbSPT1a/uIrtWSYfO2HlY=";
+    url = "https://raw.githubusercontent.com/lucide-icons/lucide/59978cecf84986af59f1f9f503bcebdc89c6d166/icons/eclipse.svg";
+    hash = "sha256-qTVBxzdbJSjEG3Pelwcxr0banC69V+zJt9rUGtrnxfE=";
   };
 
   nightMode = pkgs.writeShellScriptBin "night-mode" ''
@@ -218,7 +218,7 @@ programs.git.enable = true;
 home.file.".local/share/wayle/icons/hicolor/scalable/actions/cm-ai-usage-symbolic.svg".source = aiUsageIcon;
 home.file.".local/share/wayle/icons/hicolor/scalable/actions/ld-sun-symbolic.svg".source = nightOffIcon;
 home.file.".local/share/wayle/icons/hicolor/scalable/actions/ld-moon-symbolic.svg".source = nightIcon;
-home.file.".local/share/wayle/icons/hicolor/scalable/actions/ld-moon-star-symbolic.svg".source = nightPlusIcon;
+home.file.".local/share/wayle/icons/hicolor/scalable/actions/ld-eclipse-symbolic.svg".source = nightPlusIcon;
 programs.bash = {
   enable = true;
   initExtra = ''
@@ -624,7 +624,7 @@ services.wayle = {
           icon-map = {
             off = "ld-sun-symbolic";
             night = "ld-moon-symbolic";
-            night-plus = "ld-moon-star-symbolic";
+            night-plus = "ld-eclipse-symbolic";
           };
           label-show = false;
           left-click = "${nightMode}/bin/night-mode next";
