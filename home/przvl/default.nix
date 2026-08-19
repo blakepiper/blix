@@ -180,11 +180,10 @@ programs.fuzzel = {
 
 home.pointerCursor = {
   enable = true;
-  package = pkgs.capitaine-cursors;
-  name = "capitaine-cursors";
+  package = pkgs.whitesur-cursors;
+  name = "WhiteSur-cursors";
   size = 32;
   gtk.enable = true;
-  hyprcursor.enable = true;
   x11.enable = true;
 };
 
@@ -234,8 +233,8 @@ wayland.windowManager.hyprland = {
   enable = true;
   configType = "lua";
   settings.env = [
-    { _args = [ "HYPRCURSOR_THEME" "capitaine-cursors" ]; }
-    { _args = [ "HYPRCURSOR_SIZE" "32" ]; }
+    { _args = [ "XCURSOR_THEME" "WhiteSur-cursors" ]; }
+    { _args = [ "XCURSOR_SIZE" "32" ]; }
   ];
   extraConfig = ''
     local main_mod = "SUPER"
