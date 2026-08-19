@@ -573,7 +573,7 @@ services.wayle = {
           icon-name = "cm-ai-usage-symbolic";
           label-show = false;
           tooltip-format = "{{ tooltip }}";
-          left-click = "${aiUsage}/bin/ai-usage details | ${pkgs.fuzzel}/bin/fuzzel --dmenu --prompt='AI usage' --lines=14 --width=70";
+          left-click = "${aiUsage}/bin/ai-usage details | ${pkgs.fuzzel}/bin/fuzzel --dmenu --prompt='' --lines=14 --width=70";
         }
       ];
       clock.format = "%a %b %d  %H:%M";
