@@ -20,6 +20,16 @@ let
     hash = "sha256-9UmfM/CdcVgVHpvS7A+vef+PtXKS+E/dcobZbQ8EJNg=";
   };
 
+  nightIcon = pkgs.fetchurl {
+    url = "https://raw.githubusercontent.com/lucide-icons/lucide/59978cecf84986af59f1f9f503bcebdc89c6d166/icons/moon.svg";
+    hash = "sha256-IFuVnpQNWEHwzh0JyTMVPanZyUEwpU1cwMaMKvHUA9o=";
+  };
+
+  nightOffIcon = pkgs.fetchurl {
+    url = "https://raw.githubusercontent.com/lucide-icons/lucide/59978cecf84986af59f1f9f503bcebdc89c6d166/icons/sun.svg";
+    hash = "sha256-o5VciwQl/MXJuhLSvdd/5Tss1d0F53QqVvNC6Zb7Lvg=";
+  };
+
   nightPlusIcon = pkgs.fetchurl {
     url = "https://raw.githubusercontent.com/lucide-icons/lucide/59978cecf84986af59f1f9f503bcebdc89c6d166/icons/moon-star.svg";
     hash = "sha256-J2tx4AXE27f//f4F0OZmKGdbSPT1a/uIrtWSYfO2HlY=";
@@ -45,7 +55,7 @@ let
             ${pkgs.hyprland}/bin/hyprctl hyprsunset identity
             ;;
         esac
-        printf '%s\\n' "$mode" > "$state_file"
+        printf '%s\n' "$mode" > "$state_file"
         ;;
     esac
 
@@ -54,11 +64,7 @@ let
       night-plus) tooltip='Night+ mode: 2200 K' ;;
       *) mode=off; tooltip='Night mode: off' ;;
     esac
-    printf '{"alt":"%s","tooltip":"%s"}\\n' "$mode" "$tooltip"
-  '';
-
-  resetNightMode = pkgs.writeShellScript "reset-night-mode" ''
-    printf 'off\\n' > "$XDG_RUNTIME_DIR/night-mode"
+    printf '{"alt":"%s","tooltip":"%s"}\n' "$mode" "$tooltip"
   '';
 
   aiUsage = pkgs.writers.writePython3Bin "ai-usage" {
@@ -210,6 +216,8 @@ home.homeDirectory = "/home/przvl";
 home.stateVersion = "26.05";
 programs.git.enable = true;
 home.file.".local/share/wayle/icons/hicolor/scalable/actions/cm-ai-usage-symbolic.svg".source = aiUsageIcon;
+home.file.".local/share/wayle/icons/hicolor/scalable/actions/ld-sun-symbolic.svg".source = nightOffIcon;
+home.file.".local/share/wayle/icons/hicolor/scalable/actions/ld-moon-symbolic.svg".source = nightIcon;
 home.file.".local/share/wayle/icons/hicolor/scalable/actions/ld-moon-star-symbolic.svg".source = nightPlusIcon;
 programs.bash = {
   enable = true;
@@ -340,19 +348,6 @@ services.hypridle = {
     ];
   };
 };
-
-# Keep the filter daemon independent from Wayle so the custom three-state
-# status control can adjust it without restarting the bar.
-services.hyprsunset = {
-  enable = true;
-  settings.profile = [
-    {
-      time = "00:00";
-      identity = true;
-    }
-  ];
-};
-systemd.user.services.hyprsunset.Service.ExecStartPre = resetNightMode;
 
 services.hyprpaper = {
   enable = true;
