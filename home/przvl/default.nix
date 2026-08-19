@@ -206,6 +206,7 @@ claude-code
 opencode
 aiUsage
 brightnessctl
+hyprsunset
 networkmanagerapplet
 pavucontrol
 wireplumber
@@ -314,16 +315,6 @@ services.hypridle = {
       }
     ];
   };
-};
-
-services.hyprsunset = {
-  enable = true;
-  settings.profile = [
-    {
-      time = "00:00";
-      identity = true;
-    }
-  ];
 };
 
 services.hyprpaper = {
