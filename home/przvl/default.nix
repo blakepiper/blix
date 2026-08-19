@@ -1,6 +1,11 @@
 { config, pkgs, ... }:
 
 let
+  lakesAndLightWallpaper = pkgs.fetchurl {
+    url = "https://raw.githubusercontent.com/mattbbia/lakes-and-light/1c14ea7b3fbb0bc8bd7097c74261e65affdc712b/backgrounds/lake-albano-1790-1792.jpg";
+    hash = "sha256-iOBqjWHqqPaTNbFfKryBRF+P3A0MLSjqlYrH6sr5iqk=";
+  };
+
   togglePowerProfile = pkgs.writeShellScript "toggle-power-profile" ''
     if [ "$(${pkgs.power-profiles-daemon}/bin/powerprofilesctl get)" = "power-saver" ]; then
       next_profile="balanced"
@@ -77,9 +82,9 @@ programs.hyprlock = {
         monitor = "";
         dots_center = true;
         fade_on_empty = false;
-        font_color = "rgb(cdd6f4)";
-        inner_color = "rgb(313244)";
-        outer_color = "rgb(89b4fa)";
+        font_color = "rgb(3a1911)";
+        inner_color = "rgba(f5e4d8aa)";
+        outer_color = "rgb(563819)";
         outline_thickness = 3;
         placeholder_text = "<i>Password...</i>";
       }
@@ -122,7 +127,105 @@ services.hypridle = {
   };
 };
 
-services.mako.enable = true;
+services.mako = {
+  enable = true;
+  settings = {
+    text-color = "#3a1911";
+    border-color = "#563819";
+    background-color = "#f5e4d8";
+    width = 420;
+    height = 110;
+    padding = 10;
+    border-size = 2;
+    font = "JetBrainsMono Nerd Font 11";
+    anchor = "top-right";
+    outer-margin = 20;
+    default-timeout = 5000;
+    max-icon-size = 32;
+  };
+};
+
+services.hyprpaper = {
+  enable = true;
+  settings = {
+    splash = false;
+    wallpaper = [
+      {
+        monitor = "";
+        path = "${lakesAndLightWallpaper}";
+        fit_mode = "cover";
+      }
+    ];
+  };
+};
+
+programs.alacritty = {
+  enable = true;
+  settings.colors = {
+    primary = {
+      background = "#f5e4d8";
+      foreground = "#3a1911";
+    };
+    normal = {
+      black = "#f5e4d8";
+      red = "#562b00";
+      green = "#653e00";
+      yellow = "#7b5521";
+      blue = "#805f36";
+      magenta = "#563819";
+      cyan = "#875c26";
+      white = "#3a1911";
+    };
+    bright = {
+      black = "#7f7974";
+      red = "#7c4b14";
+      green = "#8b5f0f";
+      yellow = "#a27832";
+      blue = "#a7824b";
+      magenta = "#7b582f";
+      cyan = "#af7f36";
+      white = "#5e362b";
+    };
+    cursor = {
+      text = "#f5e4d8";
+      cursor = "#3a1911";
+    };
+  };
+};
+
+programs.fuzzel = {
+  enable = true;
+  settings.colors = {
+    background = "f5e4d8ff";
+    text = "3a1911ff";
+    match = "805f36ff";
+    selection = "805f36ff";
+    selection-text = "f5e4d8ff";
+    selection-match = "f5e4d8ff";
+    border = "563819ff";
+  };
+};
+
+gtk = {
+  enable = true;
+  colorScheme = "light";
+  gtk3.extraCss = ''
+    @define-color theme_bg_color #f5e4d8;
+    @define-color theme_fg_color #3a1911;
+    @define-color theme_selected_bg_color #805f36;
+    @define-color theme_selected_fg_color #f5e4d8;
+    @define-color borders alpha(#3a1911, 0.15);
+    selection { background-color: #805f36; color: #f5e4d8; }
+  '';
+  gtk4.extraCss = ''
+    @define-color window_bg_color #f5e4d8;
+    @define-color window_fg_color #3a1911;
+    @define-color accent_bg_color #805f36;
+    @define-color accent_fg_color #f5e4d8;
+    @define-color borders alpha(#3a1911, 0.15);
+    selection { background-color: #805f36; color: #f5e4d8; }
+  '';
+};
 
 services.udiskie = {
   enable = true;
@@ -278,8 +381,8 @@ programs.waybar = {
     }
 
     window#waybar {
-      background: #1e1e2e;
-      color: #cdd6f4;
+      background: #f5e4d8;
+      color: #3a1911;
     }
 
     #workspaces button,
@@ -297,14 +400,15 @@ programs.waybar = {
     #pulseaudio:hover,
     #backlight:hover,
     #battery:hover {
-      background: #313244;
+      background: #f6e7dc;
       border-radius: 6px;
     }
 
-    #battery.warning { color: #f9e2af; }
-    #battery.critical { color: #f38ba8; }
+    #workspaces button.active { color: #805f36; }
+    #battery.warning { color: #7b5521; }
+    #battery.critical { color: #562b00; }
     #pulseaudio.muted,
-    #network.disconnected { color: #a6adc8; }
+    #network.disconnected { color: #7f7974; }
   '';
 };
 }
