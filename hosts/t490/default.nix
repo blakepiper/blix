@@ -21,12 +21,6 @@ programs.hyprland = {
   withUWSM = true;
 };
 
-programs.uwsm.waylandCompositors.hyprland = {
-  prettyName = "Hyprland";
-  comment = "Hyprland compositor managed by UWSM";
-  binPath = "/run/current-system/sw/bin/Hyprland";
-};
-
 # This is a single-user machine: start the desktop directly after boot.
 services.greetd = {
   enable = true;
