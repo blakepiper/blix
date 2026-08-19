@@ -277,6 +277,26 @@ wayland.windowManager.hyprland = {
     local main_mod = "SUPER"
     local terminal = "alacritty"
 
+    local function snap_focused_window(x, y, width, height)
+      return function()
+        local window = hl.get_active_window()
+        if not window or not window.monitor then return end
+
+        local monitor = window.monitor
+        hl.dispatch(hl.dsp.window.float({ action = "set", window = window }))
+        hl.dispatch(hl.dsp.window.resize({
+          x = monitor.width * width,
+          y = monitor.height * height,
+          window = window,
+        }))
+        hl.dispatch(hl.dsp.window.move({
+          x = monitor.x + monitor.width * x,
+          y = monitor.y + monitor.height * y,
+          window = window,
+        }))
+      end
+    end
+
     hl.config({
       monitor = {
         "HDMI-A-2,2560x1440@59.95,1280x0,1.5",
@@ -298,6 +318,10 @@ wayland.windowManager.hyprland = {
     hl.bind(main_mod .. " + B", hl.dsp.exec_cmd("${config.programs.firefox.finalPackage}/bin/firefox"))
     hl.bind(main_mod .. " + C", hl.dsp.exec_cmd("${pkgs.vscodium}/bin/codium"))
     hl.bind(main_mod .. " + L", hl.dsp.exec_cmd("pidof hyprlock || ${pkgs.hyprlock}/bin/hyprlock"))
+    hl.bind(main_mod .. " + left", snap_focused_window(0, 0, 0.5, 1))
+    hl.bind(main_mod .. " + right", snap_focused_window(0.5, 0, 0.5, 1))
+    hl.bind(main_mod .. " + up", snap_focused_window(0, 0, 1, 0.5))
+    hl.bind(main_mod .. " + down", snap_focused_window(0, 0.5, 1, 0.5))
     hl.bind(main_mod .. " + SHIFT + S", hl.dsp.exec_cmd("${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp)\" - | ${pkgs.wl-clipboard}/bin/wl-copy --type image/png"))
     hl.bind(main_mod .. " + V", hl.dsp.exec_cmd("${pkgs.cliphist}/bin/cliphist list | ${pkgs.fuzzel}/bin/fuzzel --dmenu | ${pkgs.cliphist}/bin/cliphist decode | ${pkgs.wl-clipboard}/bin/wl-copy"))
     hl.bind(main_mod .. " + SHIFT + V", hl.dsp.exec_cmd("${pkgs.cliphist}/bin/cliphist wipe"))
