@@ -20,6 +20,47 @@ let
     hash = "sha256-9UmfM/CdcVgVHpvS7A+vef+PtXKS+E/dcobZbQ8EJNg=";
   };
 
+  nightPlusIcon = pkgs.fetchurl {
+    url = "https://raw.githubusercontent.com/lucide-icons/lucide/59978cecf84986af59f1f9f503bcebdc89c6d166/icons/moon-star.svg";
+    hash = "sha256-J2tx4AXE27f//f4F0OZmKGdbSPT1a/uIrtWSYfO2HlY=";
+  };
+
+  nightMode = pkgs.writeShellScriptBin "night-mode" ''
+    state_file="$XDG_RUNTIME_DIR/night-mode"
+    mode="$(cat "$state_file" 2>/dev/null || printf 'off')"
+
+    case "$1" in
+      next)
+        case "$mode" in
+          off)
+            mode=night
+            ${pkgs.hyprland}/bin/hyprctl hyprsunset temperature 3500
+            ;;
+          night)
+            mode=night-plus
+            ${pkgs.hyprland}/bin/hyprctl hyprsunset temperature 2200
+            ;;
+          *)
+            mode=off
+            ${pkgs.hyprland}/bin/hyprctl hyprsunset identity
+            ;;
+        esac
+        printf '%s\\n' "$mode" > "$state_file"
+        ;;
+    esac
+
+    case "$mode" in
+      night) tooltip='Night mode: 3500 K' ;;
+      night-plus) tooltip='Night+ mode: 2200 K' ;;
+      *) mode=off; tooltip='Night mode: off' ;;
+    esac
+    printf '{"alt":"%s","tooltip":"%s"}\\n' "$mode" "$tooltip"
+  '';
+
+  resetNightMode = pkgs.writeShellScript "reset-night-mode" ''
+    printf 'off\\n' > "$XDG_RUNTIME_DIR/night-mode"
+  '';
+
   aiUsage = pkgs.writers.writePython3Bin "ai-usage" {
     flakeIgnore = [ "E302" "E305" "E306" "E501" ];
   } ''
@@ -169,6 +210,7 @@ home.homeDirectory = "/home/przvl";
 home.stateVersion = "26.05";
 programs.git.enable = true;
 home.file.".local/share/wayle/icons/hicolor/scalable/actions/cm-ai-usage-symbolic.svg".source = aiUsageIcon;
+home.file.".local/share/wayle/icons/hicolor/scalable/actions/ld-moon-star-symbolic.svg".source = nightPlusIcon;
 programs.bash = {
   enable = true;
   initExtra = ''
@@ -298,6 +340,19 @@ services.hypridle = {
     ];
   };
 };
+
+# Keep the filter daemon independent from Wayle so the custom three-state
+# status control can adjust it without restarting the bar.
+services.hyprsunset = {
+  enable = true;
+  settings.profile = [
+    {
+      time = "00:00";
+      identity = true;
+    }
+  ];
+};
+systemd.user.services.hyprsunset.Service.ExecStartPre = resetNightMode;
 
 services.hyprpaper = {
   enable = true;
@@ -558,14 +613,28 @@ services.wayle = {
         {
           monitor = "*";
           left = [ "hyprland-workspaces" ];
-          center = [ "hyprsunset" "idle-inhibit" "separator" "clock" ];
+          center = [ "custom-night-mode" "idle-inhibit" "separator" "clock" ];
           right = [ "custom-ai-usage" "network" "volume" "brightness" "battery" ];
         }
       ];
     };
 
     modules = {
+      clock.format = "%a %b %d  %H:%M";
       custom = [
+        {
+          id = "night-mode";
+          command = "${nightMode}/bin/night-mode status";
+          interval-ms = 0;
+          icon-map = {
+            off = "ld-sun-symbolic";
+            night = "ld-moon-symbolic";
+            night-plus = "ld-moon-star-symbolic";
+          };
+          label-show = false;
+          left-click = "${nightMode}/bin/night-mode next";
+          on-action = "${nightMode}/bin/night-mode status";
+        }
         {
           id = "ai-usage";
           command = "${aiUsage}/bin/ai-usage";
@@ -576,11 +645,6 @@ services.wayle = {
           left-click = "${aiUsage}/bin/ai-usage details | ${pkgs.fuzzel}/bin/fuzzel --dmenu --hide-prompt --lines=14 --width=70";
         }
       ];
-      clock.format = "%a %b %d  %H:%M";
-      hyprsunset = {
-        temperature = 3500;
-        label-show = false;
-      };
       idle-inhibit = {
         label-show = false;
         left-click = "wayle idle toggle --indefinite";
