@@ -180,10 +180,11 @@ programs.fuzzel = {
 
 home.pointerCursor = {
   enable = true;
-  package = pkgs.everforest-cursors;
-  name = "everforest-cursors-light";
+  package = pkgs.capitaine-cursors;
+  name = "capitaine-cursors";
   size = 32;
   gtk.enable = true;
+  hyprcursor.enable = true;
   x11.enable = true;
 };
 
@@ -232,6 +233,10 @@ systemd.user.services = {
 wayland.windowManager.hyprland = {
   enable = true;
   configType = "lua";
+  settings.env = [
+    "HYPRCURSOR_THEME,capitaine-cursors"
+    "HYPRCURSOR_SIZE,32"
+  ];
   extraConfig = ''
     local main_mod = "SUPER"
     local terminal = "alacritty"
