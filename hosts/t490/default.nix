@@ -18,6 +18,15 @@ home-manager.useUserPackages = true;
 home-manager.users.przvl = import ../../home/przvl;
 programs.hyprland.enable = true;
 
+# This is a single-user machine: start the desktop directly after boot.
+services.greetd = {
+  enable = true;
+  settings.initial_session = {
+    command = "${pkgs.hyprland}/bin/Hyprland";
+    user = "przvl";
+  };
+};
+
 # Desktop services used by Hyprland and Waybar.
 security.polkit.enable = true;
 security.rtkit.enable = true;
