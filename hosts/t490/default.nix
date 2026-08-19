@@ -21,21 +21,13 @@ programs.hyprland = {
   withUWSM = true;
 };
 
-# This is a single-user machine: start the desktop directly after boot.
+# Start a login prompt at boot, then launch Hyprland after authentication.
 services.greetd = {
   enable = true;
-  settings = {
-    # `initial_session` starts this single-user desktop automatically once.
-    initial_session = {
-      command = "${pkgs.uwsm}/bin/uwsm start hyprland-uwsm.desktop";
-      user = "przvl";
-    };
-
-    # greetd requires a fallback session after the initial session exits.
-    default_session = {
-      command = "${pkgs.greetd}/bin/agreety --cmd '${pkgs.uwsm}/bin/uwsm start hyprland-uwsm.desktop'";
-      user = "greeter";
-    };
+  useTextGreeter = true;
+  settings.default_session = {
+    command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --asterisks --cmd '${pkgs.uwsm}/bin/uwsm start -e -D Hyprland hyprland.desktop'";
+    user = "greeter";
   };
 };
 
