@@ -16,17 +16,14 @@ nix.settings.experimental-features = [ "nix-command" "flakes" ];
 home-manager.useGlobalPkgs = true;
 home-manager.useUserPackages = true;
 home-manager.users.przvl = import ../../home/przvl;
-programs.hyprland = {
-  enable = true;
-  withUWSM = true;
-};
+programs.hyprland.enable = true;
 
 # Start a login prompt at boot, then launch Hyprland after authentication.
 services.greetd = {
   enable = true;
   useTextGreeter = true;
   settings.default_session = {
-    command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --asterisks --cmd '${pkgs.uwsm}/bin/uwsm start -e -D Hyprland hyprland.desktop'";
+    command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --asterisks --cmd ${pkgs.hyprland}/bin/start-hyprland";
     user = "greeter";
   };
 };
