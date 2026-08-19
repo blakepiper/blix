@@ -553,19 +553,11 @@ services.wayle = {
       button-gap = 0.4;
       button-rounding = "none";
       button-group-rounding = "none";
-      button-group-opacity = 0;
-      button-group-padding = 1.0;
       layout = [
         {
           monitor = "*";
           left = [ "hyprland-workspaces" ];
-          center = [
-            {
-              name = "status-controls";
-              modules = [ "hyprsunset" "idle-inhibit" ];
-            }
-            "clock"
-          ];
+          center = [ "hyprsunset" "idle-inhibit" "separator" "clock" ];
           right = [ "custom-ai-usage" "network" "volume" "brightness" "battery" ];
         }
       ];
@@ -591,6 +583,12 @@ services.wayle = {
       idle-inhibit = {
         label-show = false;
         left-click = "wayle idle toggle --indefinite";
+      };
+      # An invisible, fixed-width separator creates a clear visual break
+      # between the status controls and the clock.
+      separator = {
+        size = 16;
+        color = "bg";
       };
       network.label-show = false;
       volume.label-show = false;
