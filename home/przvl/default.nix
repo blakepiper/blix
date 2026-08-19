@@ -306,7 +306,8 @@ wayland.windowManager.hyprland = {
 
     hl.config({
       monitor = {
-        "HDMI-A-2,2560x1440@59.95,1280x0,1.5",
+        "eDP-1,1920x1080@60.008,0x0,1.25",
+        "HDMI-A-2,2560x1440@59.95,1536x0,1.5",
       },
       input = {
         natural_scroll = true,
