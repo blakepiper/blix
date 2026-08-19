@@ -20,24 +20,6 @@ let
     hash = "sha256-9UmfM/CdcVgVHpvS7A+vef+PtXKS+E/dcobZbQ8EJNg=";
   };
 
-  blesh = pkgs.stdenvNoCC.mkDerivation {
-    pname = "blesh";
-    version = "git-63c23e9";
-    src = pkgs.fetchgit {
-      url = "https://github.com/akinomyoga/ble.sh.git";
-      rev = "63c23e99f1f7133ae57b79f87b16d1f68cd39884";
-      hash = "sha256-zE9ejja5uPrU0fCIofid29EeW9YAyEuTJ5Lja/PiLQY=";
-      fetchSubmodules = true;
-    };
-    nativeBuildInputs = [ pkgs.gnumake pkgs.gawk ];
-    buildPhase = ''
-      make BLE_GIT_COMMIT_ID=63c23e9 BLE_GIT_BRANCH=master
-    '';
-    installPhase = ''
-      make BLE_GIT_COMMIT_ID=63c23e9 BLE_GIT_BRANCH=master install INSDIR=$out/share/blesh USE_DOC=no
-    '';
-  };
-
   aiUsage = pkgs.writers.writePython3Bin "ai-usage" {
     flakeIgnore = [ "E302" "E305" "E306" "E501" ];
   } ''
@@ -191,7 +173,7 @@ programs.bash = {
   enable = true;
   initExtra = ''
     if [[ $- == *i* ]]; then
-      source -- ${blesh}/share/blesh/ble.sh --attach=none
+      source -- ${pkgs.blesh}/share/blesh/ble.sh --attach=none
       ble-attach
     fi
   '';
