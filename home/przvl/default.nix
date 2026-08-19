@@ -24,6 +24,7 @@ let
     flakeIgnore = [ "E302" "E305" "E306" "E501" ];
   } ''
     import json
+    import os
     import subprocess
     import sys
     import urllib.request
@@ -35,6 +36,21 @@ let
         "Codex": ["${pkgs.python3}/bin/python3", "${modelUsageSource}/shell/plugins/model-usage/scripts/codex_usage_scanner.py"],
         "OpenCode Go": ["${pkgs.python3}/bin/python3", "${modelUsageSource}/shell/plugins/model-usage/scripts/opencode_go_usage_scanner.py"],
     }
+
+    cache_path = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "ai-usage/providers.json"
+
+    def read_cache():
+        try:
+            providers = json.loads(cache_path.read_text())
+            return providers if isinstance(providers, list) else None
+        except (OSError, ValueError):
+            return None
+
+    def write_cache(providers):
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = cache_path.with_suffix(".tmp")
+        temporary.write_text(json.dumps(providers))
+        temporary.replace(cache_path)
 
     def run_scanner(name):
         try:
@@ -132,8 +148,14 @@ let
         text = f"AI {1 - max(usage):.0%} left" if usage else "AI —"
         return json.dumps({"text": text, "tooltip": details(providers), "percentage": int(max(usage, default=0) * 100)})
 
-    providers = load_providers()
-    if len(sys.argv) > 1 and sys.argv[1] == "details":
+    show_details = len(sys.argv) > 1 and sys.argv[1] == "details"
+    # The bar refreshes this snapshot every five minutes.  Reading it on click
+    # avoids waiting for the Codex RPC and the provider usage endpoints.
+    providers = read_cache() if show_details else None
+    if providers is None:
+        providers = load_providers()
+        write_cache(providers)
+    if show_details:
         print(details(providers))
     else:
         print(summary(providers))
