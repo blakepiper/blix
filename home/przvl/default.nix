@@ -258,15 +258,27 @@ wayland.windowManager.hyprland = {
         if not window or not window.monitor then return end
 
         local monitor = window.monitor
+        local reserved = monitor.reserved
+        local top = reserved[1] or 0
+        local bottom = reserved[2] or 0
+        local left = reserved[3] or 0
+        local right = reserved[4] or 0
+        -- Monitor dimensions are physical pixels, while window geometry uses
+        -- logical coordinates.  Account for output scale and layer-shell
+        -- reservations (such as the top bar) before splitting the work area.
+        local work_x = monitor.x + left
+        local work_y = monitor.y + top
+        local work_width = monitor.width / monitor.scale - left - right
+        local work_height = monitor.height / monitor.scale - top - bottom
         hl.dispatch(hl.dsp.window.float({ action = "set", window = window }))
         hl.dispatch(hl.dsp.window.resize({
-          x = monitor.width * width,
-          y = monitor.height * height,
+          x = work_width * width,
+          y = work_height * height,
           window = window,
         }))
         hl.dispatch(hl.dsp.window.move({
-          x = monitor.x + monitor.width * x,
-          y = monitor.y + monitor.height * y,
+          x = work_x + work_width * x,
+          y = work_y + work_height * y,
           window = window,
         }))
       end
