@@ -15,6 +15,11 @@ let
     hash = "sha256-nDTvfDm4PmZj8k4v8dsjy4Ru8LiEJa2nGLxas5CmBHo=";
   };
 
+  aiUsageIcon = pkgs.fetchurl {
+    url = "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/sparkles.svg";
+    hash = "sha256-9UmfM/CdcVgVHpvS7A+vef+PtXKS+E/dcobZbQ8EJNg=";
+  };
+
   aiUsage = pkgs.writers.writePython3Bin "ai-usage" {
     flakeIgnore = [ "E302" "E305" "E306" "E501" ];
   } ''
@@ -141,6 +146,7 @@ home.username = "przvl";
 home.homeDirectory = "/home/przvl";
 home.stateVersion = "26.05";
 programs.git.enable = true;
+home.file.".local/share/wayle/icons/hicolor/scalable/actions/cm-ai-usage-symbolic.svg".source = aiUsageIcon;
 home.packages = with pkgs; [
 ripgrep
 fd
@@ -541,7 +547,8 @@ services.wayle = {
           id = "ai-usage";
           command = "${aiUsage}/bin/ai-usage";
           interval-ms = 300000;
-          icon-name = "ld-sparkles";
+          icon-name = "cm-ai-usage-symbolic";
+          label-show = false;
           tooltip-format = "{{ tooltip }}";
           left-click = "${aiUsage}/bin/ai-usage details | ${pkgs.fuzzel}/bin/fuzzel --dmenu --prompt='AI usage' --lines=14 --width=70";
         }
