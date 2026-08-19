@@ -287,7 +287,7 @@ wayland.windowManager.hyprland = {
     hl.config({
       monitor = {
         "eDP-1,1920x1080@60.008,0x0,1.25",
-        "HDMI-A-2,2560x1440@59.95,1536x0,1.5",
+        "HDMI-A-2,2560x1440@59.95,-1707x0,1.5",
       },
       input = {
         natural_scroll = true,
@@ -307,6 +307,7 @@ wayland.windowManager.hyprland = {
     hl.bind(main_mod .. " + C", hl.dsp.exec_cmd("${pkgs.vscodium}/bin/codium"))
     hl.bind(main_mod .. " + L", hl.dsp.exec_cmd("pidof hyprlock || ${pkgs.hyprlock}/bin/hyprlock"))
     hl.bind(main_mod .. " + SHIFT + F", hl.dsp.window.fullscreen())
+    hl.bind(main_mod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
     hl.bind(main_mod .. " + left", snap_focused_window(0, 0, 0.5, 1))
     hl.bind(main_mod .. " + right", snap_focused_window(0.5, 0, 0.5, 1))
     hl.bind(main_mod .. " + up", snap_focused_window(0, 0, 1, 0.5))
