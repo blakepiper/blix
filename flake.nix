@@ -14,6 +14,7 @@ system = "x86_64-linux";
 
 modules = [
 ./hosts/t490
+home-manager.nixosModules.home-manager
 ];
 };
 };
