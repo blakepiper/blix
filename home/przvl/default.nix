@@ -607,7 +607,7 @@ services.wayle = {
       # between the status controls and the clock.
       separator = {
         size = 32;
-        color = "bg";
+        color = "#f5e4d8";
       };
       network.label-show = false;
       volume.label-show = false;
