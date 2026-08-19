@@ -262,8 +262,8 @@ wayland.windowManager.hyprland = {
     })
     hl.monitor({
       output = "HDMI-A-2",
-      mode = "2560x1440@59.95",
-      position = "-1600x0",
+      mode = "3840x2160@30",
+      position = "-2560x0",
       scale = 1.5,
     })
 
