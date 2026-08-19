@@ -234,8 +234,8 @@ wayland.windowManager.hyprland = {
   enable = true;
   configType = "lua";
   settings.env = [
-    "HYPRCURSOR_THEME,capitaine-cursors"
-    "HYPRCURSOR_SIZE,32"
+    { _args = [ "HYPRCURSOR_THEME" "capitaine-cursors" ]; }
+    { _args = [ "HYPRCURSOR_SIZE" "32" ]; }
   ];
   extraConfig = ''
     local main_mod = "SUPER"
