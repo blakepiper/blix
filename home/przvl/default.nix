@@ -244,13 +244,28 @@ systemd.user.services = {
 wayland.windowManager.hyprland = {
   enable = true;
   configType = "lua";
-  settings.env = [
+  settings = {
+    env = [
     { _args = [ "XCURSOR_THEME" "WhiteSur-cursors" ]; }
     { _args = [ "XCURSOR_SIZE" "32" ]; }
-  ];
+    ];
+  };
   extraConfig = ''
     local main_mod = "SUPER"
     local terminal = "alacritty"
+
+    hl.monitor({
+      output = "eDP-1",
+      mode = "1920x1080@60.008",
+      position = "0x0",
+      scale = 1.25,
+    })
+    hl.monitor({
+      output = "HDMI-A-2",
+      mode = "2560x1440@59.95",
+      position = "-1600x0",
+      scale = 1.5,
+    })
 
     local function snap_focused_window(x, y, width, height)
       return function()
@@ -285,10 +300,6 @@ wayland.windowManager.hyprland = {
     end
 
     hl.config({
-      monitor = {
-        "eDP-1,1920x1080@60.008,0x0,1.25",
-        "HDMI-A-2,2560x1440@59.95,-1707x0,1.5",
-      },
       input = {
         natural_scroll = true,
         repeat_delay = 300,
