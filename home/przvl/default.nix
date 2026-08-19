@@ -93,7 +93,7 @@ programs.waybar = {
       format = "Battery {capacity}%";
       format-charging = "Charging {capacity}%";
       format-plugged = "Plugged in {capacity}%";
-      tooltip-format = "{timeToEmpty}";
+      tooltip-format = "{time}";
     };
 
     tray.spacing = 8;
