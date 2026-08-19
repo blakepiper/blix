@@ -39,7 +39,6 @@ unzip
 p7zip
 noto-fonts
 noto-fonts-color-emoji
-nerd-fonts.jetbrains-mono
 ];
 
 programs.firefox = {
