@@ -16,7 +16,7 @@ let
   };
 
   aiUsageIcon = pkgs.fetchurl {
-    url = "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/sparkles.svg";
+    url = "https://raw.githubusercontent.com/lucide-icons/lucide/59978cecf84986af59f1f9f503bcebdc89c6d166/icons/sparkles.svg";
     hash = "sha256-9UmfM/CdcVgVHpvS7A+vef+PtXKS+E/dcobZbQ8EJNg=";
   };
 
