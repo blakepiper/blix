@@ -312,9 +312,15 @@ wayland.windowManager.hyprland = {
 services.wayle = {
   enable = true;
   settings = {
+    general = {
+      font-sans = "JetBrainsMono Nerd Font";
+      font-mono = "JetBrainsMono Nerd Font";
+    };
+
     styling = {
       theme-provider = "wayle";
-      rounding = "sm";
+      scale = 0.85;
+      rounding = "none";
       palette = {
         bg = "#f5e4d8";
         surface = "#f6e7dc";
@@ -330,14 +336,26 @@ services.wayle = {
     };
 
     bar = {
+      scale = 0.75;
+      padding = 0.15;
+      padding-ends = 0.25;
+      module-gap = 0.25;
       location = "top";
       rounding = "none";
+      button-variant = "basic";
+      button-bg-opacity = 0;
+      button-label-size = 0.9;
+      button-label-weight = "normal";
+      button-label-padding = 0.25;
+      button-gap = 0.4;
+      button-rounding = "none";
+      button-group-rounding = "none";
       layout = [
         {
           monitor = "*";
           left = [ "hyprland-workspaces" ];
           center = [ "clock" ];
-          right = [ "network" "volume" "brightness" "battery" "systray" ];
+          right = [ "network" "volume" "brightness" "battery" ];
         }
       ];
     };
