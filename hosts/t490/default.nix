@@ -37,8 +37,16 @@ services.pipewire = {
   alsa.support32Bit = true;
 };
 services.upower.enable = true;
+services.udisks2.enable = true;
 services.power-profiles-daemon.enable = true;
 powerManagement.enable = true;
+security.pam.services.hyprlock = { };
+nix.gc = {
+  automatic = true;
+  dates = "weekly";
+  options = "--delete-older-than 30d";
+};
+nix.optimise.automatic = true;
 services.logind.settings.Login = {
   HandleLidSwitch = "suspend";
   HandleLidSwitchExternalPower = "suspend";
