@@ -206,6 +206,15 @@ programs.fuzzel = {
   };
 };
 
+home.pointerCursor = {
+  enable = true;
+  package = pkgs.everforest-cursors;
+  name = "everforest-cursors-light";
+  size = 32;
+  gtk.enable = true;
+  x11.enable = true;
+};
+
 gtk = {
   enable = true;
   colorScheme = "light";
