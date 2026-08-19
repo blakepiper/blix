@@ -1,5 +1,17 @@
 { config, pkgs, ... }:
 
+let
+  togglePowerProfile = pkgs.writeShellScript "toggle-power-profile" ''
+    if [ "$(${pkgs.power-profiles-daemon}/bin/powerprofilesctl get)" = "power-saver" ]; then
+      next_profile="balanced"
+    else
+      next_profile="power-saver"
+    fi
+
+    exec ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set "$next_profile"
+  '';
+in
+
 {
 home.username = "przvl";
 home.homeDirectory = "/home/przvl";
@@ -208,30 +220,40 @@ programs.waybar = {
     };
 
     clock = {
-      format = "{:%a %b %d  %H:%M}";
-      tooltip-format = "{:%Y-%m-%d}";
+      format = "󰥔  {:%a %b %d  %H:%M}";
+      tooltip-format = "{:%Y-%m-%d}\nClick to copy the current timestamp";
+      on-click = "${pkgs.coreutils}/bin/date --iso-8601=seconds | ${pkgs.wl-clipboard}/bin/wl-copy";
     };
 
     network = {
-      format-wifi = "Wi-Fi {signalStrength}%";
-      format-ethernet = "Ethernet";
-      format-disconnected = "Offline";
-      tooltip-format-wifi = "{essid} ({signalStrength}%)";
-      on-click = "nm-connection-editor";
+      format-wifi = "󰖩  {signalStrength}%";
+      format-ethernet = "󰈀";
+      format-disconnected = "󰖪";
+      tooltip-format-wifi = "{essid} ({signalStrength}%)\nClick to manage connections";
+      tooltip-format-ethernet = "{ifname}\nClick to manage connections";
+      tooltip-format-disconnected = "Disconnected\nClick to manage connections";
+      on-click = "${pkgs.networkmanagerapplet}/bin/nm-connection-editor";
     };
 
     pulseaudio = {
-      format = "Audio {volume}%";
-      format-muted = "Audio muted";
-      on-click = "pavucontrol";
-      on-scroll-up = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+";
-      on-scroll-down = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-";
+      format = "{icon}  {volume}%";
+      format-muted = "󰝟";
+      format-icons = [ "" "" "" ];
+      tooltip-format = "{desc}\nClick for audio controls; right-click to mute";
+      on-click = "${pkgs.pavucontrol}/bin/pavucontrol";
+      on-click-right = "${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle";
+      on-scroll-up = "${pkgs.wireplumber}/bin/wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+";
+      on-scroll-down = "${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-";
     };
 
     backlight = {
-      format = "Brightness {percent}%";
-      on-scroll-up = "brightnessctl set 5%+";
-      on-scroll-down = "brightnessctl set 5%-";
+      format = "{icon}  {percent}%";
+      format-icons = [ "󰃞" "󰃟" "󰃠" ];
+      tooltip-format = "Brightness: {percent}%\nLeft/right click to adjust";
+      on-click = "${pkgs.brightnessctl}/bin/brightnessctl set 10%+";
+      on-click-right = "${pkgs.brightnessctl}/bin/brightnessctl set 10%-";
+      on-scroll-up = "${pkgs.brightnessctl}/bin/brightnessctl set 5%+";
+      on-scroll-down = "${pkgs.brightnessctl}/bin/brightnessctl set 5%-";
     };
 
     battery = {
@@ -239,17 +261,19 @@ programs.waybar = {
         warning = 30;
         critical = 15;
       };
-      format = "Battery {capacity}%";
-      format-charging = "Charging {capacity}%";
-      format-plugged = "Plugged in {capacity}%";
-      tooltip-format = "{time}";
+      format = "{icon}  {capacity}%";
+      format-charging = "  {capacity}%";
+      format-plugged = "  {capacity}%";
+      format-icons = [ "" "" "" "" "" ];
+      tooltip-format = "{time}\nClick to toggle balanced/power-saver mode";
+      on-click = "${togglePowerProfile}";
     };
 
     tray.spacing = 8;
   };
   style = ''
     * {
-      font-family: sans-serif;
+      font-family: "JetBrainsMono Nerd Font", sans-serif;
       font-size: 13px;
     }
 
@@ -266,6 +290,15 @@ programs.waybar = {
     #battery,
     #tray {
       padding: 0 8px;
+    }
+
+    #clock:hover,
+    #network:hover,
+    #pulseaudio:hover,
+    #backlight:hover,
+    #battery:hover {
+      background: #313244;
+      border-radius: 6px;
     }
 
     #battery.warning { color: #f9e2af; }
