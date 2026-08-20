@@ -222,7 +222,7 @@ home.file.".local/share/wayle/icons/hicolor/scalable/actions/ld-eclipse-symbolic
 programs.bash = {
   enable = true;
   initExtra = ''
-    if [[ $- == *i* ]]; then
+    if [[ $- == *i* && -z ''${BLE_SESSION_ID-} ]]; then
       source -- ${pkgs.blesh}/share/blesh/ble.sh --attach=none
       ble-attach
     fi
