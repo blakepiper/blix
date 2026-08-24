@@ -1,4 +1,4 @@
-{ pkgs, modelUsageSource }:
+{ pkgs }:
 
 pkgs.writers.writePython3Bin "ai-usage" {
   flakeIgnore = [ "E302" "E305" "E306" "E501" ];
@@ -13,9 +13,9 @@ pkgs.writers.writePython3Bin "ai-usage" {
   from pathlib import Path
 
   scanners = {
-      "Claude Code": ["${pkgs.python3}/bin/python3", "${modelUsageSource}/shell/plugins/model-usage/scripts/claude_usage_scanner.py"],
-      "Codex": ["${pkgs.python3}/bin/python3", "${modelUsageSource}/shell/plugins/model-usage/scripts/codex_usage_scanner.py"],
-      "OpenCode Go": ["${pkgs.python3}/bin/python3", "${modelUsageSource}/shell/plugins/model-usage/scripts/opencode_go_usage_scanner.py"],
+      "Claude Code": ["${pkgs.python3}/bin/python3", "${./ai-usage-scanners/claude.py}"],
+      "Codex": ["${pkgs.python3}/bin/python3", "${./ai-usage-scanners/codex.py}"],
+      "OpenCode Go": ["${pkgs.python3}/bin/python3", "${./ai-usage-scanners/opencode-go.py}"],
   }
 
   cache_path = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "ai-usage/providers.json"

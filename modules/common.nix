@@ -6,22 +6,11 @@
 { config, lib, pkgs, ... }:
 
 let
-  blarchySource = pkgs.fetchFromGitHub {
-    owner = "blakepiper";
-    repo = "blarchy";
-    rev = "1badd3452d4e94f23b122970ae1f41bb79c68f85";
-    hash = "sha256-nDTvfDm4PmZj8k4v8dsjy4Ru8LiEJa2nGLxas5CmBHo=";
+  blixSddmTheme = import ./sddm-theme.nix {
+    inherit pkgs;
+    palette = import ../home/przvl/themes/blix.nix;
+    font = (import ../home/przvl/theme.nix).font;
   };
-
-  # Keep Blarchy's login-screen artwork, but add the session control its
-  # single-desktop setup does not need so Xfce remains selectable in Blix.
-  blarchySddmTheme = pkgs.runCommand "blarchy-sddm-theme" {
-    nativeBuildInputs = [ pkgs.patch ];
-  } ''
-    cp -r ${blarchySource}/default/sddm/omarchy "$out"
-    chmod -R u+w "$out"
-    patch -d "$out" -p1 < ${./blarchy-sddm-session-picker.patch}
-  '';
 
   # Hyprland also ships an experimental UWSM entry. Blix manages its user
   # session through Home Manager, so expose only the regular entry and keep
@@ -98,7 +87,7 @@ in
     defaultSession = "hyprland";
     sddm = {
       enable = true;
-      theme = toString blarchySddmTheme;
+      theme = toString blixSddmTheme;
       settings = {
         Users = {
           RememberLastUser = true;
