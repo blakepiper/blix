@@ -6,7 +6,6 @@
 
 {
   config = lib.mkIf (config.blix.formFactor == "laptop") {
-    powerManagement.enable = true;
     services.power-profiles-daemon.enable = true;
 
     # Suspend on lid close, but keep running while docked to an external

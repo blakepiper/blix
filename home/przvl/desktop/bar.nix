@@ -1,7 +1,7 @@
 { config, lib, pkgs, resources, theme, nightMode, aiUsage, ... }:
 
 let
-  # Only laptops have a battery to report on.
+  # Only laptops have a battery and a backlight to report on.
   isLaptop = config.blix.formFactor == "laptop";
 in
 {
@@ -56,8 +56,8 @@ in
             monitor = "*";
             left = [ "hyprland-workspaces" ];
             center = [ "custom-night-mode" "idle-inhibit" "separator" "clock" ];
-            right = [ "custom-ai-usage" "network" "volume" "brightness" ]
-              ++ lib.optional isLaptop "battery";
+            right = [ "custom-ai-usage" "network" "volume" ]
+              ++ lib.optionals isLaptop [ "brightness" "battery" ];
           }
         ];
       };
@@ -100,12 +100,12 @@ in
         };
         network.label-show = false;
         volume.label-show = false;
-        brightness.label-show = false;
         hyprland-workspaces = {
           display-mode = "none";
           app-icons-show = true;
         };
       } // lib.optionalAttrs isLaptop {
+        brightness.label-show = false;
         battery = {
           label-show = false;
           thresholds = [

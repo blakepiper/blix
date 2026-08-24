@@ -60,7 +60,7 @@ home/przvl/
 - Behavior shared by a *class* of machine rather than by all of them belongs
   behind `blix.formFactor`: system-wide in `modules/laptop.nix`, user-level by
   testing `config.blix.formFactor` (as `desktop/bar.nix` does for the battery
-  indicator).
+  and brightness indicators).
 - `system.stateVersion` is per host. Never copy it to a new machine; set it to
   the release that machine was installed with.
 - Shared theme values belong in `theme.nix`; downloaded inputs belong in

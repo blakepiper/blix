@@ -12,7 +12,8 @@
       type = lib.types.enum [ "laptop" "desktop" ];
       description = ''
         What kind of machine this host is. Set from the host's
-        `blix.formFactor`; laptops gain battery-dependent user configuration.
+        `blix.formFactor`; laptops gain user configuration that depends on
+        having a battery or a backlight.
       '';
       example = "laptop";
     };
