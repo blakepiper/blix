@@ -11,13 +11,13 @@
 
   outputs = { nixpkgs, home-manager, ... }:
     let
-      # Build a NixOS system from the shared Blix configuration plus the
-      # host's own modules.
+      # Home Manager supplies NixOS module options used by the shared Blix
+      # configuration. Each host explicitly composes its shared, machine-class,
+      # hardware, and host-specific modules.
       mkHost = { modules, system ? "x86_64-linux" }:
         nixpkgs.lib.nixosSystem {
           inherit system;
           modules = [
-            ./modules/common.nix
             home-manager.nixosModules.home-manager
           ] ++ modules;
         };

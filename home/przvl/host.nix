@@ -1,9 +1,9 @@
 # Facts about the machine this user configuration is running on.
 #
 # Hosts supply these: `blix.formFactor` is mirrored down from the system
-# configuration by modules/common.nix, and `blix.monitors` is declared in
-# hosts/<hostname>/home.nix. Shared user configuration reads these options
-# instead of branching on the hostname.
+# configuration by modules/common/form-factor.nix, and `blix.monitors` is
+# declared in hosts/<hostname>/home.nix. Shared user configuration reads these
+# options instead of branching on the hostname.
 { lib, ... }:
 
 {

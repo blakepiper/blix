@@ -8,18 +8,20 @@ evaluation as the minimum acceptance criterion for every configuration change.
 ## Repository map
 
 - `flake.nix` declares the flake inputs and the `nixosConfigurations` outputs.
-  Hosts are built through the `mkHost` helper, which always applies
-  `modules/common.nix` and the Home Manager NixOS module.
+  Hosts are built through the `mkHost` helper, which supplies the Home Manager
+  NixOS module; each host explicitly imports the shared and machine-class
+  modules it needs.
 - `flake.lock` pins all flake inputs.
-- `modules/common.nix` owns shared system configuration that applies to every
-  Blix machine.
-- `modules/form-factor.nix` declares `blix.formFactor`, the `laptop`/`desktop`
-  switch every host must set. It is mirrored into the przvl Home Manager
-  configuration so user modules can branch on it.
-- `modules/laptop.nix` owns configuration shared by every Blix laptop and is
-  inert on desktops.
+- `modules/common/default.nix` aggregates shared system modules for the
+  standard Blix environment. Its sibling files separate boot, locale, Nix,
+  networking, users, fonts, packages, desktop sessions and services, Home
+  Manager integration, and the `blix.formFactor` option.
+- `modules/laptop/default.nix` aggregates behavior reusable across laptops,
+  currently generic power/lid policy and touchpad input settings. Hosts opt in
+  by importing the directory; do not import it for desktops.
 - `hosts/t490/default.nix` owns configuration specific to that machine and
-  imports its generated hardware module.
+  composes `modules/common`, `modules/laptop`, its generated hardware module,
+  and its genuinely device-specific modules.
 - `hosts/t490/hardware-configuration.nix` contains detected hardware settings;
   change it only when the machine's hardware or generated configuration
   intentionally changes.
@@ -31,24 +33,30 @@ evaluation as the minimum acceptance criterion for every configuration change.
   Wallpapers are committed under `themes/wallpapers/`; downscale a new one to
   the largest display it needs to cover rather than committing a source scan.
 - `hosts/t490/home.nix` owns `przvl` Home Manager settings that depend on this
-  machine, currently the `blix.monitors` layout declared in
-  `home/przvl/desktop/monitors.nix`.
+  machine, currently the `blix.monitors` layout whose typed option is declared
+  in `home/przvl/host.nix`.
 
 ## Scope and ownership
 
 - Put user applications and per-user desktop behavior in
   `home/przvl/default.nix`.
-- Put system-wide services, packages, users, security, login, and desktop
-  configuration that every Blix machine should have in `modules/common.nix`.
+- Put system-wide behavior that every Blix machine should have in the focused
+  file under `modules/common/`; register new common modules in
+  `modules/common/default.nix`.
+- Put behavior plausibly reusable across laptops in `modules/laptop/`, not in
+  an individual laptop host. Register new laptop modules in
+  `modules/laptop/default.nix`.
 - Put only machine-dependent settings in `hosts/<hostname>/default.nix`:
-  hostname, `system.stateVersion`, power and lid behavior, hardware quirks,
-  and host-specific networking tweaks.
+  hostname, `system.stateVersion`, hardware quirks, device-specific power
+  workarounds, and host-specific networking tweaks.
 - Put machine-dependent user settings in `hosts/<hostname>/home.nix`. Declare a
   typed option in `home/przvl/host.nix` and set it per host; do not branch on
   the hostname inside shared user configuration.
-- Put behavior common to a class of machine behind `blix.formFactor`:
-  system-wide in `modules/laptop.nix`, user-level by testing
-  `config.blix.formFactor`.
+- Put user-level machine-class behavior behind `config.blix.formFactor`.
+  System modules opt into a class by importing its directory from the host.
+- Never duplicate common or laptop-class configuration into individual hosts.
+  A future host should compose the shared modules and contain only its own
+  facts and exceptions.
 - Never move generated hardware facts out of a host's
   `hardware-configuration.nix`.
 - Keep package names inside the existing `with pkgs;` package lists. Do not add

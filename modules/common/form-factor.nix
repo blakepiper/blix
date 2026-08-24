@@ -1,9 +1,7 @@
 # How a host describes the kind of machine it is.
 #
-# `blix.formFactor` is the single switch hosts use to opt into machine-class
-# behavior. It selects modules/laptop.nix on the system side and is mirrored
-# into the przvl Home Manager configuration so user-level settings can branch
-# on it too, rather than testing the hostname.
+# `blix.formFactor` is mirrored into the przvl Home Manager configuration so
+# user-level settings can branch on the machine class rather than its hostname.
 { config, lib, ... }:
 
 {

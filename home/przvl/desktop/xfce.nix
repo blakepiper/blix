@@ -223,8 +223,9 @@ in
       "xfwm4/custom/override" = true;
     } // workspaceBindings;
 
-    # modules/laptop.nix declares lid behavior for every desktop. Tell Xfce's
-    # power manager not to take a second inhibitor or perform a second action.
+    # modules/laptop/power.nix declares lid behavior for every laptop. Tell
+    # Xfce's power manager not to take a second inhibitor or perform a second
+    # action.
     xfce4-power-manager."xfce4-power-manager/logind-handle-lid-switch" = true;
 
     xfce4-panel = panelSettings;

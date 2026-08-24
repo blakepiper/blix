@@ -5,15 +5,18 @@
 Declarative NixOS and Home Manager configuration for Blix machines and the
 `przvl` user. The repository currently defines one host, `t490`.
 
-A complete machine is composed from four parts:
+A complete machine is composed from five parts:
 
 ```text
-modules/common.nix                shared Blix system configuration
-home/przvl/                       shared przvl Home Manager configuration
-hosts/<host>/default.nix          host-specific system configuration
-hosts/<host>/home.nix             host-specific przvl Home Manager settings
+modules/common/                   shared Blix system configuration
+modules/<machine-class>/          optional reusable machine-class behavior
+hosts/<host>/default.nix          host-specific composition and settings
 hosts/<host>/hardware-configuration.nix   generated hardware facts
+home/przvl/                       shared przvl Home Manager configuration
 ```
+
+Host-specific Home Manager facts, such as monitor layouts, live in
+`hosts/<host>/home.nix` and are merged into the shared user configuration.
 
 ## Repository map
 
@@ -21,12 +24,27 @@ hosts/<host>/hardware-configuration.nix   generated hardware facts
 flake.nix                         Inputs and the nixosConfigurations outputs
 
 modules/
-├── common.nix                    Shared system configuration for every host
-├── form-factor.nix               Declares blix.formFactor ("laptop"/"desktop")
-└── laptop.nix                    Applied to hosts whose form factor is laptop
+├── common/
+│   ├── default.nix               Aggregates the standard Blix environment
+│   ├── boot.nix                  Shared UEFI/systemd-boot policy
+│   ├── locale.nix                Shared timezone and locale policy
+│   ├── nix.nix                   Nix, flakes, GC, and store optimization
+│   ├── desktop-session.nix       Hyprland, Xfce, and SDDM
+│   ├── desktop-services.nix      Audio, polkit, disks, and power reporting
+│   ├── form-factor.nix           Declares and mirrors blix.formFactor
+│   ├── networking.nix            Shared NetworkManager configuration
+│   ├── users.nix                 Shared system user definitions
+│   ├── fonts.nix                 Shared fonts
+│   ├── packages.nix              Shared system packages
+│   └── home-manager.nix          Shared Home Manager composition
+└── laptop/
+    ├── default.nix               Aggregates reusable laptop behavior
+    ├── input.nix                 Generic laptop touchpad behavior
+    └── power.nix                 Generic power profiles and lid policy
 
 hosts/t490/
-├── default.nix                   Form factor, hostname, power quirks, state version
+├── default.nix                   Host composition, hostname, Wi-Fi quirk, state version
+├── power.nix                     T490 AC-device-specific power-profile service
 ├── home.nix                      Monitor layout for this machine
 └── hardware-configuration.nix    Generated hardware facts; edit rarely
 
@@ -46,9 +64,11 @@ home/przvl/
 ## Navigation rules
 
 - Behavior that should apply to every Blix machine belongs in
-  `modules/common.nix`.
-- Behavior that depends on one machine's hardware, hostname, or form factor
-  belongs in `hosts/<host>/default.nix`.
+  the appropriate file under `modules/common/`.
+- Behavior reusable across laptops belongs in `modules/laptop/`; desktop hosts
+  simply do not import that module.
+- Behavior that depends on one machine's hardware, hostname, device names, or
+  quirks belongs in `hosts/<host>/`.
 - Generated hardware settings stay in that host's `hardware-configuration.nix`;
   never move filesystem UUIDs, kernel modules, or CPU settings into shared
   configuration.
@@ -58,10 +78,12 @@ home/przvl/
   which is merged into the shared `home/przvl` configuration. Declare the
   option in `home/przvl/host.nix` and set it per host rather than branching on
   the hostname.
-- Behavior shared by a *class* of machine rather than by all of them belongs
-  behind `blix.formFactor`: system-wide in `modules/laptop.nix`, user-level by
-  testing `config.blix.formFactor` (as `desktop/bar.nix` does for the battery
-  and brightness indicators).
+- User behavior shared by a *class* of machine branches on
+  `config.blix.formFactor` (as the desktop bars do for battery and brightness
+  indicators). System behavior is selected by importing the corresponding
+  machine-class module from the host.
+- Do not copy shared configuration into a host. Compose the common and
+  machine-class modules, then add only that host's facts and exceptions.
 - `system.stateVersion` is per host. Never copy it to a new machine; set it to
   the release that machine was installed with.
 - Shared theme values belong in `theme.nix`; downloaded inputs belong in
@@ -73,12 +95,11 @@ home/przvl/
 2. Generate that machine's hardware module:
    `nixos-generate-config --show-hardware-config > hosts/<hostname>/hardware-configuration.nix`.
 3. Write a small `hosts/<hostname>/default.nix` that imports
-   `./hardware-configuration.nix`, sets `networking.hostName`, sets
-   `system.stateVersion`, sets `blix.formFactor` to `"laptop"` or `"desktop"`,
-   adds `home-manager.users.przvl = import ./home.nix;`, and adds anything else
-   specific to that machine.
+   `../../modules/common`, `./hardware-configuration.nix`, and any appropriate
+   machine-class module such as `../../modules/laptop`.
 4. Write `hosts/<hostname>/home.nix` with that machine's `blix.monitors`
-   layout, as reported by `hyprctl monitors`.
+   layout, then set the hostname, form factor, state version, and only the
+   system behavior specific to that machine in its `default.nix`.
 5. Register it in `flake.nix`:
 
 ```nix
@@ -91,8 +112,10 @@ nixosConfigurations = {
 `mkHost` accepts a `system` argument for hosts on another platform, for example
 `mkHost { modules = [ ./hosts/pi ]; system = "aarch64-linux"; }`.
 
-Shared system and Home Manager configuration is applied automatically; nothing
-from `hosts/t490/` needs to be copied.
+6. Rebuild or install it with `sudo nixos-rebuild switch --flake .#<hostname>`
+   or the corresponding installation command.
+
+Nothing from `hosts/t490/` needs to be copied.
 
 ## Themes
 
