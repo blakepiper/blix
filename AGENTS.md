@@ -28,6 +28,8 @@ evaluation as the minimum acceptance criterion for every configuration change.
 - `home/przvl/themes/` owns the theme system: one palette per theme,
   `apps.nix` renders a palette into per-application files, and `blix-theme.sh`
   switches between them at runtime through `~/.config/blix/current`.
+  Wallpapers are committed under `themes/wallpapers/`; downscale a new one to
+  the largest display it needs to cover rather than committing a source scan.
 - `hosts/t490/home.nix` owns `przvl` Home Manager settings that depend on this
   machine, currently the `blix.monitors` layout declared in
   `home/przvl/desktop/monitors.nix`.

@@ -83,6 +83,17 @@ apply_theme() {
         esac
     fi
 
+    # hyprpaper reads its own config at start-up, so this only matters for a
+    # theme switch inside a running session.
+    if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] && [ -n "${WALLPAPER:-}" ]; then
+        # hyprpaper answers with an empty string on success, hyprland with "ok".
+        reply=$(hyprctl hyprpaper wallpaper ",$WALLPAPER,cover" 2>&1) || true
+        case "$reply" in
+            ok* | "") ;;
+            *) printf 'blix-theme: hyprpaper: %s\n' "$reply" >&2 ;;
+        esac
+    fi
+
     gsettings set org.gnome.desktop.interface color-scheme "$COLOR_SCHEME" || true
     gsettings set org.gnome.desktop.interface gtk-theme "$GTK_THEME" || true
 }

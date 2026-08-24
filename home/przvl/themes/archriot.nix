@@ -9,6 +9,8 @@
   label = "ArchRiot";
   polarity = "dark";
 
+  wallpaper = ./wallpapers/archriotdefault.png;
+
   colors = {
     background = "#1a1b26";
     surface = "#222436";

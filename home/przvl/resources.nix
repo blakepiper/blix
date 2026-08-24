@@ -1,11 +1,6 @@
 { pkgs }:
 
 {
-  wallpaper = pkgs.fetchurl {
-    url = "https://raw.githubusercontent.com/mattbbia/lakes-and-light/1c14ea7b3fbb0bc8bd7097c74261e65affdc712b/backgrounds/lake-albano-1790-1792.jpg";
-    hash = "sha256-iOBqjWHqqPaTNbFfKryBRF+P3A0MLSjqlYrH6sr5iqk=";
-  };
-
   modelUsageSource = pkgs.fetchFromGitHub {
     owner = "blakepiper";
     repo = "blarchy";

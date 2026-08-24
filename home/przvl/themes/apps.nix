@@ -328,6 +328,26 @@ in
     })
   '';
 
+  # Read by hyprpaper at session start. Switching themes also pushes the new
+  # wallpaper over hyprpaper's IPC so it changes without a restart.
+  "hyprpaper.conf" = pkgs.writeText "blix-hyprpaper-conf" (
+    lib.hm.generators.toHyprconf {
+      attrs = {
+        splash = false;
+        wallpaper = [
+          {
+            monitor = "";
+            path = "${palette.wallpaper}";
+            fit_mode = "cover";
+          }
+        ];
+      };
+      # hyprpaper requires `monitor` to be the first key of a wallpaper block;
+      # without this the generator sorts it after fit_mode and hyprpaper exits.
+      importantPrefixes = [ "$" "monitor" ];
+    }
+  );
+
   # Sourced by blix-theme for the parts that are applied with a command rather
   # than read from a file.
   "meta.sh" = pkgs.writeText "blix-theme-meta" ''
@@ -335,5 +355,6 @@ in
     POLARITY=${lib.escapeShellArg palette.polarity}
     GTK_THEME=${lib.escapeShellArg gtkTheme}
     COLOR_SCHEME=${lib.escapeShellArg (if dark then "prefer-dark" else "prefer-light")}
+    WALLPAPER=${lib.escapeShellArg "${palette.wallpaper}"}
   '';
 }

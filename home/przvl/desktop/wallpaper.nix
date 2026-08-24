@@ -1,17 +1,7 @@
-{ resources, ... }:
+{ ... }:
 
 {
-  services.hyprpaper = {
-    enable = true;
-    settings = {
-      splash = false;
-      wallpaper = [
-        {
-          monitor = "";
-          path = "${resources.wallpaper}";
-          fit_mode = "cover";
-        }
-      ];
-    };
-  };
+  # hyprpaper.conf, and so the wallpaper, is supplied by the active theme;
+  # see themes/.
+  services.hyprpaper.enable = true;
 }

@@ -92,12 +92,14 @@ in
 
   config.xdg.configFile."blix/themes".source = themesDir;
 
-  # Wayle and hyprlock have no include directive, so the active theme supplies
-  # their configuration file wholesale.
+  # Wayle, hyprlock, and hyprpaper have no include directive, so the active
+  # theme supplies their configuration file wholesale.
   config.xdg.configFile."wayle/config.toml".source =
     config.lib.file.mkOutOfStoreSymlink "${currentDir}/wayle.toml";
   config.xdg.configFile."hypr/hyprlock.conf".source =
     config.lib.file.mkOutOfStoreSymlink "${currentDir}/hyprlock.conf";
+  config.xdg.configFile."hypr/hyprpaper.conf".source =
+    config.lib.file.mkOutOfStoreSymlink "${currentDir}/hyprpaper.conf";
 
   # btop rewrites btop.conf itself, so that file stays btop's. Exposing the
   # theme under its themes directory instead lets btop pick it by name, and the

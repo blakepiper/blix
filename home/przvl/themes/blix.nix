@@ -3,6 +3,9 @@
   label = "Blix";
   polarity = "light";
 
+  # Lake Albano (1790-1792), downscaled from the source scan to 3840x2506.
+  wallpaper = ./wallpapers/blixdefault.jpg;
+
   colors = {
     background = "#f5e4d8";
     surface = "#f6e7dc";

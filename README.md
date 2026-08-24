@@ -124,13 +124,16 @@ Applications reach the active theme in one of two ways:
 | Neovim | `mini.base16` built from `current/base16.lua` |
 | Wayle | whole `config.toml` symlinked into `current/` |
 | Hyprlock | whole `hyprlock.conf` symlinked into `current/` |
+| hyprpaper | whole `hyprpaper.conf` symlinked into `current/`, plus an IPC push on switch |
 | Hyprland | border colors set by `hyprctl` on switch and at session start |
 
 ### Adding a theme
 
 Write `home/przvl/themes/<name>.nix` with a `label`, a `polarity` of `light` or
-`dark`, and the `colors` set, then register it in the `palettes` attribute of
-`themes/default.nix`. Nothing else needs to change; every application file is
+`dark`, a `wallpaper` path, and the `colors` set, then register it in the
+`palettes` attribute of `themes/default.nix`. Wallpapers live in
+`home/przvl/themes/wallpapers/` and are committed, so a new machine gets them
+with the repository. Nothing else needs to change; every application file is
 generated from the palette.
 
 Colors belong only in a palette. An application module must never hardcode
