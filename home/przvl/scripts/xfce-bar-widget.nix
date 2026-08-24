@@ -1,4 +1,4 @@
-{ pkgs, blixTheme, nightMode }:
+{ pkgs, nightMode, currentThemeDir }:
 
 pkgs.writeShellApplication {
   name = "blix-xfce-bar-widget";
@@ -71,16 +71,13 @@ pkgs.writeShellApplication {
         fi
         ;;
       theme)
-        current=$(${blixTheme}/bin/blix-theme current)
-        label=$current
-        while IFS=$'\t' read -r name candidate; do
-          if [ "$name" = "$current" ]; then
-            label=$candidate
-            break
-          fi
-        done < <(${blixTheme}/bin/blix-theme list)
-        printf '<icon>applications-graphics-symbolic</icon><iconclick>%s menu</iconclick><tool>Theme picker: %s</tool>\n' \
-          ${blixTheme}/bin/blix-theme "$label"
+        LABEL=Unknown
+        if [ -r ${currentThemeDir}/meta.sh ]; then
+          # shellcheck source=/dev/null
+          . ${currentThemeDir}/meta.sh
+        fi
+        printf '<icon>applications-graphics-symbolic</icon><iconclick>%s --user start --no-block blix-theme-menu.service</iconclick><tool>Theme picker: %s</tool>\n' \
+          ${pkgs.systemd}/bin/systemctl "$LABEL"
         ;;
       brightness)
         value=$(read_brightness)

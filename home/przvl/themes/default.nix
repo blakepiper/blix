@@ -153,4 +153,15 @@ in
     };
     Install.WantedBy = [ "graphical-session.target" ];
   };
+
+  # Panel plugins can survive a Home Manager activation with their previous
+  # command still in memory. Keep the click target stable and let systemd
+  # resolve the currently installed theme script from this reloaded unit.
+  config.systemd.user.services.blix-theme-menu = {
+    Unit.Description = "Choose and apply a Blix theme";
+    Service = {
+      Type = "oneshot";
+      ExecStart = "${script}/bin/blix-theme menu";
+    };
+  };
 }

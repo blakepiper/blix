@@ -5,7 +5,8 @@ let
   uint = value: { type = "uint"; inherit value; };
 
   barWidget = import ../scripts/xfce-bar-widget.nix {
-    inherit pkgs blixTheme nightMode;
+    inherit pkgs nightMode;
+    currentThemeDir = config.blix.currentThemeDir;
   };
 
   panelReload = pkgs.writeShellApplication {
