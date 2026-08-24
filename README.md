@@ -59,3 +59,21 @@ or generated configuration:
 ```sh
 nix build .#nixosConfigurations.t490.config.system.build.toplevel --no-link
 ```
+
+## Updating packages
+
+Packages in `home/przvl/packages.nix` are intentionally referenced by name,
+without individual version pins. Their versions come from the locked
+`nixpkgs` input. Refresh all flake inputs, then review and build the result:
+
+```sh
+nix flake update
+nix eval .#nixosConfigurations.t490.pkgs.codex.version --raw
+nix eval .#nixosConfigurations.t490.pkgs.claude-code.version --raw
+nix build .#nixosConfigurations.t490.config.system.build.toplevel --no-link
+sudo nixos-rebuild switch --flake .#t490
+```
+
+The lockfile remains committed so a rebuild is reproducible until the next
+explicit update. Downloaded resources in `home/przvl/resources.nix` remain
+content-addressed intentionally.
