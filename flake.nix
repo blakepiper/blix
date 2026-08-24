@@ -25,6 +25,7 @@
     {
       nixosConfigurations = {
         t490 = mkHost { modules = [ ./hosts/t490 ]; };
+	zen = mkHost { modules = [ ./hosts/zen ]; };
       };
     };
 }
