@@ -1,0 +1,125 @@
+# The Blix theme system.
+#
+# Every theme is a palette (themes/<name>.nix). apps.nix turns a palette into a
+# directory of per-application configuration files, and all of those
+# directories are installed to ~/.config/blix/themes. ~/.config/blix/current is
+# a symlink into one of them, and is the only mutable piece: switching themes
+# re-points it and nudges the running session, with no rebuild.
+#
+# Applications reach the active theme in one of two ways:
+#
+#   * those that can include a fragment (alacritty, fuzzel, GTK, btop, neovim)
+#     keep their home-manager configuration and point at ~/.config/blix/current
+#   * those that cannot (wayle, hyprlock) have their whole config file
+#     symlinked into ~/.config/blix/current instead
+{ config, lib, pkgs, theme, nightMode, aiUsage, ... }:
+
+let
+  palettes = {
+    blix = import ./blix.nix;
+    archriot = import ./archriot.nix;
+  };
+
+  defaultTheme = "blix";
+
+  configDir = "${config.xdg.configHome}/blix";
+  currentDir = "${configDir}/current";
+
+  script = pkgs.writeShellApplication {
+    name = "blix-theme";
+    runtimeInputs = with pkgs; [
+      coreutils
+      fuzzel
+      glib
+      hyprland
+      systemd
+    ];
+    text = ''
+      DEFAULT_THEME=${lib.escapeShellArg defaultTheme}
+    ''
+    + builtins.readFile ./blix-theme.sh;
+  };
+
+  mkThemeFiles = import ./apps.nix {
+    inherit (theme) font;
+    inherit pkgs lib nightMode aiUsage;
+    isLaptop = config.blix.formFactor == "laptop";
+    blixTheme = script;
+  };
+
+  themesDir = pkgs.runCommand "blix-themes" { } (
+    lib.concatStrings (
+      lib.mapAttrsToList (
+        name: palette:
+        let
+          files = mkThemeFiles palette;
+        in
+        ''
+          mkdir -p $out/${name}
+        ''
+        + lib.concatStrings (
+          lib.mapAttrsToList (file: source: ''
+            cp ${source} $out/${name}/${file}
+          '') files
+        )
+      ) palettes
+    )
+  );
+in
+{
+  options.blix.currentThemeDir = lib.mkOption {
+    type = lib.types.str;
+    readOnly = true;
+    default = currentDir;
+    description = ''
+      Directory holding the active theme's per-application configuration
+      files. Modules that include a theme fragment point at this path.
+    '';
+  };
+
+  config.assertions = [
+    {
+      assertion = palettes ? ${defaultTheme};
+      message = "themes: default theme '${defaultTheme}' has no palette";
+    }
+  ];
+
+  config.home.packages = [ script ];
+
+  config.xdg.configFile."blix/themes".source = themesDir;
+
+  # Wayle and hyprlock have no include directive, so the active theme supplies
+  # their configuration file wholesale.
+  config.xdg.configFile."wayle/config.toml".source =
+    config.lib.file.mkOutOfStoreSymlink "${currentDir}/wayle.toml";
+  config.xdg.configFile."hypr/hyprlock.conf".source =
+    config.lib.file.mkOutOfStoreSymlink "${currentDir}/hyprlock.conf";
+
+  config.xdg.configFile."btop/btop.conf".text = ''
+    color_theme = "${currentDir}/btop.theme"
+    theme_background = False
+  '';
+
+  # A fresh machine has no ~/.config/blix/current yet, and wayle would start
+  # without a configuration file. Create it during activation, before the
+  # session starts.
+  config.home.activation.blixTheme = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    run ${script}/bin/blix-theme ensure
+  '';
+
+  # Border colors and the GTK color scheme are set by command, so they have to
+  # be re-applied for each new session.
+  config.systemd.user.services.blix-theme = {
+    Unit = {
+      Description = "Apply the active Blix theme to the session";
+      PartOf = [ config.wayland.systemd.target ];
+      After = [ config.wayland.systemd.target ];
+    };
+    Service = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = "${script}/bin/blix-theme apply";
+    };
+    Install.WantedBy = [ config.wayland.systemd.target ];
+  };
+}

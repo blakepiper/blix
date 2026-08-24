@@ -25,6 +25,9 @@ evaluation as the minimum acceptance criterion for every configuration change.
   intentionally changes.
 - `home/przvl/default.nix` owns the `przvl` user's packages, programs, services,
   and dotfile configuration, shared across hosts.
+- `home/przvl/themes/` owns the theme system: one palette per theme,
+  `apps.nix` renders a palette into per-application files, and `blix-theme.sh`
+  switches between them at runtime through `~/.config/blix/current`.
 - `hosts/t490/home.nix` owns `przvl` Home Manager settings that depend on this
   machine, currently the `blix.monitors` layout declared in
   `home/przvl/desktop/monitors.nix`.
@@ -50,7 +53,11 @@ evaluation as the minimum acceptance criterion for every configuration change.
   a package that a `programs.*`/`services.*` module or `fonts.packages` already
   installs.
 - Reference executables in generated configuration by store path
-  (`${pkgs.foo}/bin/foo`), never by bare name.
+  (`${pkgs.foo}/bin/foo`), never by bare name. A multi-command script should
+  use `pkgs.writeShellApplication` with `runtimeInputs` instead.
+- Put colors only in `home/przvl/themes/<name>.nix`. An application module must
+  read them through `config.blix.currentThemeDir`, never inline a color, or it
+  will stop following the active theme.
 - Preserve `system.stateVersion` and `home.stateVersion`. Change either only as
   part of an explicit, researched state-version migration.
 - Do not edit `flake.lock` unless the requested work includes changing or

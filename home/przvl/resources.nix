@@ -18,6 +18,10 @@
       url = "https://raw.githubusercontent.com/lucide-icons/lucide/59978cecf84986af59f1f9f503bcebdc89c6d166/icons/sparkles.svg";
       hash = "sha256-9UmfM/CdcVgVHpvS7A+vef+PtXKS+E/dcobZbQ8EJNg=";
     };
+    theme = pkgs.fetchurl {
+      url = "https://raw.githubusercontent.com/lucide-icons/lucide/59978cecf84986af59f1f9f503bcebdc89c6d166/icons/palette.svg";
+      hash = "sha256-jn0/3pkM/9EEabo1HyfFAgKwV6m7mvViYyLlP9Orx4w=";
+    };
     night = {
       on = pkgs.fetchurl {
         url = "https://raw.githubusercontent.com/lucide-icons/lucide/59978cecf84986af59f1f9f503bcebdc89c6d166/icons/moon.svg";

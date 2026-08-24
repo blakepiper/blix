@@ -34,9 +34,10 @@ home/przvl/
 ├── default.nix                   Home composition root and identity
 ├── host.nix                      Host facts: blix.formFactor and blix.monitors
 ├── packages.nix                  User packages
-├── theme.nix                     Shared colors, font, and cursor values (plain data)
+├── theme.nix                     Font and cursor shared by every theme
+├── themes/                       The theme system; see "Themes" below
 ├── resources.nix                 Pinned downloaded resources
-├── programs/                     User applications, including git identity
+├── programs/                     User applications, including git and Neovim
 ├── desktop/                      Hyprland session and appearance
 ├── services/                     User services
 └── scripts/                      Custom executable derivations
@@ -92,6 +93,48 @@ nixosConfigurations = {
 
 Shared system and Home Manager configuration is applied automatically; nothing
 from `hosts/t490/` needs to be copied.
+
+## Themes
+
+A theme is a palette in `home/przvl/themes/<name>.nix`. `themes/apps.nix` turns
+one palette into a directory of per-application configuration files, and every
+theme directory is installed to `~/.config/blix/themes`.
+
+`~/.config/blix/current` is a symlink into one of those directories and is the
+only mutable piece of the system. Switching themes re-points it and nudges the
+running session, so no rebuild is needed:
+
+```sh
+blix-theme list       # every installed theme
+blix-theme set NAME   # switch and apply
+blix-theme menu       # pick from a list (what the bar widget runs)
+```
+
+The palette-picker widget sits at the left of the status bar's right group and
+runs `blix-theme menu` on click.
+
+Applications reach the active theme in one of two ways:
+
+| Application | Mechanism |
+|---|---|
+| Alacritty | `general.import` of `current/alacritty.toml` |
+| Fuzzel | `include` of `current/fuzzel.ini` |
+| GTK 3 and 4 | `@import` of `current/gtk.css` |
+| btop | `color_theme` pointing at `current/btop.theme` |
+| Neovim | `mini.base16` built from `current/base16.lua` |
+| Wayle | whole `config.toml` symlinked into `current/` |
+| Hyprlock | whole `hyprlock.conf` symlinked into `current/` |
+| Hyprland | border colors set by `hyprctl` on switch and at session start |
+
+### Adding a theme
+
+Write `home/przvl/themes/<name>.nix` with a `label`, a `polarity` of `light` or
+`dark`, and the `colors` set, then register it in the `palettes` attribute of
+`themes/default.nix`. Nothing else needs to change; every application file is
+generated from the palette.
+
+Colors belong only in a palette. An application module must never hardcode
+one, or that application will stop following the active theme.
 
 ## Validation
 

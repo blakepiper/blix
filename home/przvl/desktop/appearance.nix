@@ -1,4 +1,4 @@
-{ pkgs, theme, ... }:
+{ config, pkgs, theme, ... }:
 
 {
   home.pointerCursor = {
@@ -12,22 +12,14 @@
 
   gtk = {
     enable = true;
-    colorScheme = "light";
+    # Both toolkits read the same generated color definitions. The GTK color
+    # scheme itself is set at runtime by blix-theme, since it changes without
+    # a rebuild.
     gtk3.extraCss = ''
-      @define-color theme_bg_color ${theme.colors.background};
-      @define-color theme_fg_color ${theme.colors.foreground};
-      @define-color theme_selected_bg_color ${theme.colors.primary};
-      @define-color theme_selected_fg_color ${theme.colors.background};
-      @define-color borders alpha(${theme.colors.foreground}, 0.15);
-      selection { background-color: ${theme.colors.primary}; color: ${theme.colors.background}; }
+      @import url("file://${config.blix.currentThemeDir}/gtk.css");
     '';
     gtk4.extraCss = ''
-      @define-color window_bg_color ${theme.colors.background};
-      @define-color window_fg_color ${theme.colors.foreground};
-      @define-color accent_bg_color ${theme.colors.primary};
-      @define-color accent_fg_color ${theme.colors.background};
-      @define-color borders alpha(${theme.colors.foreground}, 0.15);
-      selection { background-color: ${theme.colors.primary}; color: ${theme.colors.background}; }
+      @import url("file://${config.blix.currentThemeDir}/gtk.css");
     '';
   };
 }

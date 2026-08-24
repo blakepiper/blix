@@ -16,6 +16,7 @@ in
 
   imports = [
     ./host.nix
+    ./themes
     ./packages.nix
     ./programs
     ./desktop
