@@ -144,14 +144,14 @@ in
   config.systemd.user.services.blix-theme = {
     Unit = {
       Description = "Apply the active Blix theme to the session";
-      PartOf = [ config.wayland.systemd.target ];
-      After = [ config.wayland.systemd.target ];
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
     };
     Service = {
       Type = "oneshot";
       RemainAfterExit = true;
       ExecStart = "${script}/bin/blix-theme apply";
     };
-    Install.WantedBy = [ config.wayland.systemd.target ];
+    Install.WantedBy = [ "graphical-session.target" ];
   };
 }

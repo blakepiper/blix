@@ -148,6 +148,15 @@ apply_theme() {
     # every existing backdrop so runtime theme switches cover the full layout.
     case "${XDG_CURRENT_DESKTOP:-}" in
         *XFCE*)
+            xfconf-query --channel xsettings \
+                --property /Net/ThemeName --set "$GTK_THEME" || true
+            if [ "$POLARITY" = dark ]; then
+                xfconf-query --channel xfce4-panel \
+                    --property /panels/dark-mode --set true || true
+            else
+                xfconf-query --channel xfce4-panel \
+                    --property /panels/dark-mode --set false || true
+            fi
             if [ -n "${WALLPAPER:-}" ]; then
                 while IFS= read -r property; do
                     case "$property" in

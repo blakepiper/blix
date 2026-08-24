@@ -13,7 +13,7 @@ let
 
   panelSettings = {
     panels = [ 1 ];
-    "panels/dark-mode" = true;
+    "panels/dark-mode" = false;
     "panels/panel-1/icon-size" = uint 18;
     "panels/panel-1/length" = uint 100;
     "panels/panel-1/plugin-ids" = panelPluginIds;
@@ -35,12 +35,12 @@ let
     "plugins/plugin-3" = "genmon";
     "plugins/plugin-3/command" = "${nightMode}/bin/night-mode genmon";
     "plugins/plugin-3/enable-single-row" = true;
-    "plugins/plugin-3/update-period" = 1000;
+    "plugins/plugin-3/update-period" = 1;
     "plugins/plugin-3/use-label" = false;
     "plugins/plugin-4" = "genmon";
     "plugins/plugin-4/command" = "${barWidget}/bin/blix-xfce-bar-widget idle";
     "plugins/plugin-4/enable-single-row" = true;
-    "plugins/plugin-4/update-period" = 1000;
+    "plugins/plugin-4/update-period" = 1;
     "plugins/plugin-4/use-label" = false;
     "plugins/plugin-5" = "clock";
     "plugins/plugin-5/digital-format" = "%a %b %d  %H:%M";
@@ -54,12 +54,12 @@ let
     "plugins/plugin-7" = "genmon";
     "plugins/plugin-7/command" = "${barWidget}/bin/blix-xfce-bar-widget theme";
     "plugins/plugin-7/enable-single-row" = true;
-    "plugins/plugin-7/update-period" = 5000;
+    "plugins/plugin-7/update-period" = 5;
     "plugins/plugin-7/use-label" = false;
     "plugins/plugin-8" = "genmon";
     "plugins/plugin-8/command" = "${aiUsage}/bin/ai-usage genmon";
     "plugins/plugin-8/enable-single-row" = true;
-    "plugins/plugin-8/update-period" = 300000;
+    "plugins/plugin-8/update-period" = 300;
     "plugins/plugin-8/use-label" = false;
     "plugins/plugin-9" = "systray";
     "plugins/plugin-9/square-icons" = true;
@@ -82,6 +82,28 @@ let
   );
 in
 {
+  # Home Manager's xfconf module updates declared properties but deliberately
+  # preserves undeclared ones. The stock Xfce panel leaves a second panel and
+  # overlapping plugin IDs behind, so reset this fully-owned channel before
+  # loading the declarative Blix layout.
+  home.activation.blixXfcePanelReset = lib.hm.dag.entryBefore [ "xfconfSettings" ] ''
+    run ${pkgs.xfconf}/bin/xfconf-query \
+      --channel xfce4-panel \
+      --property / \
+      --reset \
+      --recursive || true
+  '';
+
+  # A running panel keeps its old in-memory layout after xfconfSettings writes
+  # the channel. Re-apply the palette and restart it so rebuilds update the
+  # layout and styling immediately.
+  home.activation.blixXfcePanelReload = lib.hm.dag.entryAfter [ "xfconfSettings" ] ''
+    run ${blixTheme}/bin/blix-theme apply || true
+    if ${pkgs.procps}/bin/pgrep --exact xfce4-panel >/dev/null; then
+      run ${pkgs.xfce4-panel}/bin/xfce4-panel --restart || true
+    fi
+  '';
+
   # These settings mirror Blix's Hyprland shortcuts. Home Manager writes them
   # through xfconf, avoiding hardware-specific XML copied from another host.
   xfconf.settings = {

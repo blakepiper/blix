@@ -6,11 +6,7 @@
 { config, lib, pkgs, ... }:
 
 let
-  blixSddmTheme = import ./sddm-theme.nix {
-    inherit pkgs;
-    palette = import ../home/przvl/themes/blix.nix;
-    font = (import ../home/przvl/theme.nix).font;
-  };
+  blixSddmTheme = import ./sddm-theme.nix { inherit pkgs; };
 
   # Hyprland also ships an experimental UWSM entry. Blix manages its user
   # session through Home Manager, so expose only the regular entry and keep
@@ -88,6 +84,11 @@ in
     sddm = {
       enable = true;
       theme = toString blixSddmTheme;
+      extraPackages = with pkgs.kdePackages; [
+        qtmultimedia
+        qtsvg
+        qtvirtualkeyboard
+      ];
       settings = {
         Users = {
           RememberLastUser = true;
@@ -119,6 +120,7 @@ in
 
   fonts = {
     packages = with pkgs; [
+      blixSddmTheme
       nerd-fonts.jetbrains-mono
       noto-fonts
       noto-fonts-color-emoji
