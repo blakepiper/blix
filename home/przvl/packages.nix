@@ -1,10 +1,12 @@
 { pkgs, aiUsage, ... }:
 
+# Packages that no program, service, or font module already installs.
+# `alacritty` and `fuzzel` come from their programs.* modules, `wireplumber`
+# from the system PipeWire module, and fonts from fonts.packages.
 {
   home.packages = with pkgs; [
     ripgrep
     fd
-    alacritty
     neovim
     nodejs
     codex
@@ -14,8 +16,6 @@
     hyprsunset
     networkmanagerapplet
     pavucontrol
-    wireplumber
-    fuzzel
     nautilus
     file-roller
     ffmpegthumbnailer
@@ -31,8 +31,6 @@
     unzip
     p7zip
     blesh
-    noto-fonts
-    noto-fonts-color-emoji
   ] ++ [
     aiUsage
   ];

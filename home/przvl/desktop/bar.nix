@@ -90,7 +90,7 @@ in
         ];
         idle-inhibit = {
           label-show = false;
-          left-click = "wayle idle toggle --indefinite";
+          left-click = "${config.services.wayle.package}/bin/wayle idle toggle --indefinite";
         };
         # An invisible, fixed-width separator creates a clear visual break
         # between the status controls and the clock.

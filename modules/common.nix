@@ -3,7 +3,7 @@
 # Everything here applies to every Blix machine. Anything that depends on a
 # particular machine's hardware, hostname, or physical form factor belongs in
 # hosts/<hostname>/ instead.
-{ lib, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 {
   imports = [
@@ -63,7 +63,7 @@
     enable = true;
     useTextGreeter = true;
     settings.default_session = {
-      command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --asterisks --cmd ${pkgs.hyprland}/bin/start-hyprland";
+      command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --asterisks --cmd ${config.programs.hyprland.package}/bin/start-hyprland";
       user = "greeter";
     };
   };
@@ -90,6 +90,7 @@
   fonts = {
     packages = with pkgs; [
       nerd-fonts.jetbrains-mono
+      noto-fonts
       noto-fonts-color-emoji
     ];
     fontconfig.defaultFonts = {

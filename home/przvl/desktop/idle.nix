@@ -1,23 +1,28 @@
-{ ... }:
+{ config, pkgs, ... }:
 
+let
+  # Reuse the running lock screen rather than stacking a second instance.
+  lockCommand = "${pkgs.procps}/bin/pidof hyprlock || ${config.programs.hyprlock.package}/bin/hyprlock";
+  hyprctl = "${pkgs.hyprland}/bin/hyprctl";
+in
 {
   services.hypridle = {
     enable = true;
     settings = {
       general = {
-        before_sleep_cmd = "pidof hyprlock || hyprlock";
-        after_sleep_cmd = "hyprctl dispatch dpms on";
-        lock_cmd = "pidof hyprlock || hyprlock";
+        before_sleep_cmd = lockCommand;
+        after_sleep_cmd = "${hyprctl} dispatch dpms on";
+        lock_cmd = lockCommand;
       };
       listener = [
         {
           timeout = 300;
-          on-timeout = "pidof hyprlock || hyprlock";
+          on-timeout = lockCommand;
         }
         {
           timeout = 600;
-          on-timeout = "hyprctl dispatch dpms off";
-          on-resume = "hyprctl dispatch dpms on";
+          on-timeout = "${hyprctl} dispatch dpms off";
+          on-resume = "${hyprctl} dispatch dpms on";
         }
       ];
     };

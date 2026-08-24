@@ -46,7 +46,11 @@ evaluation as the minimum acceptance criterion for every configuration change.
   `config.blix.formFactor`.
 - Never move generated hardware facts out of a host's
   `hardware-configuration.nix`.
-- Keep package names inside the existing `with pkgs;` package lists.
+- Keep package names inside the existing `with pkgs;` package lists. Do not add
+  a package that a `programs.*`/`services.*` module or `fonts.packages` already
+  installs.
+- Reference executables in generated configuration by store path
+  (`${pkgs.foo}/bin/foo`), never by bare name.
 - Preserve `system.stateVersion` and `home.stateVersion`. Change either only as
   part of an explicit, researched state-version migration.
 - Do not edit `flake.lock` unless the requested work includes changing or
@@ -68,10 +72,17 @@ evaluation as the minimum acceptance criterion for every configuration change.
 
 ## Validation
 
-Always check the patch and evaluate the complete host configuration:
+Always check the patch and evaluate every host the flake defines:
 
 ```bash
 git diff --check
+nix flake check
+```
+
+`nix flake check` evaluates each entry in `nixosConfigurations`, so it covers
+new hosts automatically. To evaluate a single host while iterating:
+
+```bash
 nix eval .#nixosConfigurations.t490.config.system.build.toplevel.drvPath --raw
 ```
 

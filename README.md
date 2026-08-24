@@ -34,9 +34,9 @@ home/przvl/
 ├── default.nix                   Home composition root and identity
 ├── host.nix                      Host facts: blix.formFactor and blix.monitors
 ├── packages.nix                  User packages
-├── theme.nix                     Shared colors, font, and cursor values
+├── theme.nix                     Shared colors, font, and cursor values (plain data)
 ├── resources.nix                 Pinned downloaded resources
-├── programs/                     User applications
+├── programs/                     User applications, including git identity
 ├── desktop/                      Hyprland session and appearance
 ├── services/                     User services
 └── scripts/                      Custom executable derivations
@@ -95,10 +95,10 @@ from `hosts/t490/` needs to be copied.
 
 ## Validation
 
-Evaluate the complete host configuration with:
+Evaluate every host defined in the flake:
 
 ```sh
-nix eval .#nixosConfigurations.t490.config.system.build.toplevel.drvPath --raw
+nix flake check
 ```
 
 Build the complete system closure when changing desktop, services, packages,
