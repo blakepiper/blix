@@ -150,6 +150,20 @@ apply_theme() {
         *XFCE*)
             xfconf-query --channel xsettings \
                 --property /Net/ThemeName --set "$GTK_THEME" || true
+
+            # Unlike imported GTK CSS, this native panel property is observed
+            # immediately when the active-theme symlink changes.
+            xfconf-query --channel xfce4-panel \
+                --property /panels/panel-1/background-rgba \
+                --create \
+                --type double --set "$XFCE_PANEL_RED" \
+                --type double --set "$XFCE_PANEL_GREEN" \
+                --type double --set "$XFCE_PANEL_BLUE" \
+                --type double --set "$XFCE_PANEL_ALPHA" || true
+            xfconf-query --channel xfce4-panel \
+                --property /panels/panel-1/background-style \
+                --create --type uint --set 1 || true
+
             if [ "$POLARITY" = dark ]; then
                 xfconf-query --channel xfce4-panel \
                     --property /panels/dark-mode --set true || true
