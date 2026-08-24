@@ -20,7 +20,27 @@ pkgs.writeShellApplication {
     loginctl lock-session "$session_id"
 
     for _ in $(seq 1 100); do
-      if [ "$(loginctl show-session "$session_id" --property=LockedHint --value)" = "yes" ]; then
+      locked=false
+      case ''${XDG_CURRENT_DESKTOP:-} in
+        *XFCE*)
+          screensaver_state=$(busctl call \
+            --user \
+            org.xfce.ScreenSaver \
+            /org/xfce/ScreenSaver \
+            org.xfce.ScreenSaver \
+            GetActive 2>/dev/null || true)
+          if [ "$screensaver_state" = "b true" ]; then
+            locked=true
+          fi
+          ;;
+        *)
+          if [ "$(loginctl show-session "$session_id" --property=LockedHint --value)" = "yes" ]; then
+            locked=true
+          fi
+          ;;
+      esac
+
+      if "$locked"; then
         busctl call \
           --system \
           org.freedesktop.DisplayManager \
