@@ -381,6 +381,7 @@ in
   "meta.sh" = pkgs.writeText "blix-theme-meta" ''
     LABEL=${lib.escapeShellArg palette.label}
     POLARITY=${lib.escapeShellArg palette.polarity}
+    FOREGROUND=${lib.escapeShellArg c.foreground}
     GTK_THEME=${lib.escapeShellArg gtkTheme}
     COLOR_SCHEME=${lib.escapeShellArg (if dark then "prefer-dark" else "prefer-light")}
     WALLPAPER=${lib.escapeShellArg "${palette.wallpaper}"}

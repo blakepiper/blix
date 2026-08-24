@@ -5,23 +5,76 @@ let
   uint = value: { type = "uint"; inherit value; };
 
   barWidget = import ../scripts/xfce-bar-widget.nix {
-    inherit pkgs blixTheme;
+    inherit pkgs blixTheme nightMode;
+    currentThemeDir = config.blix.currentThemeDir;
   };
 
   panelReload = pkgs.writeShellApplication {
     name = "blix-reload-xfce-panel";
-    runtimeInputs = [ pkgs.procps pkgs.xfce4-panel ];
+    runtimeInputs = [ pkgs.coreutils pkgs.procps pkgs.xfce4-panel pkgs.xfconf ];
     text = ''
       ${blixTheme}/bin/blix-theme apply || true
+      panel_pattern='(^|/)xfce4-panel( |$)'
 
-      if pgrep --full --exact xfce4-panel >/dev/null; then
+      if pgrep --full "$panel_pattern" >/dev/null; then
+        old_panel_pid=$(pgrep --full "$panel_pattern" | head -n 1)
         xfce4-panel --restart
+
+        # The old panel saves its in-memory plugin commands while restarting,
+        # after Home Manager has written the new store paths. Wait for the new
+        # instance, then restore those volatile properties and refresh GenMon.
+        for _ in $(seq 1 50); do
+          new_panel_pid=$(pgrep --full "$panel_pattern" | head -n 1 || true)
+          if [ -n "$new_panel_pid" ] && [ "$new_panel_pid" != "$old_panel_pid" ]; then
+            break
+          fi
+          sleep 0.1
+        done
+
+        set_command() {
+          xfconf-query \
+            --channel xfce4-panel \
+            --property "/plugins/plugin-$1/command" \
+            --set "$2"
+          xfce4-panel --plugin-event="genmon-$1:refresh:bool:true" || true
+        }
+
+        hide_label() {
+          xfconf-query \
+            --channel xfce4-panel \
+            --property "/plugins/plugin-$1/use-label" \
+            --set false
+        }
+
+        set_period() {
+          xfconf-query \
+            --channel xfce4-panel \
+            --property "/plugins/plugin-$1/update-period" \
+            --set "$2"
+        }
+
+        set_command 3 '${barWidget}/bin/blix-xfce-bar-widget night'
+        hide_label 3
+        set_period 3 1000
+        set_command 4 '${barWidget}/bin/blix-xfce-bar-widget idle'
+        hide_label 4
+        set_period 4 1000
+        set_command 7 '${barWidget}/bin/blix-xfce-bar-widget theme'
+        hide_label 7
+        set_period 7 5000
+        set_command 8 '${aiUsage}/bin/ai-usage genmon'
+        set_period 8 300000
+        ${lib.optionalString isLaptop ''
+          set_command 11 '${barWidget}/bin/blix-xfce-bar-widget brightness'
+          hide_label 11
+          set_period 11 1000
+        ''}
       fi
     '';
   };
 
   panelPluginIds = [ 1 2 3 4 5 6 7 8 9 10 ]
-    ++ lib.optionals isLaptop [ 11 ];
+    ++ lib.optionals isLaptop [ 11 12 ];
 
   panelSettings = {
     panels = [ 1 ];
@@ -45,14 +98,14 @@ let
     # Center: GenMon hosts the Blix actions that have no native Xfce plugin,
     # while the clock remains Xfce's native clock plugin.
     "plugins/plugin-3" = "genmon";
-    "plugins/plugin-3/command" = "${nightMode}/bin/night-mode genmon";
+    "plugins/plugin-3/command" = "${barWidget}/bin/blix-xfce-bar-widget night";
     "plugins/plugin-3/enable-single-row" = true;
-    "plugins/plugin-3/update-period" = 1;
+    "plugins/plugin-3/update-period" = 1000;
     "plugins/plugin-3/use-label" = false;
     "plugins/plugin-4" = "genmon";
     "plugins/plugin-4/command" = "${barWidget}/bin/blix-xfce-bar-widget idle";
     "plugins/plugin-4/enable-single-row" = true;
-    "plugins/plugin-4/update-period" = 1;
+    "plugins/plugin-4/update-period" = 1000;
     "plugins/plugin-4/use-label" = false;
     "plugins/plugin-5" = "clock";
     "plugins/plugin-5/digital-format" = "%a %b %d  %H:%M";
@@ -63,22 +116,27 @@ let
 
     # Right: GenMon hosts the Blix theme and AI actions. NetworkManager uses
     # Xfce's native status tray, audio uses its PulseAudio plugin, and laptop
-    # builds add Xfce's native battery and brightness controls.
+    # builds add an explicit brightness control plus Xfce's battery indicator.
     "plugins/plugin-7" = "genmon";
     "plugins/plugin-7/command" = "${barWidget}/bin/blix-xfce-bar-widget theme";
     "plugins/plugin-7/enable-single-row" = true;
-    "plugins/plugin-7/update-period" = 5;
+    "plugins/plugin-7/update-period" = 5000;
     "plugins/plugin-7/use-label" = false;
     "plugins/plugin-8" = "genmon";
     "plugins/plugin-8/command" = "${aiUsage}/bin/ai-usage genmon";
     "plugins/plugin-8/enable-single-row" = true;
-    "plugins/plugin-8/update-period" = 300;
+    "plugins/plugin-8/update-period" = 300000;
     "plugins/plugin-8/use-label" = false;
     "plugins/plugin-9" = "systray";
     "plugins/plugin-9/square-icons" = true;
     "plugins/plugin-10" = "pulseaudio";
   } // lib.optionalAttrs isLaptop {
-    "plugins/plugin-11" = "power-manager-plugin";
+    "plugins/plugin-11" = "genmon";
+    "plugins/plugin-11/command" = "${barWidget}/bin/blix-xfce-bar-widget brightness";
+    "plugins/plugin-11/enable-single-row" = true;
+    "plugins/plugin-11/update-period" = 1000;
+    "plugins/plugin-11/use-label" = false;
+    "plugins/plugin-12" = "power-manager-plugin";
   };
 
   workspaceBindings = lib.listToAttrs (
