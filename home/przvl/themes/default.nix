@@ -31,9 +31,11 @@ let
       coreutils
       fuzzel
       glib
+      gnused
       hyprland
       systemd
       xfconf
+      xrandr
       zenity
     ];
     text = ''

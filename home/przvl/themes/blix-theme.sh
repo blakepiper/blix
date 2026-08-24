@@ -117,7 +117,7 @@ link_theme() {
 # component is not running.
 # shellcheck disable=SC2154  # the colors come from the sourced meta.sh
 apply_theme() {
-    local dir reply
+    local dir reply workspace_count workspace property_prefix monitor
     dir="$themes_dir/$(current_theme)"
     [ -r "$dir/meta.sh" ] || die "active theme has no meta.sh"
     # shellcheck disable=SC1090,SC1091
@@ -158,14 +158,35 @@ apply_theme() {
                     --property /panels/dark-mode --set false || true
             fi
             if [ -n "${WALLPAPER:-}" ]; then
-                while IFS= read -r property; do
-                    case "$property" in
-                        */last-image)
-                            xfconf-query --channel xfce4-desktop \
-                                --property "$property" --set "$WALLPAPER" || true
-                            ;;
-                    esac
-                done < <(xfconf-query --channel xfce4-desktop --list 2>/dev/null || true)
+                workspace_count=$(xfconf-query --channel xfwm4 \
+                    --property /general/workspace_count 2>/dev/null || printf 1)
+                case "$workspace_count" in
+                    "" | *[!0-9]* | 0) workspace_count=1 ;;
+                esac
+
+                # Xfdesktop does not create backdrop keys until its settings
+                # dialog is used. Populate every active monitor/workspace so a
+                # fresh declarative session follows runtime theme switches too.
+                while read -r _ _ _ monitor; do
+                    [ -n "$monitor" ] || continue
+                    workspace=0
+                    while [ "$workspace" -lt "$workspace_count" ]; do
+                        property_prefix="/backdrop/screen0/monitor${monitor}/workspace${workspace}"
+                        xfconf-query --channel xfce4-desktop \
+                            --property "$property_prefix/image-style" \
+                            --create --type int --set 5 2>/dev/null \
+                            || xfconf-query --channel xfce4-desktop \
+                                --property "$property_prefix/image-style" --set 5 \
+                            || true
+                        xfconf-query --channel xfce4-desktop \
+                            --property "$property_prefix/last-image" \
+                            --create --type string --set "$WALLPAPER" 2>/dev/null \
+                            || xfconf-query --channel xfce4-desktop \
+                                --property "$property_prefix/last-image" --set "$WALLPAPER" \
+                            || true
+                        workspace=$((workspace + 1))
+                    done
+                done < <(xrandr --listmonitors)
             fi
             ;;
     esac
