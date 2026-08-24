@@ -142,7 +142,15 @@ pkgs.writers.writePython3Bin "ai-usage" {
       print(details(providers))
   elif mode == "popup":
       subprocess.run(
-          ["${pkgs.zenity}/bin/zenity", "--text-info", "--title=AI usage", "--width=720", "--height=480"],
+          [
+              "${pkgs.yad}/bin/yad",
+              "--text-info",
+              "--undecorated",
+              "--no-buttons",
+              "--close-on-unfocus",
+              "--width=720",
+              "--height=480",
+          ],
           input=details(providers),
           text=True,
           check=False,
