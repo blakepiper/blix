@@ -8,6 +8,18 @@ let
     inherit pkgs blixTheme;
   };
 
+  panelReload = pkgs.writeShellApplication {
+    name = "blix-reload-xfce-panel";
+    runtimeInputs = [ pkgs.procps pkgs.xfce4-panel ];
+    text = ''
+      ${blixTheme}/bin/blix-theme apply || true
+
+      if pgrep --full --exact xfce4-panel >/dev/null; then
+        xfce4-panel --restart
+      fi
+    '';
+  };
+
   panelPluginIds = [ 1 2 3 4 5 6 7 8 9 10 ]
     ++ lib.optionals isLaptop [ 11 ];
 
@@ -30,8 +42,8 @@ let
     "plugins/plugin-2/expand" = true;
     "plugins/plugin-2/style" = uint 0;
 
-    # Center: the same night-mode and idle-inhibit controls as the Wayle bar,
-    # followed by its clock format.
+    # Center: GenMon hosts the Blix actions that have no native Xfce plugin,
+    # while the clock remains Xfce's native clock plugin.
     "plugins/plugin-3" = "genmon";
     "plugins/plugin-3/command" = "${nightMode}/bin/night-mode genmon";
     "plugins/plugin-3/enable-single-row" = true;
@@ -49,8 +61,9 @@ let
     "plugins/plugin-6/expand" = true;
     "plugins/plugin-6/style" = uint 0;
 
-    # Right: custom theme and AI widgets, then XFCE's native network tray and
-    # audio control. Laptop builds also expose battery and brightness controls.
+    # Right: GenMon hosts the Blix theme and AI actions. NetworkManager uses
+    # Xfce's native status tray, audio uses its PulseAudio plugin, and laptop
+    # builds add Xfce's native battery and brightness controls.
     "plugins/plugin-7" = "genmon";
     "plugins/plugin-7/command" = "${barWidget}/bin/blix-xfce-bar-widget theme";
     "plugins/plugin-7/enable-single-row" = true;
@@ -94,15 +107,24 @@ in
       --recursive || true
   '';
 
-  # A running panel keeps its old in-memory layout after xfconfSettings writes
-  # the channel. Re-apply the palette and restart it so rebuilds update the
-  # layout and styling immediately.
-  home.activation.blixXfcePanelReload = lib.hm.dag.entryAfter [ "xfconfSettings" ] ''
-    run ${blixTheme}/bin/blix-theme apply || true
-    if ${pkgs.procps}/bin/pgrep --exact xfce4-panel >/dev/null; then
-      run ${pkgs.xfce4-panel}/bin/xfce4-panel --restart || true
-    fi
+  # NixOS runs Home Manager activation outside the graphical session, so a
+  # direct panel restart cannot reach its X display. Run it through the user
+  # manager, which owns the session environment, after both the xfconf writes
+  # and the generated unit are available.
+  home.activation.blixXfcePanelReload = lib.hm.dag.entryAfter [
+    "xfconfSettings"
+    "reloadSystemd"
+  ] ''
+    run ${pkgs.systemd}/bin/systemctl --user start blix-xfce-panel-reload.service || true
   '';
+
+  systemd.user.services.blix-xfce-panel-reload = {
+    Unit.Description = "Apply the Blix XFCE panel layout and theme";
+    Service = {
+      Type = "oneshot";
+      ExecStart = "${panelReload}/bin/blix-reload-xfce-panel";
+    };
+  };
 
   # These settings mirror Blix's Hyprland shortcuts. Home Manager writes them
   # through xfconf, avoiding hardware-specific XML copied from another host.
