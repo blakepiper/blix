@@ -122,6 +122,7 @@ Applications reach the active theme in one of two ways:
 | GTK 3 and 4 | `@import` of `current/gtk.css` |
 | btop | `themes/blix.theme` symlinked into `current/`; select it once with `color_theme = "blix"` |
 | Neovim | `mini.base16` built from `current/base16.lua` |
+| Firefox | `user.js` in each profile symlinked to `current/firefox.js`; applies on next launch |
 | Wayle | whole `config.toml` symlinked into `current/` |
 | Hyprlock | whole `hyprlock.conf` symlinked into `current/` |
 | hyprpaper | whole `hyprpaper.conf` symlinked into `current/`, plus an IPC push on switch |
@@ -138,6 +139,11 @@ generated from the palette.
 
 Colors belong only in a palette. An application module must never hardcode
 one, or that application will stop following the active theme.
+
+Firefox is the one application whose light/dark is stated outright rather than
+detected: it derives its own from GTK, which does not follow a runtime switch.
+`blix-theme ensure` links `user.js` into every profile listed in
+`profiles.ini`, and never replaces a `user.js` it did not create.
 
 ## Validation
 

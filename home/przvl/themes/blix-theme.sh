@@ -54,6 +54,56 @@ current_theme() {
     fi
 }
 
+# Firefox generates its own profile directory name, so the active theme's
+# user.js is linked into whatever profiles exist rather than declared. The link
+# points through ~/.config/blix/current, so it follows later switches by
+# itself. An existing real user.js is never touched.
+link_firefox() {
+    local root ini profile dest target
+    target="$current_link/firefox.js"
+    [ -e "$target" ] || return 0
+
+    for root in "${XDG_CONFIG_HOME:-$HOME/.config}/mozilla/firefox" "$HOME/.mozilla/firefox"; do
+        ini="$root/profiles.ini"
+        [ -r "$ini" ] || continue
+        while read -r profile; do
+            case "$profile" in
+                /*) dest="$profile/user.js" ;;
+                *) dest="$root/$profile/user.js" ;;
+            esac
+            [ -d "$(dirname "$dest")" ] || continue
+            if [ -L "$dest" ]; then
+                # Only ever refresh a link this script made.
+                case "$(readlink "$dest")" in
+                    */blix/current/firefox.js) ln -sfn "$target" "$dest" ;;
+                esac
+            elif [ ! -e "$dest" ]; then
+                ln -s "$target" "$dest"
+            fi
+        done < <(sed -n 's/^[[:space:]]*Path=//p' "$ini")
+    done
+}
+
+# Runs during home-manager activation, so it must never fail: a missing theme
+# is a cosmetic problem, a failed activation is not.
+ensure_current() {
+    local name
+    if [ -d "$current_link" ]; then
+        return 0
+    fi
+    if [ ! -d "$themes_dir" ]; then
+        printf 'blix-theme: no themes installed at %s yet\n' "$themes_dir" >&2
+        return 0
+    fi
+    name=$(current_theme)
+    [ -d "$themes_dir/$name" ] || name=$(theme_names | head -n 1)
+    if [ -z "$name" ]; then
+        printf 'blix-theme: no themes installed; nothing to link\n' >&2
+        return 0
+    fi
+    link_theme "$name"
+}
+
 link_theme() {
     [ -d "$themes_dir/$1" ] || die "unknown theme: $1"
     mkdir -p "$config_dir"
@@ -151,21 +201,8 @@ main() {
         apply) apply_theme ;;
         reload) reload_theme ;;
         ensure)
-            # Runs during home-manager activation, so it must never fail: a
-            # missing theme is a cosmetic problem, a failed activation is not.
-            local name
-            [ -d "$current_link" ] && exit 0
-            if [ ! -d "$themes_dir" ]; then
-                printf 'blix-theme: no themes installed at %s yet\n' "$themes_dir" >&2
-                exit 0
-            fi
-            name=$(current_theme)
-            [ -d "$themes_dir/$name" ] || name=$(theme_names | head -n 1)
-            if [ -z "$name" ]; then
-                printf 'blix-theme: no themes installed; nothing to link\n' >&2
-                exit 0
-            fi
-            link_theme "$name"
+            ensure_current || true
+            link_firefox || true
             ;;
         *) usage ;;
     esac
