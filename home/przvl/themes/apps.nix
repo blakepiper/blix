@@ -311,6 +311,23 @@ in
 
   "wayle.toml" = tomlFormat.generate "blix-wayle-config" wayleSettings;
 
+  # Fed to `hyprctl eval`. Hyprland's Lua parser rejects `hyprctl keyword`, and
+  # wants gradients as a table rather than the hyprlang gradient string.
+  "hyprland.lua" = pkgs.writeText "blix-hyprland-lua" ''
+    hl.config({
+      general = {
+        ["col.active_border"] = {
+          colors = { "${rgba c.primary "ee"}", "${rgba c.accent "ee"}" },
+          angle = 45,
+        },
+        ["col.inactive_border"] = "${rgba c.elevated "aa"}",
+      },
+      decoration = {
+        shadow = { color = "${rgba c.background "cc"}" },
+      },
+    })
+  '';
+
   # Sourced by blix-theme for the parts that are applied with a command rather
   # than read from a file.
   "meta.sh" = pkgs.writeText "blix-theme-meta" ''
@@ -318,8 +335,5 @@ in
     POLARITY=${lib.escapeShellArg palette.polarity}
     GTK_THEME=${lib.escapeShellArg gtkTheme}
     COLOR_SCHEME=${lib.escapeShellArg (if dark then "prefer-dark" else "prefer-light")}
-    HYPR_ACTIVE_BORDER=${lib.escapeShellArg "${rgba c.primary "ee"} ${rgba c.accent "ee"} 45deg"}
-    HYPR_INACTIVE_BORDER=${lib.escapeShellArg (rgba c.elevated "aa")}
-    HYPR_SHADOW=${lib.escapeShellArg (rgba c.background "cc")}
   '';
 }

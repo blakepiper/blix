@@ -36,7 +36,7 @@ theme_names() {
 theme_label() {
     (
         LABEL=$1
-        # shellcheck disable=SC1090
+        # shellcheck disable=SC1090,SC1091
         . "$themes_dir/$1/meta.sh"
         printf '%s\n' "$LABEL"
     )
@@ -67,16 +67,20 @@ link_theme() {
 # component is not running.
 # shellcheck disable=SC2154  # the colors come from the sourced meta.sh
 apply_theme() {
-    local meta
-    meta="$themes_dir/$(current_theme)/meta.sh"
-    [ -r "$meta" ] || die "active theme has no meta.sh"
-    # shellcheck disable=SC1090
-    . "$meta"
+    local dir reply
+    dir="$themes_dir/$(current_theme)"
+    [ -r "$dir/meta.sh" ] || die "active theme has no meta.sh"
+    # shellcheck disable=SC1090,SC1091
+    . "$dir/meta.sh"
 
-    if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
-        hyprctl keyword general:col.active_border "$HYPR_ACTIVE_BORDER" >/dev/null || true
-        hyprctl keyword general:col.inactive_border "$HYPR_INACTIVE_BORDER" >/dev/null || true
-        hyprctl keyword decoration:shadow:color "$HYPR_SHADOW" >/dev/null || true
+    # hyprctl exits 0 even when the compositor rejects the request, so the
+    # reply has to be inspected rather than the status.
+    if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] && [ -r "$dir/hyprland.lua" ]; then
+        reply=$(hyprctl eval "$(cat "$dir/hyprland.lua")" 2>&1) || true
+        case "$reply" in
+            ok*) ;;
+            *) printf 'blix-theme: hyprland: %s\n' "$reply" >&2 ;;
+        esac
     fi
 
     gsettings set org.gnome.desktop.interface color-scheme "$COLOR_SCHEME" || true
@@ -136,9 +140,21 @@ main() {
         apply) apply_theme ;;
         reload) reload_theme ;;
         ensure)
-            if [ ! -d "$current_link" ]; then
-                link_theme "$(current_theme)"
+            # Runs during home-manager activation, so it must never fail: a
+            # missing theme is a cosmetic problem, a failed activation is not.
+            local name
+            [ -d "$current_link" ] && exit 0
+            if [ ! -d "$themes_dir" ]; then
+                printf 'blix-theme: no themes installed at %s yet\n' "$themes_dir" >&2
+                exit 0
             fi
+            name=$(current_theme)
+            [ -d "$themes_dir/$name" ] || name=$(theme_names | head -n 1)
+            if [ -z "$name" ]; then
+                printf 'blix-theme: no themes installed; nothing to link\n' >&2
+                exit 0
+            fi
+            link_theme "$name"
             ;;
         *) usage ;;
     esac

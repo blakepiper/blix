@@ -36,6 +36,10 @@ let
     ];
     text = ''
       DEFAULT_THEME=${lib.escapeShellArg defaultTheme}
+      # gsettings finds no schemas under a bare systemd user environment.
+      export XDG_DATA_DIRS=${
+        lib.escapeShellArg "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}"
+      }"''${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}"
     ''
     + builtins.readFile ./blix-theme.sh;
   };
@@ -104,14 +108,16 @@ in
   # A fresh machine has no ~/.config/blix/current yet, and wayle would start
   # without a configuration file. Create it during activation, before the
   # session starts.
-  config.home.activation.blixTheme = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    run ${script}/bin/blix-theme ensure
+  # linkGeneration is what creates ~/.config/blix/themes, so this has to run
+  # after it, not merely after writeBoundary.
+  config.home.activation.blixTheme = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+    run ${script}/bin/blix-theme ensure || true
   '';
 
   # Wayle's config.toml is a symlink to the active theme, so home-manager never
   # sees its contents change and will not restart the bar on its own.
   # try-restart is a no-op when the bar is not running, such as at boot.
-  config.home.activation.blixThemeBar = lib.hm.dag.entryAfter [ "blixTheme" ] ''
+  config.home.activation.blixThemeBar = lib.hm.dag.entryAfter [ "reloadSystemd" ] ''
     run ${pkgs.systemd}/bin/systemctl --user try-restart wayle.service || true
   '';
 
