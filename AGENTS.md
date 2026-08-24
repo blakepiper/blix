@@ -1,28 +1,37 @@
 # blix contributor guide
 
-This repository is the declarative NixOS configuration for the `t490` host and
-the Home Manager configuration for the `przvl` user. Treat a successful Nix
+This repository is the declarative NixOS configuration for Blix machines and
+the Home Manager configuration for the `przvl` user. It is structured for
+multiple hosts; `t490` is currently the only one. Treat a successful Nix
 evaluation as the minimum acceptance criterion for every configuration change.
 
 ## Repository map
 
-- `flake.nix` declares the flake inputs and the
-  `nixosConfigurations.t490` output.
+- `flake.nix` declares the flake inputs and the `nixosConfigurations` outputs.
+  Hosts are built through the `mkHost` helper, which always applies
+  `modules/common.nix` and the Home Manager NixOS module.
 - `flake.lock` pins all flake inputs.
-- `hosts/t490/default.nix` owns host-wide NixOS configuration and imports the
-  generated hardware module.
+- `modules/common.nix` owns shared system configuration that applies to every
+  Blix machine.
+- `hosts/t490/default.nix` owns configuration specific to that machine and
+  imports its generated hardware module.
 - `hosts/t490/hardware-configuration.nix` contains detected hardware settings;
   change it only when the machine's hardware or generated configuration
   intentionally changes.
 - `home/przvl/default.nix` owns the `przvl` user's packages, programs, services,
-  and dotfile configuration.
+  and dotfile configuration, shared across hosts.
 
 ## Scope and ownership
 
 - Put user applications and per-user desktop behavior in
   `home/przvl/default.nix`.
-- Put boot, hardware, networking, users, security, login, and other system-wide
-  services in `hosts/t490/default.nix`.
+- Put system-wide services, packages, users, security, login, and desktop
+  configuration that every Blix machine should have in `modules/common.nix`.
+- Put only machine-dependent settings in `hosts/<hostname>/default.nix`:
+  hostname, `system.stateVersion`, power and lid behavior, hardware quirks,
+  and host-specific networking tweaks.
+- Never move generated hardware facts out of a host's
+  `hardware-configuration.nix`.
 - Keep package names inside the existing `with pkgs;` package lists.
 - Preserve `system.stateVersion` and `home.stateVersion`. Change either only as
   part of an explicit, researched state-version migration.

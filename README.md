@@ -2,48 +2,78 @@
 
 # blix
 
-Declarative NixOS and Home Manager configuration for the `t490` host and
-`przvl` user.
+Declarative NixOS and Home Manager configuration for Blix machines and the
+`przvl` user. The repository currently defines one host, `t490`.
+
+A complete machine is composed from four parts:
+
+```text
+modules/common.nix                shared Blix system configuration
+home/przvl/                       shared przvl Home Manager configuration
+hosts/<host>/default.nix          host-specific configuration
+hosts/<host>/hardware-configuration.nix   generated hardware facts
+```
 
 ## Repository map
 
 ```text
+flake.nix                         Inputs and the nixosConfigurations outputs
+
+modules/
+└── common.nix                    Shared system configuration for every host
+
 hosts/t490/
-├── default.nix                    Host composition root and state version
-├── hardware-configuration.nix    Generated hardware facts; edit rarely
-└── modules/
-    ├── boot.nix                   Bootloader settings
-    ├── networking.nix             Hostname and NetworkManager
-    ├── locale.nix                 Time zone
-    ├── nix.nix                    Nix features, garbage collection, policy
-    ├── desktop-session.nix        Hyprland and greetd
-    ├── desktop-services.nix       Audio and desktop support services
-    ├── power.nix                  Laptop power and lid behavior
-    ├── users.nix                  System user and groups
-    ├── fonts.nix                  System fonts
-    ├── packages.nix               System packages
-    └── home-manager.nix           Home Manager integration
+├── default.nix                   Hostname, laptop power, lid, state version
+└── hardware-configuration.nix    Generated hardware facts; edit rarely
 
 home/przvl/
-├── default.nix                    Home composition root and identity
-├── packages.nix                   User packages
-├── theme.nix                      Shared colors, font, and cursor values
-├── resources.nix                  Pinned downloaded resources
-├── programs/                      User applications
-├── desktop/                       Hyprland session and appearance
-├── services/                      User services
-└── scripts/                       Custom executable derivations
+├── default.nix                   Home composition root and identity
+├── packages.nix                  User packages
+├── theme.nix                     Shared colors, font, and cursor values
+├── resources.nix                 Pinned downloaded resources
+├── programs/                     User applications
+├── desktop/                      Hyprland session and appearance
+├── services/                     User services
+└── scripts/                      Custom executable derivations
 ```
 
 ## Navigation rules
 
-- System-wide behavior belongs in `hosts/t490/modules/`.
+- Behavior that should apply to every Blix machine belongs in
+  `modules/common.nix`.
+- Behavior that depends on one machine's hardware, hostname, or form factor
+  belongs in `hosts/<host>/default.nix`.
+- Generated hardware settings stay in that host's `hardware-configuration.nix`;
+  never move filesystem UUIDs, kernel modules, or CPU settings into shared
+  configuration.
 - User applications and desktop behavior belong in `home/przvl/`.
-- Generated hardware settings stay in `hardware-configuration.nix`.
-- `default.nix` files are composition points: they primarily import focused
-  modules and establish the scope’s identity.
+- `system.stateVersion` is per host. Never copy it to a new machine; set it to
+  the release that machine was installed with.
 - Shared theme values belong in `theme.nix`; downloaded inputs belong in
   `resources.nix`; custom scripts belong in `scripts/`.
+
+## Adding a host
+
+1. Create `hosts/<hostname>/`.
+2. Generate that machine's hardware module:
+   `nixos-generate-config --show-hardware-config > hosts/<hostname>/hardware-configuration.nix`.
+3. Write a small `hosts/<hostname>/default.nix` that imports
+   `./hardware-configuration.nix`, sets `networking.hostName`, sets
+   `system.stateVersion`, and adds anything specific to that machine.
+4. Register it in `flake.nix`:
+
+```nix
+nixosConfigurations = {
+  t490 = mkHost { modules = [ ./hosts/t490 ]; };
+  newhost = mkHost { modules = [ ./hosts/newhost ]; };
+};
+```
+
+`mkHost` accepts a `system` argument for hosts on another platform, for example
+`mkHost { modules = [ ./hosts/pi ]; system = "aarch64-linux"; }`.
+
+Shared system and Home Manager configuration is applied automatically; nothing
+from `hosts/t490/` needs to be copied.
 
 ## Validation
 
