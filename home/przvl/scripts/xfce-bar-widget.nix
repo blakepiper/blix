@@ -1,24 +1,10 @@
-{ pkgs, blixTheme, nightMode, currentThemeDir }:
+{ pkgs, blixTheme, nightMode }:
 
 pkgs.writeShellApplication {
   name = "blix-xfce-bar-widget";
   runtimeInputs = [ pkgs.brightnessctl pkgs.coreutils pkgs.yad ];
   text = ''
     presentation_property=/xfce4-power-manager/presentation-mode
-    theme_meta=${currentThemeDir}/meta.sh
-
-    format_label() {
-      label=$1
-      FOREGROUND=
-      if [ -r "$theme_meta" ]; then
-        # shellcheck source=/dev/null
-        . "$theme_meta"
-      fi
-      case "''${FOREGROUND:-}" in
-        \#??????) printf '<span foreground="%s">%s</span>' "$FOREGROUND" "$label" ;;
-        *) printf '%s' "$label" ;;
-      esac
-    }
 
     read_brightness() {
       value=$(brightnessctl --machine-readable 2>/dev/null \
@@ -37,40 +23,33 @@ pkgs.writeShellApplication {
         case "$mode" in
           night)
             icon=night-light-symbolic
-            label='Night 3500K'
             tooltip='Night mode: 3500 K'
             ;;
           night-plus)
             icon=weather-clear-night-symbolic
-            label='Night 2200K'
             tooltip='Night+ mode: 2200 K'
             ;;
           *)
             icon=night-light-disabled-symbolic
-            label='Night off'
             tooltip='Night mode: off'
             ;;
         esac
-        formatted=$(format_label "$label")
-        printf '<icon>%s</icon><iconclick>%s next</iconclick><txt>%s</txt><txtclick>%s next</txtclick><tool>%s</tool>\n' \
-          "$icon" ${nightMode}/bin/night-mode "$formatted" ${nightMode}/bin/night-mode "$tooltip"
+        printf '<icon>%s</icon><iconclick>%s next</iconclick><tool>%s</tool>\n' \
+          "$icon" ${nightMode}/bin/night-mode "$tooltip"
         ;;
       idle)
         state=$(${pkgs.xfconf}/bin/xfconf-query \
           --channel xfce4-power-manager \
           --property "$presentation_property" 2>/dev/null || printf false)
         if [ "$state" = true ]; then
-          icon=changes-prevent-symbolic
-          label='Idle blocked'
-          tooltip='Idle inhibition: indefinite'
+          icon=tb-coffee-symbolic
+          tooltip='Keep awake: on (suspend and hibernation inhibited)'
         else
-          icon=changes-allow-symbolic
-          label='Idle allowed'
-          tooltip='Idle inhibition: off'
+          icon=tb-coffee-off-symbolic
+          tooltip='Keep awake: off'
         fi
-        formatted=$(format_label "$label")
-        printf '<icon>%s</icon><iconclick>%s idle-toggle</iconclick><txt>%s</txt><txtclick>%s idle-toggle</txtclick><tool>%s</tool>\n' \
-          "$icon" "$0" "$formatted" "$0" "$tooltip"
+        printf '<icon>%s</icon><iconclick>%s idle-toggle</iconclick><tool>%s</tool>\n' \
+          "$icon" "$0" "$tooltip"
         ;;
       idle-toggle)
         state=$(${pkgs.xfconf}/bin/xfconf-query \
@@ -100,15 +79,13 @@ pkgs.writeShellApplication {
             break
           fi
         done < <(${blixTheme}/bin/blix-theme list)
-        formatted=$(format_label Theme)
-        printf '<icon>applications-graphics-symbolic</icon><iconclick>%s menu</iconclick><txt>%s</txt><txtclick>%s menu</txtclick><tool>Theme picker: %s</tool>\n' \
-          ${blixTheme}/bin/blix-theme "$formatted" ${blixTheme}/bin/blix-theme "$label"
+        printf '<icon>applications-graphics-symbolic</icon><iconclick>%s menu</iconclick><tool>Theme picker: %s</tool>\n' \
+          ${blixTheme}/bin/blix-theme "$label"
         ;;
       brightness)
         value=$(read_brightness)
-        formatted=$(format_label "Brightness $value%")
-        printf '<icon>display-brightness-symbolic</icon><iconclick>%s brightness-menu</iconclick><txt>%s</txt><txtclick>%s brightness-menu</txtclick><tool>Brightness: %s%%</tool>\n' \
-          "$0" "$formatted" "$0" "$value"
+        printf '<icon>display-brightness-symbolic</icon><iconclick>%s brightness-menu</iconclick><tool>Brightness: %s%%</tool>\n' \
+          "$0" "$value"
         ;;
       brightness-menu)
         current=$(read_brightness)

@@ -6,7 +6,6 @@ let
 
   barWidget = import ../scripts/xfce-bar-widget.nix {
     inherit pkgs blixTheme nightMode;
-    currentThemeDir = config.blix.currentThemeDir;
   };
 
   panelReload = pkgs.writeShellApplication {
@@ -14,29 +13,18 @@ let
     runtimeInputs = [ pkgs.coreutils pkgs.procps pkgs.xfce4-panel pkgs.xfconf ];
     text = ''
       ${blixTheme}/bin/blix-theme apply || true
-      panel_pattern='(^|/)xfce4-panel( |$)'
+      panel_pattern='(^|/)xfce4-panel( --disable-wm-check)?$'
 
       if pgrep --full "$panel_pattern" >/dev/null; then
-        old_panel_pid=$(pgrep --full "$panel_pattern" | head -n 1)
-        xfce4-panel --restart
-
-        # The old panel saves its in-memory plugin commands while restarting,
-        # after Home Manager has written the new store paths. Wait for the new
-        # instance, then restore those volatile properties and refresh GenMon.
-        for _ in $(seq 1 50); do
-          new_panel_pid=$(pgrep --full "$panel_pattern" | head -n 1 || true)
-          if [ -n "$new_panel_pid" ] && [ "$new_panel_pid" != "$old_panel_pid" ]; then
-            break
-          fi
-          sleep 0.1
-        done
-
         set_command() {
           xfconf-query \
             --channel xfce4-panel \
             --property "/plugins/plugin-$1/command" \
             --set "$2"
-          xfce4-panel --plugin-event="genmon-$1:refresh:bool:true" || true
+          # Refresh in place: restarting the panel can exhaust XFCE's session
+          # restart limit, while a missing panel makes plugin-event wait forever.
+          timeout 2s xfce4-panel \
+            --plugin-event="genmon-$1:refresh:bool:true" || true
         }
 
         hide_label() {

@@ -1,4 +1,4 @@
-{ resources, ... }:
+{ pkgs, resources, ... }:
 
 let
   iconDir = ".local/share/wayle/icons/hicolor/scalable/actions";
@@ -18,6 +18,10 @@ in
   home.file."${desktopIconDir}/ld-sun-symbolic.svg".source = resources.icons.night.off;
   home.file."${desktopIconDir}/ld-moon-symbolic.svg".source = resources.icons.night.on;
   home.file."${desktopIconDir}/ld-eclipse-symbolic.svg".source = resources.icons.night.plus;
+  home.file."${desktopIconDir}/tb-coffee-symbolic.svg".source =
+    "${pkgs.wayle}/share/icons/hicolor/scalable/actions/tb-coffee-symbolic.svg";
+  home.file."${desktopIconDir}/tb-coffee-off-symbolic.svg".source =
+    "${pkgs.wayle}/share/icons/hicolor/scalable/actions/tb-coffee-off-symbolic.svg";
 
   # The bar's layout, modules, and palette are all part of a theme, so
   # config.toml is supplied by the active theme rather than by this module.
