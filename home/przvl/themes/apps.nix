@@ -247,24 +247,6 @@ in
     @define-color accent_fg_color ${c.background};
     @define-color borders alpha(${c.foreground}, 0.15);
     selection { background-color: ${c.primary}; color: ${c.background}; }
-
-    .xfce4-panel.background {
-      background-color: ${c.background};
-      color: ${c.foreground};
-    }
-    .xfce4-panel button {
-      background-color: transparent;
-      background-image: none;
-      border-color: transparent;
-      border-radius: 0;
-      box-shadow: none;
-      color: ${c.foreground};
-    }
-    .xfce4-panel button:hover,
-    .xfce4-panel button:checked {
-      background-color: ${c.elevated};
-      color: ${c.foreground};
-    }
   '';
 
   "btop.theme" = pkgs.writeText "blix-btop-theme" ''

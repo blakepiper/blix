@@ -15,6 +15,7 @@ let
     text = ''
       ${blixTheme}/bin/blix-theme apply || true
       panel_pattern='(^|/)xfce4-panel( --disable-wm-check)?$'
+      panel_css_migration_stamp="''${XDG_STATE_HOME:-$HOME/.local/state}/blix/xfce-panel-native-colors-v1"
 
       if pgrep --full "$panel_pattern" >/dev/null; then
         set_command() {
@@ -58,6 +59,18 @@ let
           hide_label 11
           set_period 11 1000
         ''}
+
+        # GTK reads user CSS only when a process starts. Restart the panel once
+        # to discard the old palette-specific rules; subsequent theme changes
+        # use the live xfconf color properties set by blix-theme.
+        if [ ! -e "$panel_css_migration_stamp" ]; then
+          xfce4-panel --restart || true
+        fi
+      fi
+
+      if [ ! -e "$panel_css_migration_stamp" ]; then
+        mkdir -p "$(dirname "$panel_css_migration_stamp")"
+        touch "$panel_css_migration_stamp"
       fi
     '';
   };
