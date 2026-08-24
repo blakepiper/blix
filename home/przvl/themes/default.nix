@@ -42,7 +42,12 @@ let
       DEFAULT_THEME=${lib.escapeShellArg defaultTheme}
       # gsettings finds no schemas under a bare systemd user environment.
       export XDG_DATA_DIRS=${
-        lib.escapeShellArg "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}"
+        lib.escapeShellArg (
+          lib.concatStringsSep ":" [
+            "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}"
+            "${pkgs.xapp}/share/gsettings-schemas/${pkgs.xapp.name}"
+          ]
+        )
       }"''${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}"
     ''
     + builtins.readFile ./blix-theme.sh;

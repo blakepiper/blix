@@ -1,8 +1,32 @@
-{ ... }:
+{ pkgs, ... }:
 
 {
   programs.firefox = {
     enable = true;
+
+    # The default Firefox theme is the one that follows the desktop portal.
+    # Use Firefox's Add-on Manager so existing profiles are migrated cleanly
+    # from an explicitly selected Light or Dark theme.
+    package = pkgs.firefox.override {
+      extraPrefs = ''
+        Services.obs.addObserver(function enableBlixFirefoxTheme() {
+          Services.obs.removeObserver(
+            enableBlixFirefoxTheme,
+            "browser-delayed-startup-finished"
+          );
+          const { AddonManager } = ChromeUtils.importESModule(
+            "resource://gre/modules/AddonManager.sys.mjs"
+          );
+          AddonManager.getAddonByID("default-theme@mozilla.org")
+            .then(theme => {
+              if (theme && !theme.isActive) {
+                return theme.enable();
+              }
+            })
+            .catch(Cu.reportError);
+        }, "browser-delayed-startup-finished");
+      '';
+    };
 
     policies = {
       # Remove the old per-theme user.js overrides. Firefox can then follow the
@@ -10,16 +34,6 @@
       Preferences = {
         "ui.systemUsesDarkTheme" = {
           Value = 0;
-          Status = "clear";
-          Type = "number";
-        };
-        "browser.theme.toolbar-theme" = {
-          Value = 2;
-          Status = "clear";
-          Type = "number";
-        };
-        "browser.theme.content-theme" = {
-          Value = 2;
           Status = "clear";
           Type = "number";
         };
