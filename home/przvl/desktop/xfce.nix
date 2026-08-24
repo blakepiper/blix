@@ -1,4 +1,4 @@
-{ config, lib, pkgs, aiUsage, blixTheme, theme, nightMode, ... }:
+{ config, lib, pkgs, aiUsage, blixTheme, sessionSwitcher, theme, nightMode, ... }:
 
 let
   isLaptop = config.blix.formFactor == "laptop";
@@ -209,7 +209,7 @@ in
       "commands/custom/<Super>b" = "${config.programs.firefox.finalPackage}/bin/firefox";
       "commands/custom/<Super>c" = "${pkgs.vscodium}/bin/codium";
       "commands/custom/<Super>f" = "${pkgs.nautilus}/bin/nautilus";
-      "commands/custom/<Super>l" = "${pkgs.xfce4-screensaver}/bin/xfce4-screensaver-command --lock";
+      "commands/custom/<Super>l" = "${sessionSwitcher}/bin/blix-switch-session";
       "commands/custom/<Super>space" = "${pkgs.xfce4-appfinder}/bin/xfce4-appfinder";
       "commands/custom/override" = true;
 
