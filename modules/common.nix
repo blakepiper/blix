@@ -5,6 +5,17 @@
 # hosts/<hostname>/ instead.
 { config, lib, pkgs, ... }:
 
+let
+  # Hyprland also ships an experimental UWSM entry. Blix manages its user
+  # session through Home Manager, so expose only the regular entry and keep
+  # the chooser to the two desktops that are actually configured.
+  hyprlandSessions = pkgs.linkFarm "blix-wayland-sessions" [
+    {
+      name = "hyprland.desktop";
+      path = "${config.programs.hyprland.package}/share/wayland-sessions/hyprland.desktop";
+    }
+  ];
+in
 {
   imports = [
     ./form-factor.nix
@@ -58,13 +69,25 @@
 
   programs.hyprland.enable = true;
 
-  # Start a login prompt at boot, then launch Hyprland after authentication.
-  services.greetd = {
+  # Xfce is an X11 alternative to Hyprland. SDDM supplies the session chooser
+  # at login and supports returning to it while the current session stays
+  # locked, which is what the shared Super+L binding uses.
+  services.xserver = {
     enable = true;
-    useTextGreeter = true;
-    settings.default_session = {
-      command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --asterisks --cmd ${config.programs.hyprland.package}/bin/start-hyprland";
-      user = "greeter";
+    desktopManager.xfce.enable = true;
+  };
+
+  services.displayManager = {
+    defaultSession = "hyprland";
+    sddm = {
+      enable = true;
+      settings = {
+        Users = {
+          RememberLastUser = true;
+          RememberLastSession = true;
+        };
+        Wayland.SessionDir = toString hyprlandSessions;
+      };
     };
   };
 

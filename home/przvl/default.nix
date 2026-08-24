@@ -4,6 +4,7 @@ let
   theme = import ./theme.nix;
   resources = import ./resources.nix { inherit pkgs; };
   nightMode = import ./scripts/night-mode.nix { inherit pkgs; };
+  sessionSwitcher = import ./scripts/session-switcher.nix { inherit pkgs; };
   aiUsage = import ./scripts/ai-usage.nix {
     inherit pkgs;
     modelUsageSource = resources.modelUsageSource;
@@ -11,7 +12,7 @@ let
 in
 {
   _module.args = {
-    inherit theme resources nightMode aiUsage;
+    inherit theme resources nightMode sessionSwitcher aiUsage;
   };
 
   imports = [

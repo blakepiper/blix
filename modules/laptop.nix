@@ -8,6 +8,15 @@
   config = lib.mkIf (config.blix.formFactor == "laptop") {
     services.power-profiles-daemon.enable = true;
 
+    # Keep Xfce's libinput behavior aligned with the shared Hyprland input
+    # settings without naming a particular machine's touchpad.
+    services.libinput.touchpad = {
+      clickMethod = "clickfinger";
+      naturalScrolling = true;
+      tapping = true;
+      tappingButtonMap = "lrm";
+    };
+
     # Suspend on lid close, but keep running while docked to an external
     # display.
     services.logind.settings.Login = {

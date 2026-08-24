@@ -1,4 +1,4 @@
-{ config, lib, pkgs, theme, ... }:
+{ config, lib, pkgs, theme, sessionSwitcher, ... }:
 
 let
   # Rendered at the base indentation of the extraConfig block below.
@@ -76,7 +76,7 @@ in
       hl.bind(main_mod .. " + F", hl.dsp.exec_cmd("${pkgs.nautilus}/bin/nautilus"))
       hl.bind(main_mod .. " + B", hl.dsp.exec_cmd("${config.programs.firefox.finalPackage}/bin/firefox"))
       hl.bind(main_mod .. " + C", hl.dsp.exec_cmd("${pkgs.vscodium}/bin/codium"))
-      hl.bind(main_mod .. " + L", hl.dsp.exec_cmd("${pkgs.procps}/bin/pidof hyprlock || ${pkgs.hyprlock}/bin/hyprlock"))
+      hl.bind(main_mod .. " + L", hl.dsp.exec_cmd("${sessionSwitcher}/bin/blix-switch-session"))
       hl.bind(main_mod .. " + SHIFT + F", hl.dsp.window.fullscreen())
       hl.bind(main_mod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
       hl.bind(main_mod .. " + left", snap_focused_window(0, 0, 0.5, 1))
