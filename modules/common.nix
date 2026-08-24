@@ -6,6 +6,11 @@
 { lib, pkgs, ... }:
 
 {
+  imports = [
+    ./form-factor.nix
+    ./laptop.nix
+  ];
+
   # --- Nix ------------------------------------------------------------------
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];

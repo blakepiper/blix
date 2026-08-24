@@ -14,6 +14,7 @@ in
   };
 
   imports = [
+    ./host.nix
     ./theme.nix
     ./packages.nix
     ./programs

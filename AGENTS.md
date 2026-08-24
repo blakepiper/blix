@@ -13,6 +13,11 @@ evaluation as the minimum acceptance criterion for every configuration change.
 - `flake.lock` pins all flake inputs.
 - `modules/common.nix` owns shared system configuration that applies to every
   Blix machine.
+- `modules/form-factor.nix` declares `blix.formFactor`, the `laptop`/`desktop`
+  switch every host must set. It is mirrored into the przvl Home Manager
+  configuration so user modules can branch on it.
+- `modules/laptop.nix` owns configuration shared by every Blix laptop and is
+  inert on desktops.
 - `hosts/t490/default.nix` owns configuration specific to that machine and
   imports its generated hardware module.
 - `hosts/t490/hardware-configuration.nix` contains detected hardware settings;
@@ -34,8 +39,11 @@ evaluation as the minimum acceptance criterion for every configuration change.
   hostname, `system.stateVersion`, power and lid behavior, hardware quirks,
   and host-specific networking tweaks.
 - Put machine-dependent user settings in `hosts/<hostname>/home.nix`. Declare a
-  typed option in `home/przvl/` and set it per host; do not branch on the
-  hostname inside shared user configuration.
+  typed option in `home/przvl/host.nix` and set it per host; do not branch on
+  the hostname inside shared user configuration.
+- Put behavior common to a class of machine behind `blix.formFactor`:
+  system-wide in `modules/laptop.nix`, user-level by testing
+  `config.blix.formFactor`.
 - Never move generated hardware facts out of a host's
   `hardware-configuration.nix`.
 - Keep package names inside the existing `with pkgs;` package lists.

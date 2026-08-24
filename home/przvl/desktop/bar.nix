@@ -1,5 +1,9 @@
-{ pkgs, resources, theme, nightMode, aiUsage, ... }:
+{ config, lib, pkgs, resources, theme, nightMode, aiUsage, ... }:
 
+let
+  # Only laptops have a battery to report on.
+  isLaptop = config.blix.formFactor == "laptop";
+in
 {
   home.file.".local/share/wayle/icons/hicolor/scalable/actions/cm-ai-usage-symbolic.svg".source = resources.icons.aiUsage;
   home.file.".local/share/wayle/icons/hicolor/scalable/actions/ld-sun-symbolic.svg".source = resources.icons.night.off;
@@ -52,7 +56,8 @@
             monitor = "*";
             left = [ "hyprland-workspaces" ];
             center = [ "custom-night-mode" "idle-inhibit" "separator" "clock" ];
-            right = [ "custom-ai-usage" "network" "volume" "brightness" "battery" ];
+            right = [ "custom-ai-usage" "network" "volume" "brightness" ]
+              ++ lib.optional isLaptop "battery";
           }
         ];
       };
@@ -96,22 +101,25 @@
         network.label-show = false;
         volume.label-show = false;
         brightness.label-show = false;
-        battery.label-show = false;
         hyprland-workspaces = {
           display-mode = "none";
           app-icons-show = true;
         };
-        battery.thresholds = [
-          {
-            below = 30;
-            icon-color = "yellow";
-          }
-          {
-            below = 15;
-            icon-color = "red";
-            label-color = "red";
-          }
-        ];
+      } // lib.optionalAttrs isLaptop {
+        battery = {
+          label-show = false;
+          thresholds = [
+            {
+              below = 30;
+              icon-color = "yellow";
+            }
+            {
+              below = 15;
+              icon-color = "red";
+              label-color = "red";
+            }
+          ];
+        };
       };
     };
   };

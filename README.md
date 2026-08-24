@@ -21,21 +21,23 @@ hosts/<host>/hardware-configuration.nix   generated hardware facts
 flake.nix                         Inputs and the nixosConfigurations outputs
 
 modules/
-└── common.nix                    Shared system configuration for every host
+├── common.nix                    Shared system configuration for every host
+├── form-factor.nix               Declares blix.formFactor ("laptop"/"desktop")
+└── laptop.nix                    Applied to hosts whose form factor is laptop
 
 hosts/t490/
-├── default.nix                   Hostname, laptop power, lid, state version
+├── default.nix                   Form factor, hostname, power quirks, state version
 ├── home.nix                      Monitor layout for this machine
 └── hardware-configuration.nix    Generated hardware facts; edit rarely
 
 home/przvl/
 ├── default.nix                   Home composition root and identity
+├── host.nix                      Host facts: blix.formFactor and blix.monitors
 ├── packages.nix                  User packages
 ├── theme.nix                     Shared colors, font, and cursor values
 ├── resources.nix                 Pinned downloaded resources
 ├── programs/                     User applications
 ├── desktop/                      Hyprland session and appearance
-│   └── monitors.nix              Declares the per-host blix.monitors option
 ├── services/                     User services
 └── scripts/                      Custom executable derivations
 ```
@@ -52,9 +54,13 @@ home/przvl/
 - User applications and desktop behavior belong in `home/przvl/`, which every
   host shares.
 - User settings that depend on the machine belong in `hosts/<host>/home.nix`,
-  which is merged into the shared `home/przvl` configuration. The monitor
-  layout (`blix.monitors`) is the current example; add an option in
-  `home/przvl/` and set it per host rather than branching on the hostname.
+  which is merged into the shared `home/przvl` configuration. Declare the
+  option in `home/przvl/host.nix` and set it per host rather than branching on
+  the hostname.
+- Behavior shared by a *class* of machine rather than by all of them belongs
+  behind `blix.formFactor`: system-wide in `modules/laptop.nix`, user-level by
+  testing `config.blix.formFactor` (as `desktop/bar.nix` does for the battery
+  indicator).
 - `system.stateVersion` is per host. Never copy it to a new machine; set it to
   the release that machine was installed with.
 - Shared theme values belong in `theme.nix`; downloaded inputs belong in
@@ -67,8 +73,9 @@ home/przvl/
    `nixos-generate-config --show-hardware-config > hosts/<hostname>/hardware-configuration.nix`.
 3. Write a small `hosts/<hostname>/default.nix` that imports
    `./hardware-configuration.nix`, sets `networking.hostName`, sets
-   `system.stateVersion`, adds `home-manager.users.przvl = import ./home.nix;`,
-   and adds anything else specific to that machine.
+   `system.stateVersion`, sets `blix.formFactor` to `"laptop"` or `"desktop"`,
+   adds `home-manager.users.przvl = import ./home.nix;`, and adds anything else
+   specific to that machine.
 4. Write `hosts/<hostname>/home.nix` with that machine's `blix.monitors`
    layout, as reported by `hyprctl monitors`.
 5. Register it in `flake.nix`:

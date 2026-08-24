@@ -11,6 +11,8 @@
   # shared home/przvl configuration applied in modules/common.nix.
   home-manager.users.przvl = import ./home.nix;
 
+  blix.formFactor = "laptop";
+
   networking.hostName = "t490";
 
   # This laptop's Wi-Fi adapter drops connections intermittently with
@@ -18,9 +20,9 @@
   networking.networkmanager.wifi.powersave = false;
 
   # --- Laptop power management ----------------------------------------------
-
-  powerManagement.enable = true;
-  services.power-profiles-daemon.enable = true;
+  #
+  # Generic laptop power, lid, and power-profile handling comes from
+  # modules/laptop.nix. Only this machine's quirks live here.
 
   # Prefer maximum responsiveness when the laptop is on AC power.
   systemd.services.power-profile-performance-ac = {
@@ -41,12 +43,6 @@
   services.udev.extraRules = ''
     SUBSYSTEM=="power_supply", KERNEL=="AC", ACTION=="change", ATTR{online}=="1", TAG+="systemd", ENV{SYSTEMD_WANTS}+="power-profile-performance-ac.service"
   '';
-
-  services.logind.settings.Login = {
-    HandleLidSwitch = "suspend";
-    HandleLidSwitchExternalPower = "suspend";
-    HandleLidSwitchDocked = "ignore";
-  };
 
   # The NixOS release this machine was installed with. Per host; never copied
   # to a new machine.
