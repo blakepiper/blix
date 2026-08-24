@@ -1,5 +1,17 @@
-{ config, pkgs, theme, ... }:
+{ config, lib, pkgs, theme, ... }:
 
+let
+  # Rendered at the base indentation of the extraConfig block below.
+  renderMonitor = m: ''
+    hl.monitor({
+      output = "${m.output}",
+      mode = "${m.mode}",
+      position = "${m.position}",
+      scale = ${builtins.toJSON m.scale},
+    })
+  '';
+  monitors = lib.concatMapStrings renderMonitor config.blix.monitors;
+in
 {
   wayland.windowManager.hyprland = {
     enable = true;
@@ -14,19 +26,7 @@
       local main_mod = "SUPER"
       local terminal = "alacritty"
 
-      hl.monitor({
-        output = "eDP-1",
-        mode = "1920x1080@60.008",
-        position = "0x0",
-        scale = 1.25,
-      })
-      hl.monitor({
-        output = "HDMI-A-2",
-        mode = "3840x2160@30",
-        position = "-2560x0",
-        scale = 1.5,
-      })
-
+      ${monitors}
       local function snap_focused_window(x, y, width, height)
         return function()
           local window = hl.get_active_window()

@@ -20,6 +20,9 @@ evaluation as the minimum acceptance criterion for every configuration change.
   intentionally changes.
 - `home/przvl/default.nix` owns the `przvl` user's packages, programs, services,
   and dotfile configuration, shared across hosts.
+- `hosts/t490/home.nix` owns `przvl` Home Manager settings that depend on this
+  machine, currently the `blix.monitors` layout declared in
+  `home/przvl/desktop/monitors.nix`.
 
 ## Scope and ownership
 
@@ -30,6 +33,9 @@ evaluation as the minimum acceptance criterion for every configuration change.
 - Put only machine-dependent settings in `hosts/<hostname>/default.nix`:
   hostname, `system.stateVersion`, power and lid behavior, hardware quirks,
   and host-specific networking tweaks.
+- Put machine-dependent user settings in `hosts/<hostname>/home.nix`. Declare a
+  typed option in `home/przvl/` and set it per host; do not branch on the
+  hostname inside shared user configuration.
 - Never move generated hardware facts out of a host's
   `hardware-configuration.nix`.
 - Keep package names inside the existing `with pkgs;` package lists.

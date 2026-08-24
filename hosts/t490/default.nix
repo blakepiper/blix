@@ -7,6 +7,10 @@
 {
   imports = [ ./hardware-configuration.nix ];
 
+  # Home Manager settings that depend on this machine, merged with the
+  # shared home/przvl configuration applied in modules/common.nix.
+  home-manager.users.przvl = import ./home.nix;
+
   networking.hostName = "t490";
 
   # This laptop's Wi-Fi adapter drops connections intermittently with

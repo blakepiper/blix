@@ -10,7 +10,8 @@ A complete machine is composed from four parts:
 ```text
 modules/common.nix                shared Blix system configuration
 home/przvl/                       shared przvl Home Manager configuration
-hosts/<host>/default.nix          host-specific configuration
+hosts/<host>/default.nix          host-specific system configuration
+hosts/<host>/home.nix             host-specific przvl Home Manager settings
 hosts/<host>/hardware-configuration.nix   generated hardware facts
 ```
 
@@ -24,6 +25,7 @@ modules/
 
 hosts/t490/
 ├── default.nix                   Hostname, laptop power, lid, state version
+├── home.nix                      Monitor layout for this machine
 └── hardware-configuration.nix    Generated hardware facts; edit rarely
 
 home/przvl/
@@ -33,6 +35,7 @@ home/przvl/
 ├── resources.nix                 Pinned downloaded resources
 ├── programs/                     User applications
 ├── desktop/                      Hyprland session and appearance
+│   └── monitors.nix              Declares the per-host blix.monitors option
 ├── services/                     User services
 └── scripts/                      Custom executable derivations
 ```
@@ -46,7 +49,12 @@ home/przvl/
 - Generated hardware settings stay in that host's `hardware-configuration.nix`;
   never move filesystem UUIDs, kernel modules, or CPU settings into shared
   configuration.
-- User applications and desktop behavior belong in `home/przvl/`.
+- User applications and desktop behavior belong in `home/przvl/`, which every
+  host shares.
+- User settings that depend on the machine belong in `hosts/<host>/home.nix`,
+  which is merged into the shared `home/przvl` configuration. The monitor
+  layout (`blix.monitors`) is the current example; add an option in
+  `home/przvl/` and set it per host rather than branching on the hostname.
 - `system.stateVersion` is per host. Never copy it to a new machine; set it to
   the release that machine was installed with.
 - Shared theme values belong in `theme.nix`; downloaded inputs belong in
@@ -59,8 +67,11 @@ home/przvl/
    `nixos-generate-config --show-hardware-config > hosts/<hostname>/hardware-configuration.nix`.
 3. Write a small `hosts/<hostname>/default.nix` that imports
    `./hardware-configuration.nix`, sets `networking.hostName`, sets
-   `system.stateVersion`, and adds anything specific to that machine.
-4. Register it in `flake.nix`:
+   `system.stateVersion`, adds `home-manager.users.przvl = import ./home.nix;`,
+   and adds anything else specific to that machine.
+4. Write `hosts/<hostname>/home.nix` with that machine's `blix.monitors`
+   layout, as reported by `hyprctl monitors`.
+5. Register it in `flake.nix`:
 
 ```nix
 nixosConfigurations = {
