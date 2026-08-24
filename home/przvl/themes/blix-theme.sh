@@ -54,15 +54,10 @@ current_theme() {
     fi
 }
 
-# Firefox generates its own profile directory name, so the active theme's
-# user.js is linked into whatever profiles exist rather than declared. The link
-# points through ~/.config/blix/current, so it follows later switches by
-# itself. An existing real user.js is never touched.
-link_firefox() {
-    local root ini profile dest target
-    target="$current_link/firefox.js"
-    [ -e "$target" ] || return 0
-
+# Remove only the user.js links created by the old Firefox theme mechanism.
+# Firefox now follows the desktop portal's live color-scheme signal instead.
+unlink_firefox_theme() {
+    local root ini profile dest
     for root in "${XDG_CONFIG_HOME:-$HOME/.config}/mozilla/firefox" "$HOME/.mozilla/firefox"; do
         ini="$root/profiles.ini"
         [ -r "$ini" ] || continue
@@ -73,12 +68,9 @@ link_firefox() {
             esac
             [ -d "$(dirname "$dest")" ] || continue
             if [ -L "$dest" ]; then
-                # Only ever refresh a link this script made.
                 case "$(readlink "$dest")" in
-                    */blix/current/firefox.js) ln -sfn "$target" "$dest" ;;
+                    */blix/current/firefox.js) rm -f "$dest" ;;
                 esac
-            elif [ ! -e "$dest" ]; then
-                ln -s "$target" "$dest"
             fi
         done < <(sed -n 's/^[[:space:]]*Path=//p' "$ini")
     done
@@ -150,6 +142,9 @@ apply_theme() {
         *XFCE*)
             xfconf-query --channel xsettings \
                 --property /Net/ThemeName --set "$GTK_THEME" || true
+            # Xfce's preferred xapp Settings portal publishes this value and
+            # emits the live signal consumed by Firefox.
+            gsettings set org.x.apps.portal color-scheme "$COLOR_SCHEME" || true
 
             # Unlike imported GTK CSS, this native panel property is observed
             # immediately when the active-theme symlink changes.
@@ -272,7 +267,7 @@ main() {
         reload) reload_theme ;;
         ensure)
             ensure_current || true
-            link_firefox || true
+            unlink_firefox_theme || true
             ;;
         *) usage ;;
     esac

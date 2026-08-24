@@ -314,16 +314,6 @@ in
     }
   '';
 
-  # Symlinked in as the Firefox profile's user.js, which Firefox re-reads on
-  # every start. Firefox derives its own light/dark from GTK, which does not
-  # follow a runtime switch, so the answer is stated outright instead.
-  "firefox.js" = pkgs.writeText "blix-firefox-js" ''
-    user_pref("ui.systemUsesDarkTheme", ${if dark then "1" else "0"});
-    // 2 = follow the system setting above, for both chrome and page content.
-    user_pref("browser.theme.toolbar-theme", 2);
-    user_pref("browser.theme.content-theme", 2);
-  '';
-
   "hyprlock.conf" = pkgs.writeText "blix-hyprlock-conf" hyprlockConf;
 
   "wayle.toml" = tomlFormat.generate "blix-wayle-config" wayleSettings;
