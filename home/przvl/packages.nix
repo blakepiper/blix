@@ -19,6 +19,7 @@
     nautilus
     file-roller
     ffmpegthumbnailer
+    xfce4-genmon-plugin
     vscodium
     python3
     uv

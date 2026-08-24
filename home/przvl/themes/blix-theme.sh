@@ -144,13 +144,33 @@ apply_theme() {
         esac
     fi
 
+    # Xfdesktop keys its wallpaper properties by monitor and workspace. Update
+    # every existing backdrop so runtime theme switches cover the full layout.
+    case "${XDG_CURRENT_DESKTOP:-}" in
+        *XFCE*)
+            if [ -n "${WALLPAPER:-}" ]; then
+                while IFS= read -r property; do
+                    case "$property" in
+                        */last-image)
+                            xfconf-query --channel xfce4-desktop \
+                                --property "$property" --set "$WALLPAPER" || true
+                            ;;
+                    esac
+                done < <(xfconf-query --channel xfce4-desktop --list 2>/dev/null || true)
+            fi
+            ;;
+    esac
+
     gsettings set org.gnome.desktop.interface color-scheme "$COLOR_SCHEME" || true
     gsettings set org.gnome.desktop.interface gtk-theme "$GTK_THEME" || true
 }
 
 reload_theme() {
     apply_theme
-    systemctl --user restart wayle.service || true
+    systemctl --user try-restart wayle.service || true
+    case "${XDG_CURRENT_DESKTOP:-}" in
+        *XFCE*) xfce4-panel --restart || true ;;
+    esac
 }
 
 pick_theme() {
@@ -163,8 +183,14 @@ pick_theme() {
         labels="$labels$(theme_label "$name")"$'\n'
     done
 
-    choice=$(printf '%s' "$labels" |
-        fuzzel --dmenu --hide-prompt --lines "${#names[@]}" --width 24) || return 0
+    if [ "${XDG_SESSION_TYPE:-}" = x11 ]; then
+        choice=$(printf '%s' "$labels" |
+            zenity --list --title="Choose theme" --column="Theme" --hide-header \
+                --width=320 --height=240) || return 0
+    else
+        choice=$(printf '%s' "$labels" |
+            fuzzel --dmenu --hide-prompt --lines "${#names[@]}" --width 24) || return 0
+    fi
     [ -n "$choice" ] || return 0
 
     for index in "${!names[@]}"; do

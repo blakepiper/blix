@@ -33,6 +33,9 @@ let
       glib
       hyprland
       systemd
+      xfce4-panel
+      xfconf
+      zenity
     ];
     text = ''
       DEFAULT_THEME=${lib.escapeShellArg defaultTheme}
@@ -90,6 +93,10 @@ in
 
   config.home.packages = [ script ];
 
+  # Other desktop modules use the same runtime theme switcher rather than
+  # growing session-specific copies of its palette and selection logic.
+  config._module.args.blixTheme = script;
+
   config.xdg.configFile."blix/themes".source = themesDir;
 
   # Wayle, hyprlock, and hyprpaper have no include directive, so the active
@@ -100,6 +107,15 @@ in
     config.lib.file.mkOutOfStoreSymlink "${currentDir}/hyprlock.conf";
   config.xdg.configFile."hypr/hyprpaper.conf".source =
     config.lib.file.mkOutOfStoreSymlink "${currentDir}/hyprpaper.conf";
+
+  config.xdg.configFile."autostart/blix-theme.desktop".text = ''
+    [Desktop Entry]
+    Type=Application
+    Name=Apply Blix theme
+    Exec=${script}/bin/blix-theme apply
+    OnlyShowIn=XFCE;
+    NoDisplay=true
+  '';
 
   # btop rewrites btop.conf itself, so that file stays btop's. Exposing the
   # theme under its themes directory instead lets btop pick it by name, and the

@@ -4,6 +4,7 @@ pkgs.writers.writePython3Bin "ai-usage" {
   flakeIgnore = [ "E302" "E305" "E306" "E501" ];
 } ''
   import json
+  import html
   import os
   import subprocess
   import sys
@@ -19,8 +20,10 @@ pkgs.writers.writePython3Bin "ai-usage" {
 
   cache_path = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "ai-usage/providers.json"
 
-  def read_cache():
+  def read_cache(max_age_seconds=None):
       try:
+          if max_age_seconds is not None and datetime.now().timestamp() - cache_path.stat().st_mtime > max_age_seconds:
+              return None
           providers = json.loads(cache_path.read_text())
           return providers if isinstance(providers, list) else None
       except (OSError, ValueError):
@@ -128,15 +131,26 @@ pkgs.writers.writePython3Bin "ai-usage" {
       text = f"AI {1 - max(usage):.0%} left" if usage else "AI —"
       return json.dumps({"text": text, "tooltip": details(providers), "percentage": int(max(usage, default=0) * 100)})
 
-  show_details = len(sys.argv) > 1 and sys.argv[1] == "details"
+  mode = sys.argv[1] if len(sys.argv) > 1 else "status"
   # The bar refreshes this snapshot every five minutes.  Reading it on click
   # avoids waiting for the Codex RPC and the provider usage endpoints.
-  providers = read_cache() if show_details else None
+  providers = read_cache(300) if mode == "genmon" else read_cache() if mode in ("details", "popup") else None
   if providers is None:
       providers = load_providers()
       write_cache(providers)
-  if show_details:
+  if mode == "details":
       print(details(providers))
+  elif mode == "popup":
+      subprocess.run(
+          ["${pkgs.zenity}/bin/zenity", "--text-info", "--title=AI usage", "--width=720", "--height=480"],
+          input=details(providers),
+          text=True,
+          check=False,
+      )
+  elif mode == "genmon":
+      command = html.escape(str(Path(sys.argv[0]).resolve()) + " popup")
+      tooltip = html.escape(details(providers))
+      print("<icon>cm-ai-usage-symbolic</icon>" + f"<iconclick>{command}</iconclick><tool>{tooltip}</tool>")
   else:
       print(summary(providers))
 ''

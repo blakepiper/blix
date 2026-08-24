@@ -1,6 +1,73 @@
-{ config, lib, pkgs, sessionSwitcher, theme, ... }:
+{ config, lib, pkgs, aiUsage, blixTheme, sessionSwitcher, theme, nightMode, ... }:
 
 let
+  isLaptop = config.blix.formFactor == "laptop";
+  uint = value: { type = "uint"; inherit value; };
+
+  barWidget = import ../scripts/xfce-bar-widget.nix {
+    inherit pkgs blixTheme;
+  };
+
+  panelPluginIds = [ 1 2 3 4 5 6 7 8 9 10 ]
+    ++ lib.optionals isLaptop [ 11 ];
+
+  panelSettings = {
+    panels = [ 1 ];
+    "panels/dark-mode" = true;
+    "panels/panel-1/icon-size" = uint 18;
+    "panels/panel-1/length" = uint 100;
+    "panels/panel-1/plugin-ids" = panelPluginIds;
+    "panels/panel-1/position" = "p=6;x=0;y=0";
+    "panels/panel-1/position-locked" = true;
+    "panels/panel-1/size" = uint 30;
+
+    # Left: workspaces. The two expanding separators keep the controls and
+    # clock centered while the status widgets remain right-aligned.
+    "plugins/plugin-1" = "pager";
+    "plugins/plugin-1/miniature-view" = true;
+    "plugins/plugin-1/rows" = uint 1;
+    "plugins/plugin-2" = "separator";
+    "plugins/plugin-2/expand" = true;
+    "plugins/plugin-2/style" = uint 0;
+
+    # Center: the same night-mode and idle-inhibit controls as the Wayle bar,
+    # followed by its clock format.
+    "plugins/plugin-3" = "genmon";
+    "plugins/plugin-3/command" = "${nightMode}/bin/night-mode genmon";
+    "plugins/plugin-3/enable-single-row" = true;
+    "plugins/plugin-3/update-period" = 1000;
+    "plugins/plugin-3/use-label" = false;
+    "plugins/plugin-4" = "genmon";
+    "plugins/plugin-4/command" = "${barWidget}/bin/blix-xfce-bar-widget idle";
+    "plugins/plugin-4/enable-single-row" = true;
+    "plugins/plugin-4/update-period" = 1000;
+    "plugins/plugin-4/use-label" = false;
+    "plugins/plugin-5" = "clock";
+    "plugins/plugin-5/digital-format" = "%a %b %d  %H:%M";
+    "plugins/plugin-5/mode" = uint 2;
+    "plugins/plugin-6" = "separator";
+    "plugins/plugin-6/expand" = true;
+    "plugins/plugin-6/style" = uint 0;
+
+    # Right: custom theme and AI widgets, then XFCE's native network tray and
+    # audio control. Laptop builds also expose battery and brightness controls.
+    "plugins/plugin-7" = "genmon";
+    "plugins/plugin-7/command" = "${barWidget}/bin/blix-xfce-bar-widget theme";
+    "plugins/plugin-7/enable-single-row" = true;
+    "plugins/plugin-7/update-period" = 5000;
+    "plugins/plugin-7/use-label" = false;
+    "plugins/plugin-8" = "genmon";
+    "plugins/plugin-8/command" = "${aiUsage}/bin/ai-usage genmon";
+    "plugins/plugin-8/enable-single-row" = true;
+    "plugins/plugin-8/update-period" = 300000;
+    "plugins/plugin-8/use-label" = false;
+    "plugins/plugin-9" = "systray";
+    "plugins/plugin-9/square-icons" = true;
+    "plugins/plugin-10" = "pulseaudio";
+  } // lib.optionalAttrs isLaptop {
+    "plugins/plugin-11" = "power-manager-plugin";
+  };
+
   workspaceBindings = lib.listToAttrs (
     lib.concatMap (workspace: [
       {
@@ -55,6 +122,8 @@ in
     # modules/laptop.nix declares lid behavior for every desktop. Tell Xfce's
     # power manager not to take a second inhibitor or perform a second action.
     xfce4-power-manager."xfce4-power-manager/logind-handle-lid-switch" = true;
+
+    xfce4-panel = panelSettings;
 
     xfwm4."general/workspace_count" = 5;
 
