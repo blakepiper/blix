@@ -27,9 +27,6 @@ in
     sddm = {
       enable = true;
       theme = toString blixSddmTheme;
-      # Keep the greeter on its own display so SwitchToGreeter can preserve a
-      # locked Xfce session instead of contending with it for the X server.
-      wayland.enable = true;
       extraPackages = with pkgs.kdePackages; [
         qtmultimedia
         qtsvg
