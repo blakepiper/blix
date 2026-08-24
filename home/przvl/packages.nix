@@ -5,6 +5,7 @@
     ripgrep
     fd
     alacritty
+    nvim
     nodejs
     codex
     claude-code
