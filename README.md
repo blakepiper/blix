@@ -120,7 +120,7 @@ Applications reach the active theme in one of two ways:
 | Alacritty | `general.import` of `current/alacritty.toml` |
 | Fuzzel | `include` of `current/fuzzel.ini` |
 | GTK 3 and 4 | `@import` of `current/gtk.css` |
-| btop | `color_theme` pointing at `current/btop.theme` |
+| btop | `themes/blix.theme` symlinked into `current/`; select it once with `color_theme = "blix"` |
 | Neovim | `mini.base16` built from `current/base16.lua` |
 | Wayle | whole `config.toml` symlinked into `current/` |
 | Hyprlock | whole `hyprlock.conf` symlinked into `current/` |

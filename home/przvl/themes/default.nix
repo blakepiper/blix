@@ -95,16 +95,24 @@ in
   config.xdg.configFile."hypr/hyprlock.conf".source =
     config.lib.file.mkOutOfStoreSymlink "${currentDir}/hyprlock.conf";
 
-  config.xdg.configFile."btop/btop.conf".text = ''
-    color_theme = "${currentDir}/btop.theme"
-    theme_background = False
-  '';
+  # btop rewrites btop.conf itself, so that file stays btop's. Exposing the
+  # theme under its themes directory instead lets btop pick it by name, and the
+  # symlink means it then follows whatever theme is active.
+  config.xdg.configFile."btop/themes/blix.theme".source =
+    config.lib.file.mkOutOfStoreSymlink "${currentDir}/btop.theme";
 
   # A fresh machine has no ~/.config/blix/current yet, and wayle would start
   # without a configuration file. Create it during activation, before the
   # session starts.
   config.home.activation.blixTheme = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     run ${script}/bin/blix-theme ensure
+  '';
+
+  # Wayle's config.toml is a symlink to the active theme, so home-manager never
+  # sees its contents change and will not restart the bar on its own.
+  # try-restart is a no-op when the bar is not running, such as at boot.
+  config.home.activation.blixThemeBar = lib.hm.dag.entryAfter [ "blixTheme" ] ''
+    run ${pkgs.systemd}/bin/systemctl --user try-restart wayle.service || true
   '';
 
   # Border colors and the GTK color scheme are set by command, so they have to
