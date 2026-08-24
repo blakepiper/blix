@@ -33,7 +33,6 @@ let
       glib
       hyprland
       systemd
-      xfce4-panel
       xfconf
       zenity
     ];

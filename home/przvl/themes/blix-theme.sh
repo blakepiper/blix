@@ -18,7 +18,7 @@ Usage: blix-theme <command>
   set NAME   Switch to NAME and apply it everywhere
   menu       Choose a theme from a list, then apply it
   apply      Re-apply the active theme to the running session
-  reload     Apply, and restart the bar so it picks up new colors
+  reload     Apply, and refresh services that read a complete theme file
   ensure     Create the active-theme link if it is missing
 USAGE
     exit 64
@@ -177,9 +177,6 @@ apply_theme() {
 reload_theme() {
     apply_theme
     systemctl --user try-restart wayle.service || true
-    case "${XDG_CURRENT_DESKTOP:-}" in
-        *XFCE*) xfce4-panel --restart || true ;;
-    esac
 }
 
 pick_theme() {
@@ -204,6 +201,9 @@ pick_theme() {
 
     for index in "${!names[@]}"; do
         if [ "$(theme_label "${names[$index]}")" = "$choice" ]; then
+            if [ "${names[$index]}" = "$(current_theme)" ]; then
+                return 0
+            fi
             link_theme "${names[$index]}"
             reload_theme
             return 0
