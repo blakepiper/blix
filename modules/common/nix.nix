@@ -3,7 +3,7 @@
 {
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   nixpkgs.config.allowUnfreePredicate = pkg:
-    builtins.elem (lib.getName pkg) [ "claude-code" ];
+    builtins.elem (lib.getName pkg) [ "claude-code" "steam" "steam-unwrapped" ];
 
   nix.gc = {
     automatic = true;
