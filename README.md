@@ -29,7 +29,7 @@ modules/
 │   ├── boot.nix                  Shared UEFI/systemd-boot policy
 │   ├── locale.nix                Shared timezone and locale policy
 │   ├── nix.nix                   Nix, flakes, GC, and store optimization
-│   ├── desktop-session.nix       Hyprland, Xfce, and SDDM
+│   ├── desktop-session.nix       Hyprland and SDDM
 │   ├── desktop-services.nix      Audio, polkit, disks, and power reporting
 │   ├── form-factor.nix           Declares and mirrors blix.formFactor
 │   ├── networking.nix            Shared NetworkManager configuration
@@ -39,7 +39,7 @@ modules/
 │   └── home-manager.nix          Shared Home Manager composition
 └── laptop/
     ├── default.nix               Aggregates reusable laptop behavior
-    ├── input.nix                 Generic laptop touchpad behavior
+    ├── input.nix                 Greeter touchpad behavior
     └── power.nix                 Generic power profiles and lid policy
 
 hosts/t490/
@@ -163,9 +163,8 @@ generated from the palette.
 Colors belong only in a palette. An application module must never hardcode
 one, or that application will stop following the active theme.
 
-Firefox follows the desktop portal's live `color-scheme` setting. Hyprland's
-portal supports that directly; in Xfce, `blix-theme` updates the xapp Settings
-portal's `prefer-light`/`prefer-dark` value.
+Firefox follows the desktop portal's live `color-scheme` setting, which
+Hyprland's portal supports directly.
 
 ## Validation
 

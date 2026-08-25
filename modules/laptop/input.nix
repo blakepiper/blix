@@ -1,8 +1,9 @@
 { ... }:
 
 {
-  # Keep Xfce's libinput behavior aligned with the shared Hyprland input
-  # settings without naming a particular machine's touchpad.
+  # Hyprland configures its own libinput devices; this is the X11 driver's
+  # configuration, which now applies only to SDDM's greeter. Keep the greeter's
+  # touchpad behaving like the desktop's.
   services.libinput.touchpad = {
     clickMethod = "clickfinger";
     naturalScrolling = true;

@@ -1,8 +1,6 @@
-{ config, pkgs, ... }:
+{ pkgs, lockCommand, ... }:
 
 let
-  # Reuse the running lock screen rather than stacking a second instance.
-  lockCommand = "${pkgs.procps}/bin/pidof hyprlock || ${config.programs.hyprlock.package}/bin/hyprlock";
   hyprctl = "${pkgs.hyprland}/bin/hyprctl";
 in
 {

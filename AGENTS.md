@@ -14,8 +14,8 @@ evaluation as the minimum acceptance criterion for every configuration change.
 - `flake.lock` pins all flake inputs.
 - `modules/common/default.nix` aggregates shared system modules for the
   standard Blix environment. Its sibling files separate boot, locale, Nix,
-  networking, users, fonts, packages, desktop sessions and services, Home
-  Manager integration, and the `blix.formFactor` option.
+  networking, users, fonts, packages, the Hyprland session and its services,
+  Home Manager integration, and the `blix.formFactor` option.
 - `modules/laptop/default.nix` aggregates behavior reusable across laptops,
   currently generic power/lid policy and touchpad input settings. Hosts opt in
   by importing the directory; do not import it for desktops.

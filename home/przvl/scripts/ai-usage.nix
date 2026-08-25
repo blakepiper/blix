@@ -4,7 +4,6 @@ pkgs.writers.writePython3Bin "ai-usage" {
   flakeIgnore = [ "E302" "E305" "E306" "E501" ];
 } ''
   import json
-  import html
   import os
   import subprocess
   import sys
@@ -134,31 +133,12 @@ pkgs.writers.writePython3Bin "ai-usage" {
   mode = sys.argv[1] if len(sys.argv) > 1 else "status"
   # The bar refreshes this snapshot every five minutes.  Reading it on click
   # avoids waiting for the Codex RPC and the provider usage endpoints.
-  providers = read_cache(300) if mode == "genmon" else read_cache() if mode in ("details", "popup") else None
+  providers = read_cache() if mode == "details" else None
   if providers is None:
       providers = load_providers()
       write_cache(providers)
   if mode == "details":
       print(details(providers))
-  elif mode == "popup":
-      subprocess.run(
-          [
-              "${pkgs.yad}/bin/yad",
-              "--text-info",
-              "--undecorated",
-              "--no-buttons",
-              "--close-on-unfocus",
-              "--width=720",
-              "--height=480",
-          ],
-          input=details(providers),
-          text=True,
-          check=False,
-      )
-  elif mode == "genmon":
-      command = html.escape(str(Path(sys.argv[0]).resolve()) + " popup")
-      tooltip = html.escape(details(providers))
-      print("<icon>cm-ai-usage-symbolic</icon>" + f"<iconclick>{command}</iconclick><tool>{tooltip}</tool>")
   else:
       print(summary(providers))
 ''

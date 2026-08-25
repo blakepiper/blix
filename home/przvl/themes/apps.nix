@@ -12,13 +12,6 @@ let
   bare = value: lib.removePrefix "#" value;
   rgba = value: alpha: "rgba(${bare value}${alpha})";
 
-  # Xfce stores a panel color as four normalized doubles rather than a hex
-  # string. Keep that representation generated from the palette too.
-  xfceColorComponent = offset:
-    toString (
-      lib.fromHexString (builtins.substring offset 2 (bare c.background)) / 255.0
-    );
-
   dark = palette.polarity == "dark";
   gtkTheme = if dark then "Adwaita-dark" else "Adwaita";
 
@@ -363,9 +356,5 @@ in
     GTK_THEME=${lib.escapeShellArg gtkTheme}
     COLOR_SCHEME=${lib.escapeShellArg (if dark then "prefer-dark" else "prefer-light")}
     WALLPAPER=${lib.escapeShellArg "${palette.wallpaper}"}
-    XFCE_PANEL_RED=${lib.escapeShellArg (xfceColorComponent 0)}
-    XFCE_PANEL_GREEN=${lib.escapeShellArg (xfceColorComponent 2)}
-    XFCE_PANEL_BLUE=${lib.escapeShellArg (xfceColorComponent 4)}
-    XFCE_PANEL_ALPHA=1.0
   '';
 }

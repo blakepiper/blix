@@ -34,20 +34,12 @@ let
       gnused
       hyprland
       systemd
-      xfconf
-      xrandr
-      zenity
     ];
     text = ''
       DEFAULT_THEME=${lib.escapeShellArg defaultTheme}
       # gsettings finds no schemas under a bare systemd user environment.
       export XDG_DATA_DIRS=${
-        lib.escapeShellArg (
-          lib.concatStringsSep ":" [
-            "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}"
-            "${pkgs.xapp}/share/gsettings-schemas/${pkgs.xapp.name}"
-          ]
-        )
+        lib.escapeShellArg "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}"
       }"''${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}"
     ''
     + builtins.readFile ./blix-theme.sh;
@@ -114,15 +106,6 @@ in
   config.xdg.configFile."hypr/hyprpaper.conf".source =
     config.lib.file.mkOutOfStoreSymlink "${currentDir}/hyprpaper.conf";
 
-  config.xdg.configFile."autostart/blix-theme.desktop".text = ''
-    [Desktop Entry]
-    Type=Application
-    Name=Apply Blix theme
-    Exec=${script}/bin/blix-theme apply
-    OnlyShowIn=XFCE;
-    NoDisplay=true
-  '';
-
   # btop rewrites btop.conf itself, so that file stays btop's. Exposing the
   # theme under its themes directory instead lets btop pick it by name, and the
   # symlink means it then follows whatever theme is active.
@@ -159,16 +142,5 @@ in
       ExecStart = "${script}/bin/blix-theme apply";
     };
     Install.WantedBy = [ "graphical-session.target" ];
-  };
-
-  # Panel plugins can survive a Home Manager activation with their previous
-  # command still in memory. Keep the click target stable and let systemd
-  # resolve the currently installed theme script from this reloaded unit.
-  config.systemd.user.services.blix-theme-menu = {
-    Unit.Description = "Choose and apply a Blix theme";
-    Service = {
-      Type = "oneshot";
-      ExecStart = "${script}/bin/blix-theme menu";
-    };
   };
 }

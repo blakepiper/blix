@@ -109,7 +109,7 @@ link_theme() {
 # component is not running.
 # shellcheck disable=SC2154  # the colors come from the sourced meta.sh
 apply_theme() {
-    local dir reply workspace_count workspace property_prefix monitor
+    local dir reply
     dir="$themes_dir/$(current_theme)"
     [ -r "$dir/meta.sh" ] || die "active theme has no meta.sh"
     # shellcheck disable=SC1090,SC1091
@@ -136,70 +136,6 @@ apply_theme() {
         esac
     fi
 
-    # Xfdesktop keys its wallpaper properties by monitor and workspace. Update
-    # every existing backdrop so runtime theme switches cover the full layout.
-    case "${XDG_CURRENT_DESKTOP:-}" in
-        *XFCE*)
-            xfconf-query --channel xsettings \
-                --property /Net/ThemeName --set "$GTK_THEME" || true
-            # Xfce's preferred xapp Settings portal publishes this value and
-            # emits the live signal consumed by Firefox.
-            gsettings set org.x.apps.portal color-scheme "$COLOR_SCHEME" || true
-
-            # Unlike imported GTK CSS, this native panel property is observed
-            # immediately when the active-theme symlink changes.
-            xfconf-query --channel xfce4-panel \
-                --property /panels/panel-1/background-rgba \
-                --create \
-                --type double --set "$XFCE_PANEL_RED" \
-                --type double --set "$XFCE_PANEL_GREEN" \
-                --type double --set "$XFCE_PANEL_BLUE" \
-                --type double --set "$XFCE_PANEL_ALPHA" || true
-            xfconf-query --channel xfce4-panel \
-                --property /panels/panel-1/background-style \
-                --create --type uint --set 1 || true
-
-            if [ "$POLARITY" = dark ]; then
-                xfconf-query --channel xfce4-panel \
-                    --property /panels/dark-mode --set true || true
-            else
-                xfconf-query --channel xfce4-panel \
-                    --property /panels/dark-mode --set false || true
-            fi
-            if [ -n "${WALLPAPER:-}" ]; then
-                workspace_count=$(xfconf-query --channel xfwm4 \
-                    --property /general/workspace_count 2>/dev/null || printf 1)
-                case "$workspace_count" in
-                    "" | *[!0-9]* | 0) workspace_count=1 ;;
-                esac
-
-                # Xfdesktop does not create backdrop keys until its settings
-                # dialog is used. Populate every active monitor/workspace so a
-                # fresh declarative session follows runtime theme switches too.
-                while read -r _ _ _ monitor; do
-                    [ -n "$monitor" ] || continue
-                    workspace=0
-                    while [ "$workspace" -lt "$workspace_count" ]; do
-                        property_prefix="/backdrop/screen0/monitor${monitor}/workspace${workspace}"
-                        xfconf-query --channel xfce4-desktop \
-                            --property "$property_prefix/image-style" \
-                            --create --type int --set 5 2>/dev/null \
-                            || xfconf-query --channel xfce4-desktop \
-                                --property "$property_prefix/image-style" --set 5 \
-                            || true
-                        xfconf-query --channel xfce4-desktop \
-                            --property "$property_prefix/last-image" \
-                            --create --type string --set "$WALLPAPER" 2>/dev/null \
-                            || xfconf-query --channel xfce4-desktop \
-                                --property "$property_prefix/last-image" --set "$WALLPAPER" \
-                            || true
-                        workspace=$((workspace + 1))
-                    done
-                done < <(xrandr --listmonitors)
-            fi
-            ;;
-    esac
-
     gsettings set org.gnome.desktop.interface color-scheme "$COLOR_SCHEME" || true
     gsettings set org.gnome.desktop.interface gtk-theme "$GTK_THEME" || true
 }
@@ -219,14 +155,8 @@ pick_theme() {
         labels="$labels$(theme_label "$name")"$'\n'
     done
 
-    if [ "${XDG_SESSION_TYPE:-}" = x11 ]; then
-        choice=$(printf '%s' "$labels" |
-            zenity --list --title="Choose theme" --column="Theme" --hide-header \
-                --width=320 --height=240) || return 0
-    else
-        choice=$(printf '%s' "$labels" |
-            fuzzel --dmenu --hide-prompt --lines "${#names[@]}" --width 24) || return 0
-    fi
+    choice=$(printf '%s' "$labels" |
+        fuzzel --dmenu --hide-prompt --lines "${#names[@]}" --width 24) || return 0
     [ -n "$choice" ] || return 0
 
     for index in "${!names[@]}"; do

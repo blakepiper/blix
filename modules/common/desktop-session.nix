@@ -2,8 +2,7 @@
 
 let
   # Hyprland also ships an experimental UWSM entry. Blix manages its user
-  # session through Home Manager, so expose only the regular entry and keep
-  # the chooser to the two desktops that are actually configured.
+  # session through Home Manager, so expose only the regular entry.
   hyprlandSessions = pkgs.linkFarm "blix-wayland-sessions" [
     {
       name = "hyprland.desktop";
@@ -14,13 +13,10 @@ in
 {
   programs.hyprland.enable = true;
 
-  # Xfce is an X11 alternative to Hyprland. SDDM supplies the session chooser
-  # at login and supports returning to it while the current session stays
-  # locked, which is what the shared Super+L binding uses.
-  services.xserver = {
-    enable = true;
-    desktopManager.xfce.enable = true;
-  };
+  # Hyprland is the only desktop Blix offers, so the session directory below is
+  # the only thing SDDM can log in to. X11 itself stays enabled purely because
+  # SDDM's greeter runs on it; no X11 desktop session is installed.
+  services.xserver.enable = true;
 
   services.displayManager = {
     defaultSession = "hyprland";
@@ -33,10 +29,7 @@ in
         qtvirtualkeyboard
       ];
       settings = {
-        Users = {
-          RememberLastUser = true;
-          RememberLastSession = true;
-        };
+        Users.RememberLastUser = true;
         Wayland.SessionDir = toString hyprlandSessions;
       };
     };
