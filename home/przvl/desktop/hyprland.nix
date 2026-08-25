@@ -75,7 +75,6 @@ in
       hl.bind(main_mod .. " + SPACE", hl.dsp.exec_cmd("${pkgs.fuzzel}/bin/fuzzel"))
       hl.bind(main_mod .. " + F", hl.dsp.exec_cmd("${pkgs.nautilus}/bin/nautilus"))
       hl.bind(main_mod .. " + B", hl.dsp.exec_cmd("${config.programs.firefox.finalPackage}/bin/firefox"))
-      hl.bind(main_mod .. " + C", hl.dsp.exec_cmd("${pkgs.vscodium}/bin/codium"))
       hl.bind(main_mod .. " + L", hl.dsp.exec_cmd("${lockCommand}"))
       hl.bind(main_mod .. " + SHIFT + F", hl.dsp.window.fullscreen())
       hl.bind(main_mod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })

@@ -55,7 +55,7 @@ home/przvl/
 ├── theme.nix                     Font and cursor shared by every theme
 ├── themes/                       The theme system; see "Themes" below
 ├── resources.nix                 Pinned downloaded resources
-├── programs/                     User applications, including git and Neovim
+├── programs/                     User applications, including the shell and git
 ├── desktop/                      Hyprland session and appearance
 ├── services/                     User services
 └── scripts/                      Custom executable derivations
@@ -144,7 +144,6 @@ Applications reach the active theme in one of two ways:
 | Fuzzel | `include` of `current/fuzzel.ini` |
 | GTK 3 and 4 | `@import` of `current/gtk.css` |
 | btop | `themes/blix.theme` symlinked into `current/`; select it once with `color_theme = "blix"` |
-| Neovim | `mini.base16` built from `current/base16.lua` |
 | Firefox | desktop portal `color-scheme`; applies live |
 | Wayle | whole `config.toml` symlinked into `current/` |
 | Hyprlock | whole `hyprlock.conf` symlinked into `current/` |

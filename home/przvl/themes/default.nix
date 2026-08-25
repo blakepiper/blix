@@ -8,7 +8,7 @@
 #
 # Applications reach the active theme in one of two ways:
 #
-#   * those that can include a fragment (alacritty, fuzzel, GTK, btop, neovim)
+#   * those that can include a fragment (alacritty, fuzzel, GTK, btop)
 #     keep their home-manager configuration and point at ~/.config/blix/current
 #   * those that cannot (wayle, hyprlock) have their whole config file
 #     symlinked into ~/.config/blix/current instead

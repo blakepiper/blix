@@ -284,29 +284,6 @@ in
     theme[upload_end]="${c.red}"
   '';
 
-  # Read by Neovim and handed to mini.base16, which derives every highlight
-  # group from these sixteen colors.
-  "base16.lua" = pkgs.writeText "blix-base16-lua" ''
-    return {
-      base00 = "${c.background}",
-      base01 = "${c.surface}",
-      base02 = "${c.elevated}",
-      base03 = "${c.muted}",
-      base04 = "${c.brightBlack}",
-      base05 = "${c.foreground}",
-      base06 = "${c.foreground}",
-      base07 = "${c.white}",
-      base08 = "${c.red}",
-      base09 = "${c.brightYellow}",
-      base0A = "${c.yellow}",
-      base0B = "${c.green}",
-      base0C = "${c.cyan}",
-      base0D = "${c.blue}",
-      base0E = "${c.magenta}",
-      base0F = "${c.brightRed}",
-    }
-  '';
-
   "hyprlock.conf" = pkgs.writeText "blix-hyprlock-conf" hyprlockConf;
 
   "wayle.toml" = tomlFormat.generate "blix-wayle-config" wayleSettings;

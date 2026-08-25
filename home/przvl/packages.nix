@@ -2,8 +2,8 @@
 
 # Packages that no program, service, or font module already installs.
 # `alacritty` and `fuzzel` come from their programs.* modules, `wireplumber`
-# from the system PipeWire module, `neovim` from programs.neovim, and fonts
-# from fonts.packages.
+# from the system PipeWire module, `gammastep` from the night-mode service,
+# and fonts from fonts.packages.
 {
   home.packages = with pkgs; [
     ripgrep
@@ -13,13 +13,11 @@
     claude-code
     opencode
     brightnessctl
-    hyprsunset
     networkmanagerapplet
     pavucontrol
     nautilus
     file-roller
     ffmpegthumbnailer
-    vscodium
     python3
     uv
     fastfetch
