@@ -12,6 +12,12 @@ let
   bare = value: lib.removePrefix "#" value;
   rgba = value: alpha: "rgba(${bare value}${alpha})";
 
+  barForeground = c.barForeground or null;
+  barTextColors = lib.optionalAttrs (barForeground != null) {
+    icon-color = barForeground;
+    label-color = barForeground;
+  };
+
   dark = palette.polarity == "dark";
   gtkTheme = if dark then "Adwaita-dark" else "Adwaita";
 
@@ -110,9 +116,11 @@ let
     };
 
     modules = {
-      clock.format = "%a %b %d  %H:%M";
+      clock = {
+        format = "%a %b %d  %H:%M";
+      } // barTextColors;
       custom = [
-        {
+        ({
           id = "night-mode";
           command = "${nightMode}/bin/night-mode status";
           interval-ms = 0;
@@ -124,8 +132,8 @@ let
           label-show = false;
           left-click = "${nightMode}/bin/night-mode next";
           on-action = "${nightMode}/bin/night-mode status";
-        }
-        {
+        } // barTextColors)
+        ({
           id = "theme";
           command = "${blixTheme}/bin/blix-theme status";
           interval-ms = 0;
@@ -134,8 +142,8 @@ let
           tooltip-format = "{{ tooltip }}";
           left-click = "${blixTheme}/bin/blix-theme menu";
           on-action = "${blixTheme}/bin/blix-theme status";
-        }
-        {
+        } // barTextColors)
+        ({
           id = "ai-usage";
           command = "${aiUsage}/bin/ai-usage";
           interval-ms = 300000;
@@ -143,40 +151,50 @@ let
           label-show = false;
           tooltip-format = "{{ tooltip }}";
           left-click = "${aiUsage}/bin/ai-usage details | ${pkgs.fuzzel}/bin/fuzzel --dmenu --hide-prompt --lines=14 --width=70";
-        }
+        } // barTextColors)
       ];
       idle-inhibit = {
         label-show = false;
         left-click = "${pkgs.wayle}/bin/wayle idle toggle --indefinite";
-      };
+      } // barTextColors;
       # An invisible, fixed-width separator creates a clear visual break
       # between the status controls and the clock.
       separator = {
         size = 32;
         color = c.background;
       };
-      network.label-show = false;
-      volume.label-show = false;
+      network = {
+        label-show = false;
+      } // barTextColors;
+      volume = {
+        label-show = false;
+      } // barTextColors;
       hyprland-workspaces = {
         display-mode = "none";
         app-icons-show = true;
+      } // lib.optionalAttrs (barForeground != null) {
+        active-color = barForeground;
+        occupied-color = barForeground;
+        empty-color = barForeground;
       };
     } // lib.optionalAttrs isLaptop {
-      brightness.label-show = false;
+      brightness = {
+        label-show = false;
+      } // barTextColors;
       battery = {
         label-show = false;
         thresholds = [
           {
             below = 30;
-            icon-color = "yellow";
+            icon-color = if barForeground != null then barForeground else "yellow";
           }
           {
             below = 15;
-            icon-color = "red";
-            label-color = "red";
+            icon-color = if barForeground != null then barForeground else "red";
+            label-color = if barForeground != null then barForeground else "red";
           }
         ];
-      };
+      } // barTextColors;
     };
   };
 in

@@ -16,6 +16,7 @@
     surface = "#222436";
     elevated = "#414868";
     foreground = "#ffffff";
+    barForeground = "#ffffff";
     muted = "#565f89";
     primary = "#bb9af7";
     accent = "#7da6ff";
