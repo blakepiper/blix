@@ -28,6 +28,7 @@
     unzip
     p7zip
     blesh
+    vscodium
   ] ++ [
     aiUsage
   ];
