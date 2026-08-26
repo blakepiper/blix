@@ -1,6 +1,13 @@
 { ... }:
 
 {
+  hardware.graphics = {
+    enable = true;
+    enable32Bit = true;
+  };
+
+  programs.steam.enable = true;
+
   security.polkit.enable = true;
   security.rtkit.enable = true;
 

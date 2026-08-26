@@ -29,7 +29,6 @@
     unzip
     p7zip
     blesh
-    steam
   ] ++ [
     aiUsage
   ];
