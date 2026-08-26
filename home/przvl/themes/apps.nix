@@ -118,6 +118,7 @@ let
     modules = {
       clock = {
         format = "%a %b %d  %H:%M";
+        icon-show = false;
       } // barTextColors;
       custom = [
         ({
