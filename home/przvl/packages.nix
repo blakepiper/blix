@@ -21,7 +21,6 @@
     python3
     uv
     fastfetch
-    btop
     grim
     slurp
     wl-clipboard
