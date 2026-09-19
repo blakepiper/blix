@@ -100,6 +100,14 @@ let
     pkgs.xkbcomp
     pkgs.xrandr
   ];
+
+  fastfetchPackages = writeScript "blix-fastfetch-packages" [
+    pkgs.coreutils
+    pkgs.fastfetch
+    pkgs.gnugrep
+    pkgs.gnused
+    pkgs.util-linux
+  ];
 in
 {
   inherit
@@ -126,6 +134,7 @@ in
       pkgs.tmux
       pkgs.util-linux
     ])
+    fastfetchPackages
     (writeScript "blix-brightness" [
       pkgs.brightnessctl
       pkgs.coreutils

@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+set -u
+
+cache_home=${XDG_CACHE_HOME:-$HOME/.cache}
+state_dir="$cache_home/blix"
+state_file="$state_dir/fastfetch-packages"
+refresh_lock="$state_dir/fastfetch-packages.refresh.lock"
+nix_cache_dir="$cache_home/fastfetch/packages/nix"
+user_name=${USER:-przvl}
+system_profile=/run/current-system
+user_profile=/etc/profiles/per-user/$user_name
+
+system_target=$(readlink -f "$system_profile" 2>/dev/null || printf '%s' "$system_profile")
+user_target=$(readlink -f "$user_profile" 2>/dev/null || printf '%s' "$user_profile")
+
+read_count() {
+  local path=$1
+  local count
+  [[ -r $path ]] || return 1
+  count=$(sed -n '2p' "$path")
+  [[ $count =~ ^[0-9]+$ ]] || return 1
+  printf '%s' "$count"
+}
+
+cached_system=$(read_count "$nix_cache_dir/run/current-system" || true)
+cached_user=$(read_count "$nix_cache_dir/etc/profiles/per-user/$user_name" || true)
+state_system=''
+state_user=''
+state_system_count=''
+state_user_count=''
+if [[ -r $state_file ]]; then
+  read -r state_system < "$state_file" || true
+  read -r state_user < <(sed -n '2p' "$state_file") || true
+  read -r state_system_count < <(sed -n '3p' "$state_file") || true
+  read -r state_user_count < <(sed -n '4p' "$state_file") || true
+fi
+
+refresh_counts() {
+  local json nix_system nix_user temp_state
+  mkdir -p "$state_dir" || return 0
+  json=$(mktemp "$state_dir/fastfetch-packages.XXXXXX") || return 0
+  if ! fastfetch --config none --json --logo none --structure packages > "$json" 2>/dev/null; then
+    rm -f "$json"
+    return 0
+  fi
+  nix_system=$(sed -n 's/.*"nixSystem"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$json")
+  nix_user=$(sed -n 's/.*"nixUser"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$json")
+  rm -f "$json"
+  [[ $nix_system =~ ^[0-9]+$ && $nix_user =~ ^[0-9]+$ ]] || return 0
+  temp_state=$(mktemp "$state_dir/fastfetch-packages.state.XXXXXX") || return 0
+  printf '%s\n%s\n%s\n%s\n' \
+    "$system_target" "$user_target" "$nix_system" "$nix_user" > "$temp_state"
+  mv -f "$temp_state" "$state_file"
+}
+
+if [[ ${1:-} == --refresh ]]; then
+  refresh_counts
+  exit 0
+fi
+
+schedule_refresh() {
+  mkdir -p "$state_dir" || return 0
+  nohup flock -n "$refresh_lock" "$0" --refresh >/dev/null 2>&1 </dev/null &
+}
+
+if [[ $state_system == "$system_target" && \
+      $state_user == "$user_target" && \
+      $state_system_count =~ ^[0-9]+$ && \
+      $state_user_count =~ ^[0-9]+$ ]]; then
+  printf '%s (nix-system), %s (nix-user)\n' "$state_system_count" "$state_user_count"
+else
+  if [[ $cached_system =~ ^[0-9]+$ && $cached_user =~ ^[0-9]+$ ]]; then
+    printf '%s (nix-system), %s (nix-user)\n' "$cached_system" "$cached_user"
+  elif [[ $state_system_count =~ ^[0-9]+$ && $state_user_count =~ ^[0-9]+$ ]]; then
+    printf '%s (nix-system), %s (nix-user)\n' "$state_system_count" "$state_user_count"
+  else
+    printf 'updating package count\n'
+  fi
+  schedule_refresh
+fi

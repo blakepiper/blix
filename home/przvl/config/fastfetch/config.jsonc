@@ -10,7 +10,11 @@
         "host",
         "kernel",
         "uptime",
-        "packages",
+        {
+            "type": "command",
+            "key": "Packages",
+            "text": "blix-fastfetch-packages"
+        },
         "shell",
         {
             "type": "display",
