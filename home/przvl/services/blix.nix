@@ -72,6 +72,17 @@ in
       Service = {
         Type = "exec";
         ExecStart = "${hardwareHotplug}/bin/blix-hardware-hotplug";
+        Environment =
+          [
+            "BLIX_INTERNAL_OUTPUT=${config.blix.display.internalOutput}"
+            "BLIX_EXTERNAL_OUTPUT=${config.blix.display.externalOutput}"
+            "BLIX_MIRROR_MODE=${config.blix.display.mirrorMode}"
+            "BLIX_MIRROR_RATE=${config.blix.display.mirrorRate}"
+          ]
+          ++ lib.optional (config.blix.display.internalScaleFrom != null)
+            "BLIX_INTERNAL_SCALE_FROM=${config.blix.display.internalScaleFrom}"
+          ++ lib.optional (config.blix.display.wallpaper != null)
+            "BLIX_WALLPAPER=${config.blix.display.wallpaper}";
         Restart = "on-failure";
         RestartSec = 1;
       };

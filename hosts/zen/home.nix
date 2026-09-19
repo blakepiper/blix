@@ -17,6 +17,9 @@
     externalOutput = "HDMI-1";
     mirrorMode = "1920x1080";
     mirrorRate = "60";
+    # Keep the native 2880x1800 panel sharp while presenting a 1.5x larger
+    # logical desktop when no external monitor is connected.
+    internalScaleFrom = "1920x1200";
     wallpaper = "/home/przvl/Pictures/vibe.jpg";
   };
 }

@@ -92,6 +92,7 @@ let
 
   hardwareHotplug = writeScript "blix-hardware-hotplug" [
     pkgs.coreutils
+    pkgs.feh
     pkgs.gnugrep
     pkgs.gnused
     pkgs.systemd

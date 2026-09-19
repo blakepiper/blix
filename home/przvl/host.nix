@@ -27,6 +27,11 @@
         default = "60";
         description = "Refresh rate used for the mirrored external output.";
       };
+      internalScaleFrom = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = "Logical XRandR mode used for the internal panel when no external output is connected.";
+      };
       wallpaper = lib.mkOption {
         type = lib.types.nullOr lib.types.str;
         default = null;

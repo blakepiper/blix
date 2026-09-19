@@ -2,6 +2,7 @@
 
 let
   wallpaper = config.blix.display.wallpaper;
+  internalScaleFrom = config.blix.display.internalScaleFrom;
 in
 {
   home.sessionVariables = {
@@ -9,6 +10,12 @@ in
     BLIX_EXTERNAL_OUTPUT = config.blix.display.externalOutput;
     BLIX_MIRROR_MODE = config.blix.display.mirrorMode;
     BLIX_MIRROR_RATE = config.blix.display.mirrorRate;
+  }
+  // lib.optionalAttrs (internalScaleFrom != null) {
+    BLIX_INTERNAL_SCALE_FROM = internalScaleFrom;
+  }
+  // lib.optionalAttrs (wallpaper != null) {
+    BLIX_WALLPAPER = wallpaper;
   };
 
   home.file = {
@@ -49,6 +56,8 @@ in
     export BLIX_EXTERNAL_OUTPUT=${lib.escapeShellArg config.blix.display.externalOutput}
     export BLIX_MIRROR_MODE=${lib.escapeShellArg config.blix.display.mirrorMode}
     export BLIX_MIRROR_RATE=${lib.escapeShellArg config.blix.display.mirrorRate}
+    export BLIX_INTERNAL_SCALE_FROM=${lib.escapeShellArg (if internalScaleFrom == null then "" else internalScaleFrom)}
+    export BLIX_WALLPAPER=${lib.escapeShellArg (if wallpaper == null then "" else wallpaper)}
     export BLIX_BATTERY=
 
     for battery in /sys/class/power_supply/*; do
@@ -92,7 +101,8 @@ ${lib.optionalString (wallpaper != null) ''
 
     ${pkgs.systemd}/bin/systemctl --user import-environment \
       DISPLAY XAUTHORITY PATH XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_ID \
-      BLIX_INTERNAL_OUTPUT BLIX_EXTERNAL_OUTPUT BLIX_MIRROR_MODE BLIX_MIRROR_RATE
+      BLIX_INTERNAL_OUTPUT BLIX_EXTERNAL_OUTPUT BLIX_MIRROR_MODE BLIX_MIRROR_RATE \
+      BLIX_INTERNAL_SCALE_FROM BLIX_WALLPAPER
     ${pkgs.systemd}/bin/systemctl --user daemon-reload
     if ! ${pkgs.systemd}/bin/systemctl --user start --no-block blix-session.target; then
       echo 'Warning: unable to start all Blix session services; continuing with OXWM.' >&2

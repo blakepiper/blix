@@ -12,6 +12,8 @@ internal_output=${BLIX_INTERNAL_OUTPUT:-eDP-1}
 external_output=${BLIX_EXTERNAL_OUTPUT:-HDMI-2}
 mirror_mode=${BLIX_MIRROR_MODE:-1920x1080}
 mirror_rate=${BLIX_MIRROR_RATE:-60}
+internal_scale_from=${BLIX_INTERNAL_SCALE_FROM:-}
+wallpaper=${BLIX_WALLPAPER:-}
 once_mode=0
 [[ ${1:-} == --once ]] && once_mode=1
 
@@ -52,6 +54,12 @@ apply_gaming_keyboard() {
   done
 }
 
+apply_wallpaper() {
+  [[ -n $wallpaper && -r $wallpaper ]] || return 0
+  command -v feh >/dev/null 2>&1 || return 0
+  feh --no-fehbg --bg-fill "$wallpaper" >/dev/null 2>&1 || true
+}
+
 configure_external_monitor() {
   command -v xrandr >/dev/null 2>&1 || return 0
 
@@ -60,15 +68,20 @@ configure_external_monitor() {
   if printf '%s\n' "$outputs" | grep -Fq "${external_output} connected"; then
     # Mirror only while the external connector is actually present. The
     # internal panel uses the configured mirror mode in that arrangement.
-    xrandr --output "$internal_output" --mode "$mirror_mode" --rate "$mirror_rate" >/dev/null 2>&1 || true
+    xrandr --output "$internal_output" --mode "$mirror_mode" --rate "$mirror_rate" --scale 1x1 >/dev/null 2>&1 || true
     xrandr --output "$external_output" --mode "$mirror_mode" --rate "$mirror_rate" --same-as "$internal_output" >/dev/null 2>&1 || true
   else
     # A disconnected output can retain an assigned CRTC after unplugging. Turn
     # it off explicitly so OXWM does not treat it as a second monitor, then let
     # the internal panel return to its preferred/native mode.
     xrandr --output "$external_output" --off >/dev/null 2>&1 || true
-    xrandr --output "$internal_output" --auto >/dev/null 2>&1 || true
+    if [[ -n $internal_scale_from ]]; then
+      xrandr --output "$internal_output" --auto --scale-from "$internal_scale_from" >/dev/null 2>&1 || true
+    else
+      xrandr --output "$internal_output" --auto >/dev/null 2>&1 || true
+    fi
   fi
+  apply_wallpaper
 }
 
 apply_gaming_keyboard
