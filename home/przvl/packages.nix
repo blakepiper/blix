@@ -13,6 +13,7 @@
     fd
     fzf
     curl
+    gcc
     jq
     bat
     eza

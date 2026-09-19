@@ -1,5 +1,8 @@
 { config, lib, pkgs, hardwareHotplug, ... }:
 
+let
+  wallpaper = config.blix.display.wallpaper;
+in
 {
   home.sessionVariables = {
     BLIX_INTERNAL_OUTPUT = config.blix.display.internalOutput;
@@ -15,9 +18,11 @@
     ".config/oxwm/config.lua".source = ./config/oxwm/config.lua;
     ".config/picom/picom.conf".source = ./config/picom/picom.conf;
     ".config/tmux/tmux.conf".source = ./config/tmux/tmux.conf;
-    ".config/xfe/xferc".source = ./config/xfe/xferc;
     "Pictures/Screenshots/.keep".text = "";
   };
+
+  # Xfe rewrites xferc with mutable layout, history, and keybinding state;
+  # preserve that user-owned file instead of clobbering it on activation.
 
   # This is intentionally a manual startx session. Auxiliary services are
   # started before OXWM, but none of them may prevent the window manager from
@@ -57,6 +62,11 @@
     ${pkgs.xsetroot}/bin/xsetroot -solid '#1a1b26'
     ${pkgs.xset}/bin/xset r rate 200 50
     ${hardwareHotplug}/bin/blix-hardware-hotplug --once
+${lib.optionalString (wallpaper != null) ''
+    if [[ -r ${lib.escapeShellArg wallpaper} ]]; then
+      ${pkgs.feh}/bin/feh --no-fehbg --bg-fill ${lib.escapeShellArg wallpaper} >/dev/null 2>&1 || true
+    fi
+''}
 
     # No idle locking or automatic display blanking. Manual DPMS remains
     # available through the control menu and logind suspend still locks.

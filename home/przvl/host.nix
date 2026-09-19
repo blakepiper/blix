@@ -27,6 +27,11 @@
         default = "60";
         description = "Refresh rate used for the mirrored external output.";
       };
+      wallpaper = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = "Path to the host wallpaper applied when the X11 session starts.";
+      };
     };
   };
 }

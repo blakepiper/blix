@@ -6,6 +6,10 @@
 { ... }:
 
 {
+  # Home Manager uses dconf for GTK cursor settings and other desktop
+  # preferences. Provide the session service it talks to during activation.
+  programs.dconf.enable = true;
+
   imports = [
     ./boot.nix
     ./desktop-services.nix

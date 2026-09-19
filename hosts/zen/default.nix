@@ -2,7 +2,7 @@
 #
 # Shared configuration is composed here with the generated hardware module and
 # the few settings that genuinely depend on this machine.
-{ ... }:
+{ lib, ... }:
 
 {
   imports = [
@@ -15,6 +15,11 @@
   home-manager.users.przvl = import ./home.nix;
 
   networking.hostName = "zen";
+
+  # Parsec is unfree software; keep the exception scoped to the package this
+  # host actually installs.
+  nixpkgs.config.allowUnfreePredicate = pkg:
+    builtins.elem (lib.getName pkg) [ "parsec-bin" ];
 
   # This Lunar Lake panel trips a panel self-refresh bug in the xe driver: the
   # kernel logs "Selective fetch area calculation failed in pipe A" on every

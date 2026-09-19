@@ -17,6 +17,7 @@ in
   imports = [
     ./host.nix
     ./packages.nix
+    ./appearance.nix
     ./programs
     ./x11.nix
     ./services

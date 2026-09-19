@@ -25,8 +25,14 @@
         "cursor",
         "terminal",
         "terminalfont",
-        "cpu",
-        "gpu",
+        {
+            "type": "cpu",
+            "format": "{name}"
+        },
+        {
+            "type": "gpu",
+            "format": "{vendor} {type}"
+        },
         "memory",
         "swap",
         "disk",

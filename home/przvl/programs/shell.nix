@@ -9,7 +9,7 @@
       VISUAL = "nvim";
     };
     initExtra = ''
-      if [[ $- == *i* && -z ''${BLE_SESSION_ID-} ]]; then
+      if [[ $- == *i* ]] && ! declare -F ble-attach >/dev/null 2>&1; then
         source -- ${pkgs.blesh}/share/blesh/ble.sh --attach=none
         ble-attach
       fi
