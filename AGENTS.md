@@ -5,6 +5,12 @@ the Home Manager configuration for the `przvl` user. It is structured for
 multiple hosts; `t490` is currently the only one. Treat a successful Nix
 evaluation as the minimum acceptance criterion for every configuration change.
 
+## Global rules
+
+- Whenever investigating or fixing any system issue on this machine, record the
+  date, symptoms, relevant evidence, actions taken, and outcome in
+  `/home/przvl/systemdebugging.md`.
+
 ## Repository map
 
 - `flake.nix` declares the flake inputs and the `nixosConfigurations` outputs.
