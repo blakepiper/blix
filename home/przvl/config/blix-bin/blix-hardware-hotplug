@@ -54,6 +54,7 @@ apply_gaming_keyboard() {
 
 configure_external_monitor() {
   command -v xrandr >/dev/null 2>&1 || return 0
+  xrandr --output "$internal_output" --mode "$mirror_mode" --rate "$mirror_rate" >/dev/null 2>&1 || true
   if xrandr --query 2>/dev/null | grep -Fq "${external_output} connected"; then
     xrandr --output "$external_output" --mode "$mirror_mode" --rate "$mirror_rate" --same-as "$internal_output" >/dev/null 2>&1 || true
   fi
