@@ -2,6 +2,8 @@ return {
   {
     "folke/snacks.nvim",
     opts = {
+      -- Keep the explorer explicitly enabled for the nvimide startup layout.
+      explorer = {},
       picker = {
         sources = {
           projects = {
