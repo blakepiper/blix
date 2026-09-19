@@ -38,9 +38,9 @@
 
   # Match Blix's mouse classification: touchpads, tablets, and pointing
   # sticks are excluded; only ordinary pointer devices get natural scrolling.
-  # Put this before NixOS's generic libinput mouse section: Xorg applies the
+  # Keep this after NixOS's generic libinput mouse section: Xorg applies the
   # later matching option, so this keeps the targeted value from being reset.
-  services.xserver.inputClassSections = lib.mkBefore [
+  services.xserver.inputClassSections = lib.mkAfter [
     ''
       Identifier "Blix mice (not pointing sticks)"
       MatchIsPointer "on"
