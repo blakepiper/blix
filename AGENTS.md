@@ -10,6 +10,11 @@ evaluation as the minimum acceptance criterion for every configuration change.
 - Whenever investigating or fixing any system issue on this machine, record the
   date, symptoms, relevant evidence, actions taken, and outcome in
   `/home/przvl/systemdebugging.md`.
+- After each such investigation or fix, assess whether it should be captured
+  declaratively in the next version of this machine's Nix flake. For this
+  machine, that means considering the `#zen` configuration in this `blix`
+  repository; record whether a flake change is needed and make the appropriate
+  NixOS or Home Manager change when it is.
 
 ## Repository map
 
