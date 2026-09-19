@@ -70,8 +70,8 @@ in
 
     ${pkgs.xsetroot}/bin/xsetroot -solid '#1a1b26'
     ${hardwareHotplug}/bin/blix-hardware-hotplug --once
-    # Reapply after hardware-specific XKB setup so it remains effective in
-    # the manually started session.
+    # Apply immediately for this manually started session. The session
+    # service reapplies this after rebuilds that reload user units.
     ${pkgs.xset}/bin/xset r rate 200 50
 ${lib.optionalString (wallpaper != null) ''
     if [[ -r ${lib.escapeShellArg wallpaper} ]]; then

@@ -20,6 +20,7 @@ in
         "blix-lock.service"
         "blix-clipboard.service"
         "blix-hardware-hotplug.service"
+        "blix-keyboard-repeat.service"
         "blix-picom.service"
         "pipewire.socket"
         "pipewire-pulse.socket"
@@ -85,6 +86,24 @@ in
             "BLIX_WALLPAPER=${config.blix.display.wallpaper}";
         Restart = "on-failure";
         RestartSec = 1;
+      };
+    };
+
+    # The X server flags and .xinitrc cover new sessions. Reapply the same
+    # setting from a user service as well because Home Manager can reload the
+    # session units during a rebuild without restarting the manually started
+    # X server.
+    blix-keyboard-repeat = {
+      Unit = {
+        Description = "Configure fast X11 keyboard repeat";
+        ConditionEnvironment = "DISPLAY";
+        PartOf = [ "blix-session.target" ];
+        After = [ "blix-hardware-hotplug.service" ];
+      };
+      Service = {
+        Type = "oneshot";
+        ExecStart = "${pkgs.xset}/bin/xset r rate 200 50";
+        RemainAfterExit = true;
       };
     };
 
