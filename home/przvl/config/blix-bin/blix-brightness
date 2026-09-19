@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+compgen -G '/sys/class/backlight/*/brightness' >/dev/null || exit 0
+command -v brightnessctl >/dev/null || exit 0
+case ${1:-} in
+  up) exec brightnessctl --class=backlight set 5%+ ;;
+  down) exec brightnessctl --class=backlight --min-value=1 set 5%- ;;
+  *) echo 'Usage: blix-brightness up|down' >&2; exit 2 ;;
+esac

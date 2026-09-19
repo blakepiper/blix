@@ -4,7 +4,13 @@
 { ... }:
 
 {
-  # Hyprland picks this 14-inch 2880x1800 panel's native 120 Hz mode and, at
-  # about 242 PPI, a scale of 2 on its own, so no explicit layout is needed.
-  blix.monitors = [ ];
+  # Blix mirrors the external HDMI output onto the internal panel when it
+  # is connected. Override these names if this Zen revision reports different
+  # XRandR connectors.
+  blix.display = {
+    internalOutput = "eDP-1";
+    externalOutput = "HDMI-1";
+    mirrorMode = "1920x1080";
+    mirrorRate = "60";
+  };
 }

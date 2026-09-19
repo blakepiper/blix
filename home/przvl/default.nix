@@ -1,22 +1,24 @@
 { pkgs, ... }:
 
 let
-  theme = import ./theme.nix;
-  resources = import ./resources.nix { inherit pkgs; };
-  nightMode = import ./scripts/night-mode.nix { inherit pkgs; };
-  aiUsage = import ./scripts/ai-usage.nix { inherit pkgs; };
+  blix = import ./scripts/blix.nix { inherit pkgs; };
 in
 {
   _module.args = {
-    inherit theme resources nightMode aiUsage;
+    inherit (blix)
+      clipboardTextProbe
+      hardwareHotplug
+      lockService
+      blixLock
+      scripts
+      xsecurelockWithoutPicom;
   };
 
   imports = [
     ./host.nix
-    ./themes
     ./packages.nix
     ./programs
-    ./desktop
+    ./x11.nix
     ./services
   ];
 

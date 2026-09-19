@@ -2,198 +2,136 @@
 
 # blix
 
-Declarative NixOS and Home Manager configuration for Blix machines and the
-`przvl` user. The repository currently defines one host, `t490`.
+Declarative NixOS and Home Manager configuration for the `przvl` user. The
+flake currently defines two hosts, `zen` and `t490`, with the same Blix-style
+desktop session.
 
-A complete machine is composed from five parts:
+The active desktop is deliberately small and X11-based:
 
-```text
-modules/common/                   shared Blix system configuration
-modules/<machine-class>/          optional reusable machine-class behavior
-hosts/<host>/default.nix          host-specific composition and settings
-hosts/<host>/hardware-configuration.nix   generated hardware facts
-home/przvl/                       shared przvl Home Manager configuration
-```
-
-Host-specific Home Manager facts, such as monitor layouts, live in
-`hosts/<host>/home.nix` and are merged into the shared user configuration.
+- Xorg is started manually with `startx`; there is no display manager.
+- OXWM is the window manager, with the Blix configuration and local patches.
+- `st`, `dmenu`, `picom`, `xsecurelock`, `xss-lock`, `clipmenu`, and Xfe provide
+  the terminal, launcher, compositor, locking, clipboard, and file-manager
+  pieces.
+- Home Manager creates the user services and scripts for display hotplugging,
+  locking, clipboard history, screenshots, brightness, status, and audio.
+- Firefox is managed with the Blix privacy policies and force-installed uBlock
+  Origin, Dark Reader, and Enhancer for YouTube extensions.
 
 ## Repository map
 
 ```text
-flake.nix                         Inputs and the nixosConfigurations outputs
+flake.nix                         Inputs, OXWM/st overlays, and host outputs
+flake.lock                        Pinned nixpkgs and Home Manager revisions
 
-modules/
-├── common/
-│   ├── default.nix               Aggregates the standard Blix environment
-│   ├── boot.nix                  Shared UEFI/systemd-boot policy
-│   ├── locale.nix                Shared timezone and locale policy
-│   ├── nix.nix                   Nix, flakes, GC, and store optimization
-│   ├── desktop-session.nix       Hyprland and SDDM
-│   ├── desktop-services.nix      Audio, polkit, disks, and power reporting
-│   ├── form-factor.nix           Declares and mirrors blix.formFactor
-│   ├── networking.nix            Shared NetworkManager configuration
-│   ├── users.nix                 Shared system user definitions
-│   ├── fonts.nix                 Shared fonts
-│   ├── packages.nix              Shared system packages
-│   └── home-manager.nix          Shared Home Manager composition
-└── laptop/
-    ├── default.nix               Aggregates reusable laptop behavior
-    ├── input.nix                 Greeter touchpad behavior
-    └── power.nix                 Generic power profiles and lid policy
+modules/common/
+├── default.nix                   Shared module composition
+├── boot.nix                      Shared UEFI/systemd-boot policy
+├── desktop-session.nix           X11, startx, OXWM, and input behavior
+├── desktop-services.nix          Graphics, PipeWire, polkit, and rtkit
+├── fonts.nix                     Shared fonts
+├── home-manager.nix              Shared Home Manager integration
+├── locale.nix                    Locale and timezone
+├── networking.nix                NetworkManager
+├── nix.nix                       Nix version, flakes, GC, and optimization
+├── packages.nix                  Shared system utilities
+└── users.nix                     Shared user definitions
 
-hosts/t490/
-├── default.nix                   Host composition, hostname, Wi-Fi quirk, state version
-├── power.nix                     T490 AC-device-specific power-profile service
-├── home.nix                      Monitor layout for this machine
-└── hardware-configuration.nix    Generated hardware facts; edit rarely
+hosts/<host>/
+├── default.nix                   Host composition and hardware quirks
+├── hardware-configuration.nix    Generated hardware facts
+└── home.nix                      Host-specific display connector settings
 
 home/przvl/
-├── default.nix                   Home composition root and identity
-├── host.nix                      Host facts: blix.formFactor and blix.monitors
-├── packages.nix                  User packages
-├── theme.nix                     Font and cursor shared by every theme
-├── themes/                       The theme system; see "Themes" below
-├── resources.nix                 Pinned downloaded resources
-├── programs/                     User applications, including the shell and git
-├── desktop/                      Hyprland session and appearance
-├── services/                     User services
-└── scripts/                      Custom executable derivations
+├── default.nix                   Home Manager composition root
+├── host.nix                      Typed host/display options
+├── packages.nix                  Blix user packages
+├── programs/                     Bash, Firefox, Git, Neovim, tmux, and tools
+├── services/blix.nix              Blix session target and user services
+├── scripts/blix.nix               Wrapped Blix scripts
+├── x11.nix                       Dotfiles and generated ~/.xinitrc
+└── config/                       OXWM, Picom, Xfe, Neovim, and script assets
+
+packaging/
+├── oxwm/                         Patches applied to the pinned OXWM release
+└── st/                           Blix st configuration and patch
 ```
 
-## Navigation rules
+Host-specific display values live in `hosts/<host>/home.nix`. The defaults are
+`eDP-1`, `HDMI-2`, `1920x1080`, and 60 Hz; change them there when a machine uses
+different connector names or a different mirror mode.
 
-- Behavior that should apply to every Blix machine belongs in
-  the appropriate file under `modules/common/`.
-- Behavior reusable across laptops belongs in `modules/laptop/`; desktop hosts
-  simply do not import that module.
-- Behavior that depends on one machine's hardware, hostname, device names, or
-  quirks belongs in `hosts/<host>/`.
-- Generated hardware settings stay in that host's `hardware-configuration.nix`;
-  never move filesystem UUIDs, kernel modules, or CPU settings into shared
-  configuration.
-- User applications and desktop behavior belong in `home/przvl/`, which every
-  host shares.
-- User settings that depend on the machine belong in `hosts/<host>/home.nix`,
-  which is merged into the shared `home/przvl` configuration. Declare the
-  option in `home/przvl/host.nix` and set it per host rather than branching on
-  the hostname.
-- User behavior shared by a *class* of machine branches on
-  `config.blix.formFactor` (as the desktop bars do for battery and brightness
-  indicators). System behavior is selected by importing the corresponding
-  machine-class module from the host.
-- Do not copy shared configuration into a host. Compose the common and
-  machine-class modules, then add only that host's facts and exceptions.
-- `system.stateVersion` is per host. Never copy it to a new machine; set it to
-  the release that machine was installed with.
-- Shared theme values belong in `theme.nix`; downloaded inputs belong in
-  `resources.nix`; custom scripts belong in `scripts/`.
+## Starting the session
+
+After logging into a TTY as `przvl`, run:
+
+```sh
+startx
+```
+
+The generated `~/.xinitrc` starts the user session target, initializes the
+configured displays, starts Picom and the Blix helper services, and finally
+executes OXWM. The display helper uses these environment variables, populated
+from the host options:
+
+```text
+BLIX_INTERNAL_OUTPUT
+BLIX_EXTERNAL_OUTPUT
+BLIX_MIRROR_MODE
+BLIX_MIRROR_RATE
+```
+
+To leave the session, exit OXWM or use the configured lock/power controls and
+return to the TTY.
 
 ## Adding a host
 
-1. Create `hosts/<hostname>/`.
-2. Generate that machine's hardware module:
-   `nixos-generate-config --show-hardware-config > hosts/<hostname>/hardware-configuration.nix`.
-3. Write a small `hosts/<hostname>/default.nix` that imports
-   `../../modules/common`, `./hardware-configuration.nix`, and any appropriate
-   machine-class module such as `../../modules/laptop`.
-4. Write `hosts/<hostname>/home.nix` with that machine's `blix.monitors`
-   layout, then set the hostname, form factor, state version, and only the
-   system behavior specific to that machine in its `default.nix`.
-5. Register it in `flake.nix`:
+1. Create `hosts/<hostname>/` and generate its hardware module with
+   `nixos-generate-config --show-hardware-config`.
+2. Import `../../modules/common` and the generated hardware module from the
+   host's `default.nix`.
+3. Set the hostname, state version, hardware quirks, and any
+   host-specific networking settings there.
+4. Set the display connector and mirror values in `home.nix`.
+5. Register the host in `flake.nix`:
 
 ```nix
 nixosConfigurations = {
+  zen = mkHost { modules = [ ./hosts/zen ]; };
   t490 = mkHost { modules = [ ./hosts/t490 ]; };
-  newhost = mkHost { modules = [ ./hosts/newhost ]; };
 };
 ```
 
-`mkHost` accepts a `system` argument for hosts on another platform, for example
-`mkHost { modules = [ ./hosts/pi ]; system = "aarch64-linux"; }`.
+## Updating inputs and Nix
 
-6. Rebuild or install it with `sudo nixos-rebuild switch --flake .#<hostname>`
-   or the corresponding installation command.
-
-Nothing from `hosts/t490/` needs to be copied.
-
-## Themes
-
-A theme is a palette in `home/przvl/themes/<name>.nix`. `themes/apps.nix` turns
-one palette into a directory of per-application configuration files, and every
-theme directory is installed to `~/.config/blix/themes`.
-
-`~/.config/blix/current` is a symlink into one of those directories and is the
-only mutable piece of the system. Switching themes re-points it and nudges the
-running session, so no rebuild is needed:
-
-```sh
-blix-theme list       # every installed theme
-blix-theme set NAME   # switch and apply
-blix-theme menu       # pick from a list (what the bar widget runs)
-```
-
-The palette-picker widget sits at the left of the status bar's right group and
-runs `blix-theme menu` on click.
-
-Applications reach the active theme in one of two ways:
-
-| Application | Mechanism |
-|---|---|
-| Alacritty | `general.import` of `current/alacritty.toml` |
-| Fuzzel | `include` of `current/fuzzel.ini` |
-| GTK 3 and 4 | `@import` of `current/gtk.css` |
-| btop | `themes/blix.theme` symlinked into `current/`; select it once with `color_theme = "blix"` |
-| Firefox | desktop portal `color-scheme`; applies live |
-| Wayle | whole `config.toml` symlinked into `current/` |
-| Hyprlock | whole `hyprlock.conf` symlinked into `current/` |
-| hyprpaper | whole `hyprpaper.conf` symlinked into `current/`, plus an IPC push on switch |
-| Hyprland | border colors set by `hyprctl` on switch and at session start |
-
-### Adding a theme
-
-Write `home/przvl/themes/<name>.nix` with a `label`, a `polarity` of `light` or
-`dark`, a `wallpaper` path, and the `colors` set, then register it in the
-`palettes` attribute of `themes/default.nix`. Wallpapers live in
-`home/przvl/themes/wallpapers/` and are committed, so a new machine gets them
-with the repository. Nothing else needs to change; every application file is
-generated from the palette.
-
-Colors belong only in a palette. An application module must never hardcode
-one, or that application will stop following the active theme.
-
-Firefox follows the desktop portal's live `color-scheme` setting, which
-Hyprland's portal supports directly.
-
-## Validation
-
-Evaluate every host defined in the flake:
-
-```sh
-nix flake check
-```
-
-Build the complete system closure when changing desktop, services, packages,
-or generated configuration:
-
-```sh
-nix build .#nixosConfigurations.t490.config.system.build.toplevel --no-link
-```
-
-## Updating packages
-
-Packages in `home/przvl/packages.nix` are intentionally referenced by name,
-without individual version pins. Their versions come from the locked
-`nixpkgs` input. Refresh all flake inputs, then review and build the result:
+The flake follows `nixpkgs/nixos-unstable` and Home Manager follows the locked
+nixpkgs revision. The common Nix module selects `pkgs.nixVersions.latest`, so
+the rebuilt system uses the newest Nix package supplied by the locked nixpkgs
+revision. Refresh and review the lockfile with:
 
 ```sh
 nix flake update
-nix eval .#nixosConfigurations.t490.pkgs.codex.version --raw
-nix eval .#nixosConfigurations.t490.pkgs.claude-code.version --raw
-nix build .#nixosConfigurations.t490.config.system.build.toplevel --no-link
-sudo nixos-rebuild switch --flake .#t490
+nix eval .#nixosConfigurations.zen.config.nix.package.version --raw
 ```
 
-The lockfile remains committed so a rebuild is reproducible until the next
-explicit update. Downloaded resources in `home/przvl/resources.nix` remain
-content-addressed intentionally.
+The OXWM overlay pins upstream OXWM 0.13.0 and carries the two Blix patches;
+the `st-blix` overlay applies the local `st` configuration and scrollback/
+URL patch.
+
+## Validation
+
+Evaluate every host and run the full closure builds before activation:
+
+```sh
+nix flake check
+nix eval .#nixosConfigurations.zen.config.system.build.toplevel.drvPath --raw
+nix eval .#nixosConfigurations.t490.config.system.build.toplevel.drvPath --raw
+nix build .#nixosConfigurations.zen.config.system.build.toplevel --no-link
+nix build .#nixosConfigurations.t490.config.system.build.toplevel --no-link
+```
+
+Only after those checks succeed should a host be activated:
+
+```sh
+sudo nixos-rebuild switch --flake .#zen
+```

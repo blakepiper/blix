@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -euo pipefail
+umask 077
+for dependency in maim xclip; do
+  command -v "$dependency" >/dev/null || { echo "screenshot-region: missing $dependency" >&2; exit 1; }
+done
+args=(-s -t 0)
+case ${1:-} in
+  '') ;;
+  --full) args=() ;;
+  --window)
+    command -v xprop >/dev/null || { echo 'screenshot-region: missing xprop' >&2; exit 1; }
+    window=$(xprop -root _NET_ACTIVE_WINDOW | awk '{print $NF}')
+    [[ $window =~ ^0x[0-9a-fA-F]+$ && $window != 0x0 ]] || { echo 'No focused window' >&2; exit 1; }
+    args=(-i "$window") ;;
+  *) echo 'Usage: screenshot-region [--full|--window]' >&2; exit 2 ;;
+esac
+directory=$HOME/Pictures/Screenshots
+mkdir -p "$directory"
+staging=$(mktemp "$directory/.capture.XXXXXXXX")
+trap 'rm -f -- "$staging"' EXIT
+# Cancellation/failure never reaches xclip, and leaves no saved empty image.
+if ! maim -f png "${args[@]}" "$staging"; then
+  [[ -z ${1:-} ]] && exit 0
+  exit 1
+fi
+[[ $(od -An -tx1 -N8 "$staging" | tr -d ' \n') == 89504e470d0a1a0a ]] || { echo 'Capture was not a PNG' >&2; exit 1; }
+file=$(mktemp --suffix=.png "$directory/$(date +%Y-%m-%d_%H-%M-%S)-XXXXXXXX")
+if ! mv -T -- "$staging" "$file"; then
+  rm -f -- "$file"
+  exit 1
+fi
+# The selection owner forks; do not let its inherited output descriptors keep
+# a caller's command substitution open until clipboard ownership changes.
+if ! xclip -selection clipboard -t image/png -i "$file" >/dev/null 2>"$staging"; then
+  cat "$staging" >&2
+  echo "Screenshot saved, but clipboard copy failed: $file" >&2
+  exit 1
+fi
+printf '%s\n' "$file"

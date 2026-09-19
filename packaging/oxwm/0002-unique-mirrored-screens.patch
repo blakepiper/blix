@@ -1,0 +1,92 @@
+diff --git a/src/wm/wm.zig b/src/wm/wm.zig
+index 276dd0e..c3eaee6 100644
+--- a/src/wm/wm.zig
++++ b/src/wm/wm.zig
+@@ -175,6 +175,41 @@ pub const WindowManager = struct {
+         &dwindle.layout,
+     };
+ 
++    const UniqueScreens = struct {
++        storage: []xlib.XineramaScreenInfo,
++        count: usize,
++    };
++
++    fn collectUniqueScreens(
++        self: *WindowManager,
++        screens: [*c]xlib.XineramaScreenInfo,
++        screen_count: usize,
++    ) ?UniqueScreens {
++        const storage = self.allocator.alloc(xlib.XineramaScreenInfo, screen_count) catch return null;
++        var unique_count: usize = 0;
++
++        for (0..screen_count) |index| {
++            const screen = screens[index];
++            var duplicate = false;
++            for (storage[0..unique_count]) |previous| {
++                if (previous.x_org == screen.x_org and
++                    previous.y_org == screen.y_org and
++                    previous.width == screen.width and
++                    previous.height == screen.height)
++                {
++                    duplicate = true;
++                    break;
++                }
++            }
++            if (duplicate) continue;
++
++            storage[unique_count] = screen;
++            unique_count += 1;
++        }
++
++        return .{ .storage = storage, .count = unique_count };
++    }
++
+     fn initMonitor(self: *WindowManager, mon: *Monitor, num: usize, x: i16, y: i16, w: c_int, h: c_int) void {
+         mon.num = @intCast(num);
+         mon.mon_x = x;
+@@ -221,9 +256,11 @@ pub const WindowManager = struct {
+             };
+ 
+             if (screen_count > 0 and screens != null) {
++                const unique = self.collectUniqueScreens(screens, @intCast(screen_count)) orelse return;
++                defer self.allocator.free(unique.storage);
++
+                 var prev_monitor: ?*Monitor = null;
+-                for (0..@as(usize, @intCast(screen_count))) |index| {
+-                    const screen = screens[index];
++                for (unique.storage[0..unique.count], 0..) |screen, index| {
+                     const mon = monitor_mod.create(self.allocator) orelse continue;
+                     self.initMonitor(mon, index, screen.x_org, screen.y_org, screen.width, screen.height);
+ 
+@@ -259,7 +296,12 @@ pub const WindowManager = struct {
+             if (info == null) return false;
+             defer _ = xlib.XFree(@ptrCast(info));
+ 
+-            const new_count: usize = @intCast(nn);
++            const unique = self.collectUniqueScreens(info, @intCast(nn)) orelse return false;
++            defer self.allocator.free(unique.storage);
++
++            const info_slice = unique.storage[0..unique.count];
++            const new_count = info_slice.len;
++            if (new_count == 0) return false;
+ 
+             for (0..new_count -| n) |_| {
+                 var last = self.monitors;
+@@ -293,7 +335,7 @@ pub const WindowManager = struct {
+             m = self.monitors;
+             while (m != null and i < new_count) : (i += 1) {
+                 const mon = m.?;
+-                const screen = info[i];
++                const screen = info_slice[i];
+                 if (i >= n or
+                     screen.x_org != mon.mon_x or screen.y_org != mon.mon_y or
+                     screen.width != mon.mon_w or screen.height != mon.mon_h)
+@@ -360,7 +402,7 @@ pub const WindowManager = struct {
+                 monitor_mod.destroy(self.allocator, removed);
+             }
+ 
+-            tiling.setScreenSize(info[0].width, info[0].height);
++            tiling.setScreenSize(info_slice[0].width, info_slice[0].height);
+         } else {
+             if (self.monitors == null) {
+                 const mon = monitor_mod.create(self.allocator) orelse return false;

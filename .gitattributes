@@ -1,0 +1,3 @@
+# Unified diff files intentionally contain whitespace that belongs to the
+# embedded patch format (blank context lines and source indentation).
+*.patch -whitespace

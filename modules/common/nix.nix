@@ -1,9 +1,10 @@
-{ lib, ... }:
+{ pkgs, ... }:
 
 {
+  # nixpkgs currently defaults to 2.34.x; use the newest Nix package carried
+  # by the refreshed input when this system is rebuilt.
+  nix.package = pkgs.nixVersions.latest;
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
-  nixpkgs.config.allowUnfreePredicate = pkg:
-    builtins.elem (lib.getName pkg) [ "claude-code" "steam" "steam-unwrapped" ];
 
   nix.gc = {
     automatic = true;

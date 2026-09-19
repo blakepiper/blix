@@ -1,21 +1,16 @@
-# Shared Blix system configuration.
+# Shared Blix-style system configuration.
 #
-# Hosts import this directory for the standard Blix operating environment,
-# then add an optional machine-class module and their own hardware settings.
-{ pkgs, ... }:
+# Hosts import this directory for the common X11/OXWM environment and their
+# generated hardware settings. There is deliberately no display manager:
+# `startx` from a local TTY is the session entry point.
+{ ... }:
 
-let
-  blixSddmTheme = import ./sddm-theme.nix { inherit pkgs; };
-in
 {
-  _module.args = { inherit blixSddmTheme; };
-
   imports = [
     ./boot.nix
     ./desktop-services.nix
     ./desktop-session.nix
     ./fonts.nix
-    ./form-factor.nix
     ./home-manager.nix
     ./locale.nix
     ./networking.nix

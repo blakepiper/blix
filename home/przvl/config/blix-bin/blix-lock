@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# Ask xss-lock, which owns the logind delay inhibitor and locker lifecycle.
+# It must be active: do not pretend a standalone request secured the session.
+systemctl --user is-active --quiet blix-lock.service || {
+  echo 'Session lock service is not running; start X using the Blix .xinitrc.' >&2
+  exit 1
+}
+exec xset s activate

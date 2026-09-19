@@ -1,57 +1,32 @@
 # Facts about the machine this user configuration is running on.
 #
-# Hosts supply these: `blix.formFactor` is mirrored down from the system
-# configuration by modules/common/form-factor.nix, and `blix.monitors` is
-# declared in hosts/<hostname>/home.nix. Shared user configuration reads these
-# options instead of branching on the hostname.
+# Hosts supply the display values below to describe Blix's XRandR mirror setup;
+# each host can override them independently.
 { lib, ... }:
 
 {
   options.blix = {
-    formFactor = lib.mkOption {
-      type = lib.types.enum [ "laptop" "desktop" ];
-      description = ''
-        What kind of machine this host is. Set from the host's
-        `blix.formFactor`; laptops gain user configuration that depends on
-        having a battery or a backlight.
-      '';
-      example = "laptop";
-    };
-
-    monitors = lib.mkOption {
-      default = [ ];
-      description = "Hyprland monitor layout for this host, in declaration order.";
-      example = [
-        {
-          output = "eDP-1";
-          mode = "1920x1080@60";
-          position = "0x0";
-          scale = 1.0;
-        }
-      ];
-      type = lib.types.listOf (lib.types.submodule {
-        options = {
-          output = lib.mkOption {
-            type = lib.types.str;
-            description = "Connector name, as reported by `hyprctl monitors`.";
-          };
-          mode = lib.mkOption {
-            type = lib.types.str;
-            default = "preferred";
-            description = "Resolution and refresh rate, for example \"1920x1080@60\".";
-          };
-          position = lib.mkOption {
-            type = lib.types.str;
-            default = "auto";
-            description = "Layout position, for example \"0x0\".";
-          };
-          scale = lib.mkOption {
-            type = lib.types.number;
-            default = 1;
-            description = "Fractional scale factor.";
-          };
-        };
-      });
+    display = {
+      internalOutput = lib.mkOption {
+        type = lib.types.str;
+        default = "eDP-1";
+        description = "Internal XRandR connector used as the mirror source.";
+      };
+      externalOutput = lib.mkOption {
+        type = lib.types.str;
+        default = "HDMI-2";
+        description = "External XRandR connector mirrored to the internal panel.";
+      };
+      mirrorMode = lib.mkOption {
+        type = lib.types.str;
+        default = "1920x1080";
+        description = "Mode used for the mirrored external output.";
+      };
+      mirrorRate = lib.mkOption {
+        type = lib.types.str;
+        default = "60";
+        description = "Refresh rate used for the mirrored external output.";
+      };
     };
   };
 }

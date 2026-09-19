@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+command -v clipmenu >/dev/null || { echo 'clipboard-history: install clipmenu' >&2; exit 1; }
+export CM_LAUNCHER=dmenu
+exec clipmenu -i -l 12 -p Clipboard

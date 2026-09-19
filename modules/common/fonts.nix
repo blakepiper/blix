@@ -1,9 +1,8 @@
-{ pkgs, blixSddmTheme, ... }:
+{ pkgs, ... }:
 
 {
   fonts = {
     packages = with pkgs; [
-      blixSddmTheme
       nerd-fonts.jetbrains-mono
       noto-fonts
       noto-fonts-color-emoji

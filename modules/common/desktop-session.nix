@@ -1,39 +1,50 @@
-{ config, pkgs, blixSddmTheme, ... }:
+{ pkgs, ... }:
 
-let
-  # Hyprland also ships an experimental UWSM entry. Blix manages its user
-  # session through Home Manager, so expose only the regular entry.
-  hyprlandSessions = pkgs.linkFarm "blix-wayland-sessions" [
-    {
-      name = "hyprland.desktop";
-      path = "${config.programs.hyprland.package}/share/wayland-sessions/hyprland.desktop";
-    }
-  ];
-in
 {
-  programs.hyprland.enable = true;
+  services.xserver = {
+    enable = true;
 
-  # Hyprland is the only desktop Blix offers, so the session directory below is
-  # the only thing SDDM can log in to. X11 itself stays enabled purely because
-  # SDDM's greeter runs on it; no X11 desktop session is installed.
-  services.xserver.enable = true;
-
-  services.displayManager = {
-    defaultSession = "hyprland";
-    sddm = {
+    # Blix starts one X11 session manually from a TTY. The Home Manager
+    # configuration supplies ~/.xinitrc, so NixOS only needs to install xinit
+    # and expose OXWM as the available window manager.
+    displayManager.startx = {
       enable = true;
-      theme = toString blixSddmTheme;
-      extraPackages = with pkgs.kdePackages; [
-        qtmultimedia
-        qtsvg
-        qtvirtualkeyboard
-      ];
-      settings = {
-        Users.RememberLastUser = true;
-        Wayland.SessionDir = toString hyprlandSessions;
-      };
+      generateScript = false;
+    };
+
+    windowManager.oxwm = {
+      enable = true;
+      package = pkgs.oxwm;
+    };
+
+    xkb.layout = "us";
+  };
+
+  services.libinput = {
+    enable = true;
+    touchpad = {
+      clickMethod = "clickfinger";
+      naturalScrolling = true;
+      tapping = true;
+      tappingButtonMap = "lrm";
+      disableWhileTyping = true;
     };
   };
 
-  security.pam.services.hyprlock = { };
+  # Match Blix's mouse classification: touchpads, tablets, and pointing
+  # sticks are excluded; only ordinary pointer devices get natural scrolling.
+  services.xserver.inputClassSections = [
+    ''
+      Identifier "Blix mice (not pointing sticks)"
+      MatchIsPointer "on"
+      MatchIsTouchpad "off"
+      MatchDriver "libinput"
+      MatchTag "blix-mouse"
+      Option "NaturalScrolling" "true"
+    ''
+  ];
+
+  services.udev.extraRules = ''
+    ACTION!="remove", SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_INPUT_MOUSE}=="1", ENV{ID_INPUT_POINTINGSTICK}!="1", ENV{ID_INPUT_TOUCHPAD}!="1", ENV{ID_INPUT_TABLET}!="1", ENV{ID_INPUT.tags}="$env{ID_INPUT.tags},blix-mouse"
+  '';
 }

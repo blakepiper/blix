@@ -2,7 +2,7 @@
 
 This repository is the declarative NixOS configuration for Blix machines and
 the Home Manager configuration for the `przvl` user. It is structured for
-multiple hosts; `t490` is currently the only one. Treat a successful Nix
+multiple hosts; `zen` and `t490` are currently defined. Treat a successful Nix
 evaluation as the minimum acceptance criterion for every configuration change.
 
 ## Global rules
@@ -15,32 +15,26 @@ evaluation as the minimum acceptance criterion for every configuration change.
 
 - `flake.nix` declares the flake inputs and the `nixosConfigurations` outputs.
   Hosts are built through the `mkHost` helper, which supplies the Home Manager
-  NixOS module; each host explicitly imports the shared and machine-class
-  modules it needs.
+  NixOS module; each host explicitly imports the shared and hardware modules it
+  needs.
 - `flake.lock` pins all flake inputs.
 - `modules/common/default.nix` aggregates shared system modules for the
   standard Blix environment. Its sibling files separate boot, locale, Nix,
-  networking, users, fonts, packages, the Hyprland session and its services,
-  Home Manager integration, and the `blix.formFactor` option.
-- `modules/laptop/default.nix` aggregates behavior reusable across laptops,
-  currently generic power/lid policy and touchpad input settings. Hosts opt in
-  by importing the directory; do not import it for desktops.
-- `hosts/t490/default.nix` owns configuration specific to that machine and
-  composes `modules/common`, `modules/laptop`, its generated hardware module,
-  and its genuinely device-specific modules.
-- `hosts/t490/hardware-configuration.nix` contains detected hardware settings;
+  networking, users, fonts, packages, the X11/OXWM session and its services,
+  Home Manager integration, and the shared user configuration.
+- `hosts/<hostname>/default.nix` owns configuration specific to that machine
+  and composes `modules/common`, its generated hardware module, and genuinely
+  device-specific settings.
+- `hosts/<hostname>/hardware-configuration.nix` contains detected hardware;
   change it only when the machine's hardware or generated configuration
   intentionally changes.
 - `home/przvl/default.nix` owns the `przvl` user's packages, programs, services,
   and dotfile configuration, shared across hosts.
-- `home/przvl/themes/` owns the theme system: one palette per theme,
-  `apps.nix` renders a palette into per-application files, and `blix-theme.sh`
-  switches between them at runtime through `~/.config/blix/current`.
-  Wallpapers are committed under `themes/wallpapers/`; downscale a new one to
-  the largest display it needs to cover rather than committing a source scan.
-- `hosts/t490/home.nix` owns `przvl` Home Manager settings that depend on this
-  machine, currently the `blix.monitors` layout whose typed option is declared
-  in `home/przvl/host.nix`.
+- `home/przvl/config/` owns the Blix-derived OXWM, Picom, Xfe, Neovim, tmux,
+  fastfetch, and helper-script configuration.
+- `hosts/<hostname>/home.nix` owns `przvl` Home Manager settings that depend on
+  the machine, currently the typed display connector and mirror options from
+  `home/przvl/host.nix`.
 
 ## Scope and ownership
 
@@ -49,20 +43,15 @@ evaluation as the minimum acceptance criterion for every configuration change.
 - Put system-wide behavior that every Blix machine should have in the focused
   file under `modules/common/`; register new common modules in
   `modules/common/default.nix`.
-- Put behavior plausibly reusable across laptops in `modules/laptop/`, not in
-  an individual laptop host. Register new laptop modules in
-  `modules/laptop/default.nix`.
 - Put only machine-dependent settings in `hosts/<hostname>/default.nix`:
   hostname, `system.stateVersion`, hardware quirks, device-specific power
   workarounds, and host-specific networking tweaks.
 - Put machine-dependent user settings in `hosts/<hostname>/home.nix`. Declare a
   typed option in `home/przvl/host.nix` and set it per host; do not branch on
   the hostname inside shared user configuration.
-- Put user-level machine-class behavior behind `config.blix.formFactor`.
-  System modules opt into a class by importing its directory from the host.
-- Never duplicate common or laptop-class configuration into individual hosts.
-  A future host should compose the shared modules and contain only its own
-  facts and exceptions.
+- Never duplicate common configuration into individual hosts. A future host
+  should compose the shared modules and contain only its own facts and
+  exceptions.
 - Never move generated hardware facts out of a host's
   `hardware-configuration.nix`.
 - Keep package names inside the existing `with pkgs;` package lists. Do not add
@@ -71,9 +60,9 @@ evaluation as the minimum acceptance criterion for every configuration change.
 - Reference executables in generated configuration by store path
   (`${pkgs.foo}/bin/foo`), never by bare name. A multi-command script should
   use `pkgs.writeShellApplication` with `runtimeInputs` instead.
-- Put colors only in `home/przvl/themes/<name>.nix`. An application module must
-  read them through `config.blix.currentThemeDir`, never inline a color, or it
-  will stop following the active theme.
+- Keep the X11 session and display environment in `home/przvl/x11.nix`; keep
+  host-specific connector names in `hosts/<hostname>/home.nix` rather than
+  branching on hostnames in shared user configuration.
 - Preserve `system.stateVersion` and `home.stateVersion`. Change either only as
   part of an explicit, researched state-version migration.
 - Do not edit `flake.lock` unless the requested work includes changing or
@@ -85,7 +74,7 @@ evaluation as the minimum acceptance criterion for every configuration change.
 
 1. Inspect `git status` and the relevant configuration before editing.
 2. For regressions, inspect recent commits and available system or user journal
-   logs before selecting a fix. Prefer evidence from the running `t490` over
+   logs before selecting a fix. Prefer evidence from the running host over
    assumptions about service behavior.
 3. Make the smallest declarative change that addresses the request. Do not add
    imperative setup steps when a NixOS or Home Manager option exists.
@@ -106,14 +95,16 @@ nix flake check
 new hosts automatically. To evaluate a single host while iterating:
 
 ```bash
-nix eval .#nixosConfigurations.t490.config.system.build.toplevel.drvPath --raw
+  nix eval .#nixosConfigurations.zen.config.system.build.toplevel.drvPath --raw
+  nix eval .#nixosConfigurations.t490.config.system.build.toplevel.drvPath --raw
 ```
 
 For changes that affect boot, login, the desktop session, systemd units,
 packages, or generated files, also realize the full system closure:
 
 ```bash
-nix build .#nixosConfigurations.t490.config.system.build.toplevel --no-link
+  nix build .#nixosConfigurations.zen.config.system.build.toplevel --no-link
+  nix build .#nixosConfigurations.t490.config.system.build.toplevel --no-link
 ```
 
 Run narrower checks when they add confidence, such as inspecting an evaluated
@@ -122,7 +113,7 @@ could not be run and why; do not describe an unrun check as passing.
 
 ## Activation and recovery
 
-Apply a verified configuration on `t490` with:
+Apply a verified configuration on the selected host with:
 
 ```bash
 sudo nixos-rebuild switch --flake .#t490
@@ -140,7 +131,6 @@ sudo nixos-rebuild switch --flake .#t490
 Useful diagnostics for login and desktop-session failures include:
 
 ```bash
-journalctl -b -u greetd --no-pager
 journalctl --user -b --no-pager
 loginctl list-sessions
 ```

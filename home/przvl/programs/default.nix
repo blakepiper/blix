@@ -7,6 +7,8 @@
     ./btop.nix
     ./git.nix
     ./terminal.nix
-    ./launcher.nix
+    ./neovim.nix
+    ./tmux.nix
+    ./fastfetch.nix
   ];
 }

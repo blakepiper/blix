@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euo pipefail
+for dependency in tmux nvim fastfetch sha256sum flock; do
+  command -v "$dependency" >/dev/null || { echo "dev: missing dependency: $dependency" >&2; exit 1; }
+done
+project=$(pwd -P)
+base=$(basename -- "$project" | LC_ALL=C tr -cs 'a-zA-Z0-9_-' '_' | cut -c1-40)
+hash=$(printf '%s' "$project" | sha256sum | cut -c1-12)
+session="${base:-project}-$hash"
+lock_dir=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/blix-dev-$UID
+# Only the private leaf needs mode 700; its parent is the runtime directory.
+# shellcheck disable=SC2174
+mkdir -p -m 700 "$lock_dir"
+[[ -O $lock_dir && ! -L $lock_dir ]] || { echo 'dev: unsafe lock directory' >&2; exit 1; }
+exec 9>"$lock_dir/$session.lock"
+flock 9
+if ! tmux has-session -t "=$session" 2>/dev/null; then
+  width=${COLUMNS:-160}
+  height=${LINES:-48}
+  if [[ -n ${TMUX:-} ]]; then
+    read -r width height < <(tmux display-message -p '#{client_width} #{client_height}')
+  elif [[ -t 0 ]]; then
+    read -r height width < <(stty size)
+  fi
+  [[ $width =~ ^[0-9]+$ && $width -ge 80 ]] || width=160
+  [[ $height =~ ^[0-9]+$ && $height -ge 24 ]] || height=48
+  # Exact pane IDs prevent user tmux indexing options from changing the layout.
+  left=$(tmux new-session -d -s "$session" -n dev -c "$project" -x "$width" -y "$height" -P -F '#{pane_id}' nvim .)
+  trap 'tmux kill-session -t "=$session" 2>/dev/null || true' ERR
+  upper=$(tmux split-window -h -p 35 -t "$left" -c "$project" -P -F '#{pane_id}' bash -i)
+  tmux split-window -v -p 50 -t "$upper" -c "$project" bash -c 'fastfetch --logo arch_small; exec bash -i'
+  tmux select-pane -t "$left"
+  trap - ERR
+fi
+flock -u 9
+exec 9>&-
+if [[ -n ${TMUX:-} ]]; then
+  exec tmux switch-client -t "=$session"
+else
+  exec tmux attach-session -t "=$session"
+fi

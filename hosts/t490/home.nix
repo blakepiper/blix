@@ -4,18 +4,10 @@
 { ... }:
 
 {
-  blix.monitors = [
-    {
-      output = "eDP-1";
-      mode = "1920x1080@60.008";
-      position = "0x0";
-      scale = 1.25;
-    }
-    {
-      output = "HDMI-A-2";
-      mode = "3840x2160@30";
-      position = "-2560x0";
-      scale = 1.5;
-    }
-  ];
+  blix.display = {
+    internalOutput = "eDP-1";
+    externalOutput = "HDMI-2";
+    mirrorMode = "1920x1080";
+    mirrorRate = "60";
+  };
 }

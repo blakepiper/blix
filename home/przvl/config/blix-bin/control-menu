@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+confirm() {
+  local answer
+  answer=$(printf 'No\nYes\n' | dmenu -i -p "$1") || return 1
+  [[ $answer == Yes ]]
+}
+choice=$(printf 'Lock\nSuspend\nReboot\nLog Out\nMonitors Off\nPower Off\n' | dmenu -i -p Control) || exit 0
+case $choice in
+  Lock) blix-lock ;;
+  Suspend)
+    blix-lock
+    # logind's PrepareForSleep event reaches xss-lock even for suspends requested
+    # outside this menu. -l holds the delay inhibitor until XSecureLock is ready.
+    systemctl suspend ;;
+  Reboot) if confirm 'Reboot?'; then systemctl reboot; fi ;;
+  'Log Out')
+    if confirm 'Log out? Unsaved work may be lost.'; then
+      # OXWM has no quit IPC; dispatch its dedicated native quit action.
+      xdotool key --clearmodifiers super+shift+q
+    fi ;;
+  'Monitors Off') sleep 0.2; xset dpms force off ;;
+  'Power Off') if confirm 'Power off?'; then systemctl poweroff; fi ;;
+  *) exit 0 ;;
+esac

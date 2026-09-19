@@ -1,12 +1,7 @@
 { ... }:
 
 {
-  hardware.graphics = {
-    enable = true;
-    enable32Bit = true;
-  };
-
-  programs.steam.enable = true;
+  hardware.graphics.enable = true;
 
   security.polkit.enable = true;
   security.rtkit.enable = true;
@@ -17,7 +12,4 @@
     alsa.enable = true;
     alsa.support32Bit = true;
   };
-
-  services.upower.enable = true;
-  services.udisks2.enable = true;
 }

@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# On demand only. Missing hardware, a user bus, or X is not an error.
+set -uo pipefail
+section() { printf '\n-- %s --\n' "$*"; }
+section System
+printf 'Host: %s\nKernel: %s\n' "$(cat /proc/sys/kernel/hostname)" "$(uname -r)"
+uptime
+section 'Memory and swap'
+free -h
+printf 'Processes: %s\n' "$(ps -e --no-headers | wc -l)"
+section 'Running system services'
+systemctl --no-pager --type=service --state=running || true
+section 'Running user services'
+systemctl --user --no-pager --type=service --state=running || true
+section CPU
+lscpu | sed -n '/Model name:/p'
+for field in scaling_driver scaling_governor energy_performance_preference; do
+  printf '%s: ' "$field"
+  files=(/sys/devices/system/cpu/cpufreq/policy*/"$field")
+  if [[ -r ${files[0]} ]]; then cat "${files[@]}" 2>/dev/null | sort -u; else echo unavailable; fi
+done
+section 'GPU and display'
+if [[ -n ${DISPLAY:-} ]]; then
+  if command -v glxinfo >/dev/null; then timeout 10s glxinfo -B 2>/dev/null || true; fi
+  if command -v xrandr >/dev/null; then timeout 10s xrandr --current 2>/dev/null || true; fi
+else
+  echo 'No X display.'
+fi
+section Battery
+found=false
+for battery in /sys/class/power_supply/*; do
+  [[ -r $battery/type ]] || continue
+  [[ $(cat "$battery/type") == Battery ]] || continue
+  found=true
+  printf '%s: ' "$(basename "$battery")"
+  for field in capacity status; do
+    [[ ! -r $battery/$field ]] || printf '%s=%s ' "$field" "$(cat "$battery/$field")"
+  done
+  echo
+done
+"$found" || echo 'No battery.'
+section 'Largest processes by resident memory'
+ps -eo pid,comm,rss,%cpu --sort=-rss | head -21 || true

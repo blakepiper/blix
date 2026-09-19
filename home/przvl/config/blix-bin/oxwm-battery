@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+
+# Read the battery directly from sysfs so the bar needs no daemon or helper
+# package.  BLIX_BATTERY is exported by ~/.xinitrc.
+battery=${BLIX_BATTERY:-}
+if [[ ! $battery =~ ^[[:alnum:]_-]+$ ]] || [[ ! -r /sys/class/power_supply/$battery/type ]]; then
+  battery=
+  for candidate in /sys/class/power_supply/*; do
+    [[ -r $candidate/type ]] || continue
+    [[ $(<"$candidate/type") == Battery ]] || continue
+    battery=${candidate##*/}
+    break
+  done
+fi
+
+[[ $battery ]] || exit 0
+base=/sys/class/power_supply/$battery
+[[ $(<"$base/type") == Battery ]] || exit 0
+
+capacity=$(<"$base/capacity")
+status=$(<"$base/status")
+energy_now=0
+power_now=0
+charge_now=0
+current_now=0
+[[ -r $base/energy_now ]] && energy_now=$(<"$base/energy_now")
+[[ -r $base/power_now ]] && power_now=$(<"$base/power_now")
+[[ -r $base/charge_now ]] && charge_now=$(<"$base/charge_now")
+[[ -r $base/current_now ]] && current_now=$(<"$base/current_now")
+
+format_minutes() {
+  local minutes=$1
+  local hours=$((minutes / 60))
+  minutes=$((minutes % 60))
+  if (( hours > 0 )); then
+    printf '%dh%dm' "$hours" "$minutes"
+  else
+    printf '%dm' "$minutes"
+  fi
+}
+
+if [[ $status == Discharging ]]; then
+  remaining=
+  if (( power_now > 0 && energy_now > 0 )); then
+    remaining=$((energy_now * 60 / power_now))
+  elif (( current_now > 0 && charge_now > 0 )); then
+    remaining=$((charge_now * 60 / current_now))
+  fi
+
+  if [[ $remaining ]]; then
+    printf 'Bat %s%% %s\n' "$capacity" "$(format_minutes "$remaining")"
+  else
+    printf 'Bat %s%%\n' "$capacity"
+  fi
+elif [[ $status == Charging ]]; then
+  printf 'Bat +%s%%\n' "$capacity"
+else
+  printf 'Bat %s%% full\n' "$capacity"
+fi

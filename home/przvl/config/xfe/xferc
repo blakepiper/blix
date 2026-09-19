@@ -1,0 +1,12 @@
+# Dark Xfe colors. Other preferences remain at Xfe defaults.
+[SETTINGS]
+basecolor=#343434
+bordercolor=DimGray
+forecolor=#d7d7d7
+listforecolor=#d7d7d7
+listbackcolor=#242424
+highlightcolor=#454545
+selbackcolor=#31567c
+scrollbarcolor=#484848
+pbarcolor=#31567c
+attentioncolor=#ff0000
