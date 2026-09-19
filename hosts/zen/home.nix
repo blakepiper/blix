@@ -4,7 +4,10 @@
 { pkgs, ... }:
 
 {
-  home.packages = [ pkgs.parsec-bin ];
+  home.packages = [
+    pkgs.parsec-bin
+    pkgs.nodejs_24
+  ];
 
   # Blix mirrors the external HDMI output onto the internal panel when it
   # is connected. Override these names if this Zen revision reports different

@@ -16,6 +16,18 @@
 
   networking.hostName = "zen";
 
+  zramSwap = {
+    enable = true;
+    memoryPercent = 25;
+  };
+
+  # The ASUS WMI battery driver exposes BAT0's native charge threshold;
+  # TLP reapplies it after boot, resume, and AC/battery transitions.
+  services.tlp = {
+    enable = true;
+    settings.STOP_CHARGE_THRESH_BAT0 = 79;
+  };
+
   # Parsec is unfree software; keep the exception scoped to the package this
   # host actually installs.
   nixpkgs.config.allowUnfreePredicate = pkg:

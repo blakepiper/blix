@@ -60,8 +60,10 @@ in
     done
 
     ${pkgs.xsetroot}/bin/xsetroot -solid '#1a1b26'
-    ${pkgs.xset}/bin/xset r rate 200 50
     ${hardwareHotplug}/bin/blix-hardware-hotplug --once
+    # Reapply after hardware-specific XKB setup so it remains effective in
+    # the manually started session.
+    ${pkgs.xset}/bin/xset r rate 200 50
 ${lib.optionalString (wallpaper != null) ''
     if [[ -r ${lib.escapeShellArg wallpaper} ]]; then
       ${pkgs.feh}/bin/feh --no-fehbg --bg-fill ${lib.escapeShellArg wallpaper} >/dev/null 2>&1 || true

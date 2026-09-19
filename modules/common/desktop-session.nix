@@ -1,8 +1,13 @@
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 
 {
   services.xserver = {
     enable = true;
+
+    # Fast autorepeat for editing and navigation keys such as Backspace and
+    # the arrow keys: 200 ms initial delay, then 50 repeats per second.
+    autoRepeatDelay = 200;
+    autoRepeatInterval = 20;
 
     # Blix starts one X11 session manually from a TTY. The Home Manager
     # configuration supplies ~/.xinitrc, so NixOS only needs to install xinit
@@ -33,7 +38,9 @@
 
   # Match Blix's mouse classification: touchpads, tablets, and pointing
   # sticks are excluded; only ordinary pointer devices get natural scrolling.
-  services.xserver.inputClassSections = [
+  # Keep this after NixOS's generic libinput mouse section so its value wins
+  # when both input classes match the same device.
+  services.xserver.inputClassSections = lib.mkAfter [
     ''
       Identifier "Blix mice (not pointing sticks)"
       MatchIsPointer "on"
