@@ -55,7 +55,7 @@ local function start()
       start_insert = false,
       win = {
         position = "bottom",
-        height = 0.2,
+        height = 0.4,
         enter = false,
       },
     })
