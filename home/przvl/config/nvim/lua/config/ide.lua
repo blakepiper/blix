@@ -43,6 +43,22 @@ local function start()
   local root = project_root()
   prepare_editor_buffer()
 
+  local function terminal_height()
+    return math.max(1, math.floor(vim.o.lines * 0.4 + 0.5))
+  end
+
+  local terminal_win
+  local function resize_terminal()
+    if terminal_win and vim.api.nvim_win_is_valid(terminal_win) then
+      vim.api.nvim_win_set_height(terminal_win, terminal_height())
+    end
+  end
+
+  vim.api.nvim_create_autocmd("VimResized", {
+    group = group,
+    callback = resize_terminal,
+  })
+
   local terminal_opened = false
   local function open_terminal()
     if terminal_opened then
@@ -55,8 +71,12 @@ local function start()
       start_insert = false,
       win = {
         position = "bottom",
-        height = 0.4,
+        height = terminal_height(),
         enter = false,
+        on_win = function(win)
+          terminal_win = win.win
+          resize_terminal()
+        end,
       },
     })
 
