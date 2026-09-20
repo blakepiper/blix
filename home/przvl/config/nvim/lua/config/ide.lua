@@ -47,38 +47,47 @@ local function start()
     return math.max(1, math.floor(vim.o.lines * 0.4 + 0.5))
   end
 
-  local terminal_win
-  local function resize_terminal()
-    if terminal_win and vim.api.nvim_win_is_valid(terminal_win) then
-      vim.api.nvim_win_set_height(terminal_win, terminal_height())
+  local terminal_wins = {}
+  local function resize_terminals()
+    for _, terminal_win in pairs(terminal_wins) do
+      if vim.api.nvim_win_is_valid(terminal_win) then
+        vim.api.nvim_win_set_height(terminal_win, terminal_height())
+      end
     end
   end
 
   vim.api.nvim_create_autocmd("VimResized", {
     group = group,
-    callback = resize_terminal,
+    callback = resize_terminals,
   })
 
-  local terminal_opened = false
-  local function open_terminal()
-    if terminal_opened then
+  local terminals_opened = false
+  local function open_terminals()
+    if terminals_opened then
       return
     end
-    terminal_opened = true
+    terminals_opened = true
 
-    snacks.terminal.open(nil, {
-      cwd = root,
-      start_insert = false,
-      win = {
-        position = "bottom",
-        height = terminal_height(),
-        enter = false,
-        on_win = function(win)
-          terminal_win = win.win
-          resize_terminal()
-        end,
-      },
-    })
+    local function open_terminal(count)
+      snacks.terminal.open(nil, {
+        cwd = root,
+        count = count,
+        start_insert = false,
+        win = {
+          position = "bottom",
+          height = terminal_height(),
+          stack = true,
+          enter = false,
+          on_win = function(win)
+            terminal_wins[count] = win.win
+            resize_terminals()
+          end,
+        },
+      })
+    end
+
+    open_terminal(1)
+    open_terminal(2)
 
     if vim.api.nvim_win_is_valid(editor_win) then
       vim.api.nvim_set_current_win(editor_win)
@@ -98,12 +107,12 @@ local function start()
       },
     },
     on_show = function()
-      vim.schedule(open_terminal)
+      vim.schedule(open_terminals)
     end,
   })
 
   if not explorer then
-    open_terminal()
+    open_terminals()
   end
 end
 
