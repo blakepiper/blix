@@ -65,6 +65,9 @@ in
     };
 
     blix-hardware-hotplug = {
+      # Let Home Manager start this service during a switch when the desktop
+      # target is already active, including after a troubleshooting stop.
+      Install.WantedBy = [ "blix-session.target" ];
       Unit = {
         Description = "Configure external keyboard and mirrored monitor on hotplug";
         PartOf = [ "blix-session.target" ];
