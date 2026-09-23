@@ -23,6 +23,7 @@
     unzip
     bash-completion
     codex
+    bubblewrap
     maim
     slop
     xclip
