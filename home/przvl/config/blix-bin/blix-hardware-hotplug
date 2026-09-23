@@ -61,11 +61,13 @@ apply_wallpaper() {
   feh --no-fehbg --bg-fill "$wallpaper" >/dev/null 2>&1 || true
 }
 
+last_display_state=''
+
 configure_external_monitor() {
   command -v xrandr >/dev/null 2>&1 || return 0
 
-  local outputs output status _rest pattern matched
-  local -a connected=()
+  local outputs output status _rest pattern matched display_state=''
+  local -a connected=() disconnected=()
   outputs=$(xrandr --query 2>/dev/null) || return 0
   while read -r output status _rest; do
     [[ $status == connected || $status == disconnected ]] || continue
@@ -85,16 +87,31 @@ configure_external_monitor() {
     fi
     (( matched )) || continue
 
-    # Dock reconnects can leave an active CRTC but a black screen. Force a
-    # fresh modeset, and also clear stale CRTCs on disconnected outputs.
-    xrandr --output "$output" --off || true
-    [[ $status != connected ]] || connected+=("$output")
+    display_state+="$output $status;"
+    if [[ $status == connected ]]; then
+      connected+=("$output")
+    else
+      disconnected+=("$output")
+    fi
   done <<< "$outputs"
+
+  # A dock emits multiple notifications for one connection change. Mode and
+  # property changes must not cause another reset of an already configured
+  # connection. Remember disconnections too, so reconnecting resets once.
+  [[ $display_state != "$last_display_state" ]] || return 0
+  last_display_state=$display_state
+
+  for output in "${disconnected[@]}"; do
+    xrandr --output "$output" --off || true
+  done
 
   if (( ${#connected[@]} )); then
     xrandr --output "$internal_output" --mode "$mirror_mode" --rate "$mirror_rate" \
       --scale 1x1 --pos 0x0 --primary || return 0
     for output in "${connected[@]}"; do
+      # A reconnect can retain an active CRTC with a black screen. Reset once
+      # for the new connection, never once per queued dock notification.
+      xrandr --output "$output" --off || true
       # Use the 8-bit link setting that recovers the dock's HDMI monitor.
       # Keep enabling the display if an older driver lacks this property.
       xrandr --output "$output" --set "max bpc" 8 || true
