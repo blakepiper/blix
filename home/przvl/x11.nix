@@ -45,7 +45,8 @@ in
       done
     fi
 
-    export PATH="${config.home.path}/bin:${pkgs.systemd}/bin:${pkgs.coreutils}/bin:$PATH"
+    # Follow profile switches instead of retaining this session's package generation.
+    export PATH="${config.home.profileDirectory}/bin:${pkgs.systemd}/bin:${pkgs.coreutils}/bin:$PATH"
     export XDG_CURRENT_DESKTOP=OXWM
     export XDG_SESSION_TYPE=x11
     export CM_LAUNCHER=dmenu
