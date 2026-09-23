@@ -99,6 +99,7 @@ let
     pkgs.setxkbmap
     pkgs.xkbcomp
     pkgs.xrandr
+    pkgs.xset
   ];
 
   fastfetchPackages = writeScript "blix-fastfetch-packages" [

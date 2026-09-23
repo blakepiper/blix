@@ -17,6 +17,11 @@
         default = "HDMI-2";
         description = "External XRandR connector mirrored to the internal panel.";
       };
+      additionalExternalOutputs = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [];
+        description = "Additional XRandR connector glob patterns to mirror, including dynamic dock outputs.";
+      };
       mirrorMode = lib.mkOption {
         type = lib.types.str;
         default = "1920x1080";

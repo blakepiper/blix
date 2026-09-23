@@ -77,6 +77,7 @@ in
           [
             "BLIX_INTERNAL_OUTPUT=${config.blix.display.internalOutput}"
             "BLIX_EXTERNAL_OUTPUT=${config.blix.display.externalOutput}"
+            "BLIX_ADDITIONAL_EXTERNAL_OUTPUTS=${lib.concatStringsSep " " config.blix.display.additionalExternalOutputs}"
             "BLIX_MIRROR_MODE=${config.blix.display.mirrorMode}"
             "BLIX_MIRROR_RATE=${config.blix.display.mirrorRate}"
           ]

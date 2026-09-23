@@ -8,6 +8,7 @@ in
   home.sessionVariables = {
     BLIX_INTERNAL_OUTPUT = config.blix.display.internalOutput;
     BLIX_EXTERNAL_OUTPUT = config.blix.display.externalOutput;
+    BLIX_ADDITIONAL_EXTERNAL_OUTPUTS = lib.concatStringsSep " " config.blix.display.additionalExternalOutputs;
     BLIX_MIRROR_MODE = config.blix.display.mirrorMode;
     BLIX_MIRROR_RATE = config.blix.display.mirrorRate;
   }
@@ -55,6 +56,7 @@ in
     export CM_OWN_CLIPBOARD=0
     export BLIX_INTERNAL_OUTPUT=${lib.escapeShellArg config.blix.display.internalOutput}
     export BLIX_EXTERNAL_OUTPUT=${lib.escapeShellArg config.blix.display.externalOutput}
+    export BLIX_ADDITIONAL_EXTERNAL_OUTPUTS=${lib.escapeShellArg (lib.concatStringsSep " " config.blix.display.additionalExternalOutputs)}
     export BLIX_MIRROR_MODE=${lib.escapeShellArg config.blix.display.mirrorMode}
     export BLIX_MIRROR_RATE=${lib.escapeShellArg config.blix.display.mirrorRate}
     export BLIX_INTERNAL_SCALE_FROM=${lib.escapeShellArg (if internalScaleFrom == null then "" else internalScaleFrom)}
@@ -102,7 +104,7 @@ ${lib.optionalString (wallpaper != null) ''
 
     ${pkgs.systemd}/bin/systemctl --user import-environment \
       DISPLAY XAUTHORITY PATH XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_ID \
-      BLIX_INTERNAL_OUTPUT BLIX_EXTERNAL_OUTPUT BLIX_MIRROR_MODE BLIX_MIRROR_RATE \
+      BLIX_INTERNAL_OUTPUT BLIX_EXTERNAL_OUTPUT BLIX_ADDITIONAL_EXTERNAL_OUTPUTS BLIX_MIRROR_MODE BLIX_MIRROR_RATE \
       BLIX_INTERNAL_SCALE_FROM BLIX_WALLPAPER
     ${pkgs.systemd}/bin/systemctl --user daemon-reload
     if ! ${pkgs.systemd}/bin/systemctl --user start --no-block blix-session.target; then
