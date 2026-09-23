@@ -114,6 +114,14 @@ nix flake update
 nix eval .#nixosConfigurations.zen.config.nix.package.version --raw
 ```
 
+Codex comes from the [SecBear/codex-nix](https://github.com/SecBear/codex-nix)
+overlay, which packages official upstream binaries and checks for stable
+releases hourly. The same `nix flake update` refreshes this input; no manual
+Codex version or hash edits are needed. Availability depends on the upstream
+update workflow completing. The lockfile pins the resulting revision, and a
+rebuild installs it. This adds a third-party packaging source, without adding
+a binary cache or running a standalone installer.
+
 The OXWM overlay pins upstream OXWM 0.13.0 and carries the two Blix patches;
 the `st-blix` overlay applies the local `st` configuration and scrollback/
 URL patch.

@@ -3,13 +3,18 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    # Tracks stable upstream releases independently of nixpkgs packaging.
+    codex = {
+      url = "github:SecBear/codex-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = { nixpkgs, home-manager, ... }:
+  outputs = { nixpkgs, home-manager, codex, ... }:
     let
       # Blix pins OXWM 0.13.0 rather than the older release currently packaged
       # by nixpkgs. Keep its two reviewed patches
@@ -54,7 +59,7 @@
         nixpkgs.lib.nixosSystem {
           inherit system;
           modules = [
-            { nixpkgs.overlays = [ blixOverlay ]; }
+            { nixpkgs.overlays = [ blixOverlay codex.overlays.default ]; }
             home-manager.nixosModules.home-manager
           ] ++ modules;
         };
