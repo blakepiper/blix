@@ -6,7 +6,7 @@ Declarative NixOS and Home Manager configuration for the `przvl` user. The
 flake currently defines two hosts, `zen` and `t490`, with the same Blix-style
 desktop session.
 
-The active desktop is deliberately small and X11-based:
+The original desktop remains available unchanged:
 
 - Xorg is started manually with `startx`; there is no display manager.
 - OXWM is the window manager, with the Blix configuration and local patches.
@@ -84,6 +84,60 @@ BLIX_MIRROR_RATE
 
 To leave the session, exit OXWM or use the configured lock/power controls and
 return to the TTY.
+
+## Hyprland session
+
+After activation, exit OXWM to the TTY and run `start-hyprland`. Use `startx`
+for OXWM instead. Run one desktop at a time. There is no display manager or
+login autostart. `Super+Shift+Q` exits Hyprland back to the TTY.
+
+Hyprland uses dwindle tiling, the same colors, 2px borders, 8px window gaps,
+and nine workspaces. Animations, blur, shadows, transparency, and idle locking
+are disabled. A small Waybar shows workspaces, battery, RAM, CPU, and time;
+updates use the same 5/30/60-second cadence as OXWM. Helpers run only while
+Hyprland is open. This is a minimal configuration, not a measured RAM target.
+
+Most bindings match OXWM:
+
+| Shortcut | Action |
+| --- | --- |
+| Super+Enter | Foot terminal (native Wayland, matching st font/colors) |
+| Super+Space / D | Fuzzel application launcher |
+| Super+F / B | Xfe / managed Firefox |
+| Super+1–9 / Shift+1–9 | Workspace / move window |
+| Super+arrows / Shift+arrows | Cycle focus / swap windows in stack order |
+| Super+Ctrl+arrows / Ctrl+Shift+arrows | Focus monitor / move window to monitor |
+| Super+Tab | Previous numbered workspace, wrapping 1 to 9 |
+| Super+Q / P / Shift+F | Close / float / fullscreen |
+| Super+C / R / N | Master / dwindle / cycle those two layouts |
+| Super+minus / equal | Adjust master factor or dwindle split |
+| Super+Shift+minus / equal | Remove / add master in master layout |
+| Super+V | Text clipboard history (100 entries) |
+| Super+Shift+S / Print / Alt+Print | Region / full desktop / active-window screenshot |
+| Super+L / Shift+Space | Lock / control menu |
+
+Screenshots go to `~/Pictures/Screenshots` and the clipboard. Audio, media,
+brightness, repeat rate, touchpad behavior, and the external Gaming Keyboard
+Alt/Super swap follow OXWM. Hyprlock and Hypridle provide manual and
+lock-before-suspend behavior, without idle blanking. Foot replaces st only in
+Hyprland; Xfe still uses XWayland. Fuzzel lists desktop applications rather
+than every executable in PATH as dmenu_run does. Hyprland layouts are native
+approximations of OXWM layouts, not identical implementations.
+
+`blix.wayland.internalOutput` and `internalScale` are typed host settings.
+Zen uses the native internal-panel mode at 1.75x scale. External outputs,
+including dynamically named dock outputs, mirror the internal display using
+`blix.display.mirrorMode`/`mirrorRate`; differing aspect ratios may letterbox.
+The wallpaper reuses `blix.display.wallpaper` (plain dark background when the
+file is absent). No XRandR script or Picom runs in the Hyprland session.
+
+Configuration lives in `home/przvl/hyprland.nix`,
+`home/przvl/config/hypr/hyprland.lua`, and `home/przvl/scripts/hyprland.nix`.
+The Lua syntax follows the pinned Hyprland version; see the
+[upstream configuration guide](https://wiki.hypr.land/Configuring/Start/).
+After changing it, also run Hyprland's `--verify-config` on the generated Lua.
+For session diagnostics use `hyprctl configerrors` and
+`journalctl --user -b -u 'blix-hyprland-*' -u hypridle`.
 
 ## Adding a host
 

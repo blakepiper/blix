@@ -4,6 +4,11 @@
 { pkgs, ... }:
 
 {
+  blix.wayland = {
+    internalOutput = "eDP-1";
+    internalScale = 1.75;
+  };
+
   home.packages = [
     pkgs.parsec-bin
     pkgs.nodejs_24

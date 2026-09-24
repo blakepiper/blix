@@ -6,6 +6,18 @@
 
 {
   options.blix = {
+    wayland = {
+      internalOutput = lib.mkOption {
+        type = lib.types.str;
+        default = "eDP-1";
+        description = "DRM connector for the internal panel, also the mirror source.";
+      };
+      internalScale = lib.mkOption {
+        type = lib.types.number;
+        default = 1;
+        description = "Hyprland internal panel scale when using its preferred mode.";
+      };
+    };
     display = {
       internalOutput = lib.mkOption {
         type = lib.types.str;

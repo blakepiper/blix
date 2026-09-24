@@ -20,6 +20,7 @@ in
     ./appearance.nix
     ./programs
     ./x11.nix
+    ./hyprland.nix
     ./services
   ];
 

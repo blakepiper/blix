@@ -14,6 +14,7 @@
     ./boot.nix
     ./desktop-services.nix
     ./desktop-session.nix
+    ./hyprland.nix
     ./fonts.nix
     ./home-manager.nix
     ./locale.nix

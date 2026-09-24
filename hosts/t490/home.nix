@@ -4,6 +4,11 @@
 { ... }:
 
 {
+  blix.wayland = {
+    internalOutput = "eDP-1";
+    internalScale = 1;
+  };
+
   blix.display = {
     internalOutput = "eDP-1";
     externalOutput = "HDMI-2";

@@ -34,5 +34,10 @@
     playerctl
     brightnessctl
     blesh
+    wl-clipboard
+    cliphist
+    grim
+    slurp
+    swaybg
   ] ++ scripts;
 }
