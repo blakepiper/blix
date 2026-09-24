@@ -67,12 +67,12 @@ if [[ $state_system == "$system_target" && \
       $state_user == "$user_target" && \
       $state_system_count =~ ^[0-9]+$ && \
       $state_user_count =~ ^[0-9]+$ ]]; then
-  printf '%s (nix-system), %s (nix-user)\n' "$state_system_count" "$state_user_count"
+  printf '%s system, %s user\n' "$state_system_count" "$state_user_count"
 else
   if [[ $cached_system =~ ^[0-9]+$ && $cached_user =~ ^[0-9]+$ ]]; then
-    printf '%s (nix-system), %s (nix-user)\n' "$cached_system" "$cached_user"
+    printf '%s system, %s user\n' "$cached_system" "$cached_user"
   elif [[ $state_system_count =~ ^[0-9]+$ && $state_user_count =~ ^[0-9]+$ ]]; then
-    printf '%s (nix-system), %s (nix-user)\n' "$state_system_count" "$state_user_count"
+    printf '%s system, %s user\n' "$state_system_count" "$state_user_count"
   else
     printf 'updating package count\n'
   fi

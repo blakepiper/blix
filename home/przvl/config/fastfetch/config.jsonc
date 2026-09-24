@@ -7,7 +7,10 @@
         "title",
         "separator",
         "os",
-        "host",
+        {
+            "type": "host",
+            "format": "{?family}{family}{?}{/family}{name}{/}"
+        },
         "kernel",
         "uptime",
         {
@@ -21,14 +24,20 @@
             "compactType": "original"
         },
         "de",
-        "wm",
+        {
+            "type": "wm",
+            "key": "WM"
+        },
         "wmtheme",
         "theme",
         "icons",
         "font",
         "cursor",
         "terminal",
-        "terminalfont",
+        {
+            "type": "terminalfont",
+            "key": "Term Font"
+        },
         {
             "type": "cpu",
             "format": "{name}"
@@ -39,9 +48,15 @@
         },
         "memory",
         "swap",
-        "disk",
+        {
+            "type": "disk",
+            "format": "{size-used} / {size-total} ({size-percentage})"
+        },
         "localip",
-        "battery",
+        {
+            "type": "battery",
+            "key": "Battery"
+        },
         "poweradapter",
         "locale",
         "break",
