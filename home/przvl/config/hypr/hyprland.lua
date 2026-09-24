@@ -34,7 +34,7 @@ hl.on("monitor.removed", schedule_mirror_update)
 
 hl.config({
     general = {
-        layout = "dwindle", gaps_in = 4, gaps_out = 8, border_size = 2,
+        layout = "dwindle", gaps_in = 0, gaps_out = 0, border_size = 2,
         col = { active_border = "rgb(9fe3c4)", inactive_border = "rgb(34324a)" },
         resize_on_border = true,
     },
