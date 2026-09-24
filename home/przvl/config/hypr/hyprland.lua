@@ -5,6 +5,33 @@ hl.monitor({ output = internal, mode = "preferred", position = "0x0", scale = @i
 -- output rules take precedence, so new external outputs mirror automatically.
 hl.monitor({ output = "", mode = "@mirrorMode@", position = "auto", scale = 1, mirror = internal })
 
+-- Match the mirror source's aspect ratio to the external desktop while docked.
+-- A native 16:10 source otherwise leaves black side bars on a 16:9 mirror.
+local function update_mirror_source()
+    local docked = false
+    for _, monitor in ipairs(hl.get_monitors()) do
+        if monitor.name ~= internal or #monitor.mirrors > 0 then
+            docked = true
+            break
+        end
+    end
+    hl.monitor({
+        output = internal, position = "0x0",
+        mode = docked and "@mirrorMode@" or "preferred",
+        scale = docked and 1 or @internalScale@,
+    })
+end
+-- Defer until startup/reload or hotplug has finished updating the output list.
+local function schedule_mirror_update()
+    -- Config verification has no outputs or running event loop.
+    if #hl.get_monitors() == 0 then return end
+    hl.timer(update_mirror_source, { timeout = 100, type = "oneshot" })
+end
+hl.on("hyprland.start", schedule_mirror_update)
+hl.on("config.reloaded", schedule_mirror_update)
+hl.on("monitor.added", schedule_mirror_update)
+hl.on("monitor.removed", schedule_mirror_update)
+
 hl.config({
     general = {
         layout = "dwindle", gaps_in = 4, gaps_out = 8, border_size = 2,
@@ -16,7 +43,7 @@ hl.config({
         blur = { enabled = false }, shadow = { enabled = false },
     },
     animations = { enabled = false },
-    dwindle = { preserve_split = true },
+    dwindle = { preserve_split = true, force_split = 2 },
     master = { new_status = "slave" },
     input = {
         kb_layout = "us", repeat_delay = 200, repeat_rate = 50,
