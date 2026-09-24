@@ -43,6 +43,8 @@ hl.config({
         blur = { enabled = false }, shadow = { enabled = false },
     },
     animations = { enabled = false },
+    -- Keep compositor shortcuts available even when an app requests inhibition.
+    binds = { disable_keybind_grabbing = true },
     dwindle = { preserve_split = true, force_split = 2 },
     master = { new_status = "slave" },
     input = {
@@ -72,6 +74,7 @@ hl.env("TERMINAL", "foot")
 
 hl.on("hyprland.start", function() hl.exec_cmd("@session@") end)
 
+-- Binding changes belong in this config; do not add unbind/toggle submaps.
 local function spawn(key, cmd, flags)
     hl.bind(key, hl.dsp.exec_cmd(cmd), flags or {})
 end
