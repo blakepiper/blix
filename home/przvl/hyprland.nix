@@ -99,6 +99,15 @@ in
 
   programs.waybar = {
     enable = true;
+    # Waybar 0.15 uses the pre-Lua dispatcher for our numbered workspaces.
+    # Remove this compatibility patch when the packaged click handler supports it.
+    package = pkgs.waybar.overrideAttrs (old: {
+      postPatch = (old.postPatch or "") + ''
+        substituteInPlace src/modules/hyprland/workspace.cpp \
+          --replace-fail '"dispatch workspace " + std::to_string(id())' \
+          '"dispatch hl.dsp.focus({workspace=" + std::to_string(id()) + "})"'
+      '';
+    });
     systemd.enable = false;
     settings.main = {
       layer = "top";
@@ -165,7 +174,7 @@ in
 
   systemd.user.targets.blix-hyprland-session.Unit.Description = "Blix Hyprland session helpers";
   systemd.user.services = {
-    blix-hyprland-bar = service "Blix Wayland status bar" "${pkgs.waybar}/bin/waybar";
+    blix-hyprland-bar = service "Blix Wayland status bar" "${config.programs.waybar.package}/bin/waybar";
     blix-hyprland-wallpaper = service "Blix Wayland background" "${helpers.wallpaper}/bin/blix-hyprland-wallpaper";
     blix-hyprland-clipboard = lib.recursiveUpdate
       (service "Blix Wayland text clipboard history"
