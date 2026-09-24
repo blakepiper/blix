@@ -6,7 +6,9 @@
 {
   blix.wayland = {
     internalOutput = "eDP-1";
-    internalScale = 1.75;
+    # 2880x1800 / 1.8 = 1600x1000 logical pixels. 1.75 produces fractional
+    # dimensions, which Hyprland rejects before the docked mode is applied.
+    internalScale = 1.8;
   };
 
   home.packages = [
