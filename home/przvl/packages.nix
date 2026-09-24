@@ -32,7 +32,6 @@
     xss-lock
     picom
     playerctl
-    wiremix
     brightnessctl
     blesh
     wl-clipboard
