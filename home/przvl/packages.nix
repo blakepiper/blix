@@ -18,6 +18,7 @@
     bat
     eza
     lazygit
+    radicle-node
     less
     man
     unzip
@@ -33,6 +34,7 @@
     picom
     playerctl
     brightnessctl
+    gammastep
     blesh
     wl-clipboard
     cliphist
