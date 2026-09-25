@@ -59,7 +59,7 @@
         nixpkgs.lib.nixosSystem {
           inherit system;
           modules = [
-            { nixpkgs.overlays = [ blixOverlay codex.overlays.default ]; }
+            { nixpkgs.overlays = [ blixOverlay codex.overlays.default (import ./overlays/codex.nix) ]; }
             home-manager.nixosModules.home-manager
           ] ++ modules;
         };

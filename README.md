@@ -177,6 +177,14 @@ update workflow completing. The lockfile pins the resulting revision, and a
 rebuild installs it. This adds a third-party packaging source, without adding
 a binary cache or running a standalone installer.
 
+`overlays/codex.nix` completes the binary package with the manifest, ripgrep,
+and bubblewrap needed by Codex's background server. The helper binaries are
+static and copied into the package because the daemon copies its installation
+and rejects links outside the package. Codex still takes its version and
+binary hashes from the locked `codex-nix` input. When checking an update, test
+ordinary `codex` startup: `codex --version` and `codex --no-daemon` do not
+exercise background-server installation.
+
 The OXWM overlay pins upstream OXWM 0.13.0 and carries the two Blix patches;
 the `st-blix` overlay applies the local `st` configuration and scrollback/
 URL patch.
