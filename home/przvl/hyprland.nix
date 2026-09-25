@@ -64,7 +64,7 @@ in
         regular1 = "cd0000";
         regular2 = "00cd00";
         regular3 = "cdcd00";
-        regular4 = "0000ee";
+        regular4 = "7aa2f7";
         regular5 = "cd00cd";
         regular6 = "00cdcd";
         regular7 = "bbbbbb";
@@ -72,7 +72,7 @@ in
         bright1 = "ff0000";
         bright2 = "00ff00";
         bright3 = "ffff00";
-        bright4 = "5c5cff";
+        bright4 = "89b4fa";
         bright5 = "ff00ff";
         bright6 = "00ffff";
         bright7 = "ffffff";
