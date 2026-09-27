@@ -12,7 +12,6 @@
   };
 
   home.packages = [
-    pkgs.parsec-bin
     pkgs.nodejs_24
   ];
 

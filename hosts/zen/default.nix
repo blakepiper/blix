@@ -2,7 +2,7 @@
 #
 # Shared configuration is composed here with the generated hardware module and
 # the few settings that genuinely depend on this machine.
-{ lib, ... }:
+{ ... }:
 
 {
   imports = [
@@ -27,11 +27,6 @@
     enable = true;
     settings.STOP_CHARGE_THRESH_BAT0 = 79;
   };
-
-  # Parsec is unfree software; keep the exception scoped to the package this
-  # host actually installs.
-  nixpkgs.config.allowUnfreePredicate = pkg:
-    builtins.elem (lib.getName pkg) [ "parsec-bin" ];
 
   # This Lunar Lake panel trips a panel self-refresh bug in the xe driver: the
   # kernel logs "Selective fetch area calculation failed in pipe A" on every
