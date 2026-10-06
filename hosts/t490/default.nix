@@ -20,6 +20,18 @@
   # aggressive power saving enabled.
   networking.networkmanager.wifi.powersave = false;
 
+  # The native ThinkPad battery controls support a 75–80% charging range.
+  services.tlp = {
+    enable = true;
+    settings = {
+      START_CHARGE_THRESH_BAT0 = 75;
+      STOP_CHARGE_THRESH_BAT0 = 80;
+      # Preserve the Wi-Fi workaround when TLP applies its power policy.
+      WIFI_PWR_ON_AC = "off";
+      WIFI_PWR_ON_BAT = "off";
+    };
+  };
+
   # The NixOS release this machine was installed with. Per host; never copied
   # to a new machine.
   system.stateVersion = "26.05";
