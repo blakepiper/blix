@@ -17,7 +17,6 @@
     bat
     eza
     lazygit
-    radicle-node
     less
     man
     unzip
