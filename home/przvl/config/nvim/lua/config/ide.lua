@@ -1,8 +1,8 @@
-if vim.env.BLIX_NVIMIDE ~= "1" then
+if vim.env.NVIM_IDE ~= "1" then
   return
 end
 
-local group = vim.api.nvim_create_augroup("blix_nvimide", { clear = true })
+local group = vim.api.nvim_create_augroup("nvim_ide", { clear = true })
 local started = false
 local scheduled = false
 
@@ -43,15 +43,15 @@ local function start()
   local root = project_root()
   prepare_editor_buffer()
 
-  local function terminal_height()
-    return math.max(1, math.floor(vim.o.lines * 0.4 + 0.5))
+  local function terminal_width()
+    return math.max(1, math.floor(vim.o.columns * 0.4 + 0.5))
   end
 
   local terminal_wins = {}
   local function resize_terminals()
     for _, terminal_win in pairs(terminal_wins) do
       if vim.api.nvim_win_is_valid(terminal_win) then
-        vim.api.nvim_win_set_height(terminal_win, terminal_height())
+        vim.api.nvim_win_set_width(terminal_win, terminal_width())
       end
     end
   end
@@ -69,13 +69,13 @@ local function start()
     terminals_opened = true
 
     local function open_terminal(count)
-      snacks.terminal.open(nil, {
+      local terminal = snacks.terminal.open(nil, {
         cwd = root,
         count = count,
         start_insert = false,
         win = {
-          position = "bottom",
-          height = terminal_height(),
+          position = "right",
+          width = terminal_width(),
           stack = true,
           enter = false,
           on_win = function(win)
@@ -84,6 +84,13 @@ local function start()
           end,
         },
       })
+
+      if count == 2 and vim.env.NVIM_IDE_FETCH then
+        vim.api.nvim_chan_send(
+          vim.b[terminal.buf].terminal_job_id,
+          vim.fn.shellescape(vim.env.NVIM_IDE_FETCH) .. "\n"
+        )
+      end
     end
 
     open_terminal(1)
@@ -94,24 +101,93 @@ local function start()
     end
   end
 
-  local explorer = snacks.explorer({
-    cwd = root,
-    enter = false,
-    layout = {
-      preset = "sidebar",
-      preview = false,
-      layout = {
-        position = "left",
-        width = 30,
-        min_width = 30,
-      },
-    },
-    on_show = function()
-      vim.schedule(open_terminals)
-    end,
-  })
-
+  local explorer = snacks.picker.get({ source = "explorer" })[1]
   if not explorer then
+    explorer = snacks.explorer({
+      cwd = root,
+      enter = false,
+      -- Start the initial search explicitly so terminals wait for completion.
+      find = false,
+      layout = {
+        preset = "sidebar",
+        preview = false,
+        layout = {
+          position = "left",
+          width = 30,
+          min_width = 30,
+        },
+      },
+    })
+  else
+    explorer:set_cwd(root)
+  end
+
+  if explorer then
+    -- Snacks refreshes from Git status, file following and filesystem events.
+    -- Let the current finder AND matcher finish before starting another pass;
+    -- aborting a coroutine does not stop it synchronously in this version.
+    if not explorer._ide_serialized_find then
+      explorer._ide_serialized_find = true
+      local find = explorer.find
+      local pending = false
+      local waiting = false
+      local callbacks = {}
+
+      local function flush()
+        if explorer.closed then
+          pending = false
+          callbacks = {}
+          waiting = false
+          return
+        end
+        if explorer:is_active() then
+          vim.defer_fn(flush, 10)
+          return
+        end
+        waiting = false
+        if not pending then
+          return
+        end
+        pending = false
+        local done = callbacks
+        callbacks = {}
+        find(explorer, {
+          on_done = function()
+            for _, callback in ipairs(done) do
+              callback()
+            end
+          end,
+        })
+      end
+
+      explorer.find = function(self, opts)
+        if self.closed then
+          return
+        end
+        if self:is_active() or waiting then
+          pending = true
+          if opts and opts.on_done then
+            callbacks[#callbacks + 1] = opts.on_done
+          end
+          if not waiting then
+            waiting = true
+            vim.defer_fn(flush, 10)
+          end
+          return
+        end
+        return find(self, opts)
+      end
+    end
+    explorer:find({
+      on_done = function()
+        vim.schedule(function()
+          if not explorer.closed then
+            open_terminals()
+          end
+        end)
+      end,
+    })
+  else
     open_terminals()
   end
 end

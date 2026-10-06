@@ -1,52 +1,60 @@
--- Modified for Blix: oxwm default palette (2026-09-16).
--- Source: tonybanters/oxwm templates/config.lua at
--- fc4ada9ac4ee8e34ace203290a2b14d10e4671cc.
--- Maintains Blix's Seafoam highlight mappings and colorscheme name.
--- Dim surfaces, selection, comments, and yellow supplement oxwm's UI palette.
+-- Minimal black theme shared by nvim and nvimide.
+-- st 0.9.3 supplies the background, foreground, cursor and base terminal palette.
+-- Keep chrome grayscale, with terminal-inspired syntax colors and muted
+-- semantic accents for diagnostics, diffs and Git state.
 
 local c = {
-  bg = "#1a1b26",
-  fg = "#bbbbbb",
-  cursor = "#6dade3",
-  cursor_text = "#1a1b26",
-  selection_bg = "#283457",
-  selection_fg = "#a9b1d6",
+  bg = "#000000",
+  fg = "#e5e5e5",
+  cursor = "#cccccc",
+  cursor_text = "#000000",
+  selection_bg = "#303030",
+  selection_fg = "#ffffff",
 
-  black = "#202230",
-  red = "#f7768e",
-  green = "#9ece6a",
-  yellow = "#e0af68",
-  blue = "#6dade3",
-  magenta = "#34324a",
-  cyan = "#0db9d7",
-  white = "#bbbbbb",
-  bright_black = "#737aa2",
-  bright_red = "#f7768e",
-  bright_green = "#9ece6a",
-  bright_yellow = "#e0af68",
-  bright_blue = "#7aa2f7",
-  bright_magenta = "#ad8ee6",
-  bright_cyan = "#0db9d7",
-  bright_white = "#a9b1d6",
+  black = "#121212",
+  red = "#cccccc",
+  green = "#bcbcbc",
+  yellow = "#d0d0d0",
+  blue = "#cccccc",
+  magenta = "#404040",
+  cyan = "#bcbcbc",
+  white = "#e5e5e5",
+  bright_black = "#808080",
+  bright_red = "#cccccc",
+  bright_green = "#bcbcbc",
+  bright_yellow = "#d0d0d0",
+  bright_blue = "#b0b0b0",
+  bright_magenta = "#e5e5e5",
+  bright_cyan = "#bcbcbc",
+  bright_white = "#ffffff",
 }
 
+-- Syntax accents inspired by the terminal reference; independent of chrome.
+local syntax = {
+  bright_red = "#e58b8b",
+  bright_green = "#a6da95",
+  bright_yellow = "#e5c07b",
+  bright_blue = "#82b4ff",
+  bright_magenta = "#c6a0f6",
+  bright_cyan = "#8bd5ca",
+}
+
+local semantic = {
+  bright_red = "#d78787",
+  bright_green = "#87af87",
+  bright_yellow = "#d7af5f",
+  bright_blue = "#87afd7",
+  bright_cyan = "#87afaf",
+  bright_magenta = "#af87af",
+}
+
+-- st 0.9.3 ANSI colors, with lighter blues for readable terminal prompts.
+-- Independent of editor highlights.
 local ansi = {
-  c.black,
-  c.red,
-  c.green,
-  c.yellow,
-  c.blue,
-  c.magenta,
-  c.cyan,
-  c.white,
-  c.bright_black,
-  c.bright_red,
-  c.bright_green,
-  c.bright_yellow,
-  c.bright_blue,
-  c.bright_magenta,
-  c.bright_cyan,
-  c.bright_white,
+  "#000000", "#cd0000", "#00cd00", "#cdcd00",
+  "#82b4ff", "#cd00cd", "#00cdcd", "#e5e5e5",
+  "#7f7f7f", "#ff0000", "#00ff00", "#ffff00",
+  "#a6c8ff", "#ff00ff", "#00ffff", "#ffffff",
 }
 
 vim.cmd("highlight clear")
@@ -56,7 +64,7 @@ end
 
 vim.o.background = "dark"
 vim.o.termguicolors = true
-vim.g.colors_name = "seafoam"
+vim.g.colors_name = "minimal"
 
 local function hi(group, opts)
   vim.api.nvim_set_hl(0, group, opts)
@@ -85,7 +93,7 @@ local function apply()
   hi("Normal", { fg = c.fg, bg = c.bg })
   hi("NormalNC", { fg = c.fg, bg = c.bg })
   hi("NormalFloat", { fg = c.fg, bg = c.bg })
-  hi("FloatBorder", { fg = c.bright_magenta, bg = c.bg })
+  hi("FloatBorder", { fg = c.magenta, bg = c.bg })
   hi("FloatTitle", { fg = c.fg, bg = c.magenta, bold = true })
   hi("FloatFooter", { fg = c.bright_black, bg = c.bg })
   hi("Cursor", { fg = c.cursor_text, bg = c.cursor })
@@ -116,8 +124,8 @@ local function apply()
   hi("ModeMsg", { fg = c.fg, bold = true })
   hi("MsgArea", { fg = c.fg, bg = c.bg })
   hi("MsgSeparator", { fg = c.black, bg = c.bg })
-  hi("ErrorMsg", { fg = c.bright_red, bold = true })
-  hi("WarningMsg", { fg = c.bright_yellow, bold = true })
+  hi("ErrorMsg", { fg = semantic.bright_red, bold = true })
+  hi("WarningMsg", { fg = semantic.bright_yellow, bold = true })
   hi("WildMenu", { fg = c.selection_fg, bg = c.selection_bg, bold = true })
   hi("QuickFixLine", { fg = c.fg, bg = c.black, bold = true })
   hi("MatchParen", { fg = c.bright_yellow, bg = c.black, bold = true })
@@ -151,40 +159,40 @@ local function apply()
 
   -- Built-in syntax groups.
   hi("Comment", { fg = c.bright_black, italic = true })
-  hi("Constant", { fg = c.bright_yellow })
-  hi("String", { fg = c.bright_green })
-  hi("Character", { fg = c.bright_green })
-  hi("Number", { fg = c.bright_yellow })
-  hi("Boolean", { fg = c.bright_yellow, bold = true })
-  hi("Float", { fg = c.bright_yellow })
+  hi("Constant", { fg = syntax.bright_yellow })
+  hi("String", { fg = syntax.bright_green })
+  hi("Character", { fg = syntax.bright_green })
+  hi("Number", { fg = syntax.bright_yellow })
+  hi("Boolean", { fg = syntax.bright_yellow, bold = true })
+  hi("Float", { fg = syntax.bright_yellow })
   hi("Identifier", { fg = c.fg })
-  hi("Function", { fg = c.bright_blue })
-  hi("Statement", { fg = c.bright_magenta, bold = true })
-  hi("Conditional", { fg = c.bright_magenta, bold = true })
-  hi("Repeat", { fg = c.bright_magenta, bold = true })
-  hi("Label", { fg = c.bright_magenta })
-  hi("Operator", { fg = c.bright_cyan })
-  hi("Keyword", { fg = c.bright_magenta, bold = true })
-  hi("Exception", { fg = c.bright_red, bold = true })
-  hi("PreProc", { fg = c.bright_magenta })
-  hi("Include", { fg = c.bright_magenta })
-  hi("Define", { fg = c.bright_magenta })
-  hi("Macro", { fg = c.bright_magenta })
-  hi("PreCondit", { fg = c.bright_magenta })
-  hi("Type", { fg = c.bright_cyan })
-  hi("StorageClass", { fg = c.bright_cyan, bold = true })
-  hi("Structure", { fg = c.bright_cyan })
-  hi("Typedef", { fg = c.bright_cyan })
-  hi("Special", { fg = c.bright_cyan })
-  hi("SpecialChar", { fg = c.bright_cyan })
-  hi("Tag", { fg = c.bright_blue })
+  hi("Function", { fg = syntax.bright_blue })
+  hi("Statement", { fg = syntax.bright_magenta, bold = true })
+  hi("Conditional", { fg = syntax.bright_magenta, bold = true })
+  hi("Repeat", { fg = syntax.bright_magenta, bold = true })
+  hi("Label", { fg = syntax.bright_magenta })
+  hi("Operator", { fg = syntax.bright_cyan })
+  hi("Keyword", { fg = syntax.bright_magenta, bold = true })
+  hi("Exception", { fg = syntax.bright_red, bold = true })
+  hi("PreProc", { fg = syntax.bright_magenta })
+  hi("Include", { fg = syntax.bright_magenta })
+  hi("Define", { fg = syntax.bright_magenta })
+  hi("Macro", { fg = syntax.bright_magenta })
+  hi("PreCondit", { fg = syntax.bright_magenta })
+  hi("Type", { fg = syntax.bright_cyan })
+  hi("StorageClass", { fg = syntax.bright_cyan, bold = true })
+  hi("Structure", { fg = syntax.bright_cyan })
+  hi("Typedef", { fg = syntax.bright_cyan })
+  hi("Special", { fg = syntax.bright_cyan })
+  hi("SpecialChar", { fg = syntax.bright_cyan })
+  hi("Tag", { fg = syntax.bright_blue })
   hi("Delimiter", { fg = c.white })
-  hi("Debug", { fg = c.bright_red })
-  hi("Underlined", { fg = c.bright_blue, underline = true })
+  hi("Debug", { fg = syntax.bright_red })
+  hi("Underlined", { fg = syntax.bright_blue, underline = true })
   hi("Bold", { fg = c.fg, bold = true })
   hi("Italic", { fg = c.fg, italic = true })
-  hi("Error", { fg = c.bright_red, bold = true })
-  hi("Todo", { fg = c.cursor_text, bg = c.bright_yellow, bold = true })
+  hi("Error", { fg = syntax.bright_red, bold = true })
+  hi("Todo", { fg = c.cursor_text, bg = syntax.bright_yellow, bold = true })
 
   -- Treesitter captures and semantic tokens.
   link_groups({ "@comment", "@comment.documentation" }, "Comment")
@@ -234,58 +242,50 @@ local function apply()
   link_groups({ "@lsp.type.parameter", "@lsp.type.variable", "@lsp.type.property" }, "Identifier")
 
   -- Diagnostics, references, and LSP UI.
-  hi("DiagnosticError", { fg = c.bright_red, undercurl = true, sp = c.bright_red })
-  hi("DiagnosticWarn", { fg = c.bright_yellow, undercurl = true, sp = c.bright_yellow })
-  hi("DiagnosticInfo", { fg = c.bright_blue, undercurl = true, sp = c.bright_blue })
-  hi("DiagnosticHint", { fg = c.bright_cyan, undercurl = true, sp = c.bright_cyan })
-  hi("DiagnosticOk", { fg = c.bright_green })
-  hi("DiagnosticVirtualTextError", { fg = c.bright_red, bg = c.black })
-  hi("DiagnosticVirtualTextWarn", { fg = c.bright_yellow, bg = c.black })
-  hi("DiagnosticVirtualTextInfo", { fg = c.bright_blue, bg = c.black })
-  hi("DiagnosticVirtualTextHint", { fg = c.bright_cyan, bg = c.black })
-  hi("DiagnosticVirtualTextOk", { fg = c.bright_green, bg = c.black })
-  hi("DiagnosticSignError", { fg = c.bright_red, bg = c.bg })
-  hi("DiagnosticSignWarn", { fg = c.bright_yellow, bg = c.bg })
-  hi("DiagnosticSignInfo", { fg = c.bright_blue, bg = c.bg })
-  hi("DiagnosticSignHint", { fg = c.bright_cyan, bg = c.bg })
-  hi("DiagnosticSignOk", { fg = c.bright_green, bg = c.bg })
+  hi("DiagnosticError", { fg = semantic.bright_red, undercurl = true, sp = semantic.bright_red })
+  hi("DiagnosticWarn", { fg = semantic.bright_yellow, undercurl = true, sp = semantic.bright_yellow })
+  hi("DiagnosticInfo", { fg = semantic.bright_blue, undercurl = true, sp = semantic.bright_blue })
+  hi("DiagnosticHint", { fg = semantic.bright_cyan, undercurl = true, sp = semantic.bright_cyan })
+  hi("DiagnosticOk", { fg = semantic.bright_green })
+  hi("DiagnosticVirtualTextError", { fg = semantic.bright_red, bg = c.black })
+  hi("DiagnosticVirtualTextWarn", { fg = semantic.bright_yellow, bg = c.black })
+  hi("DiagnosticVirtualTextInfo", { fg = semantic.bright_blue, bg = c.black })
+  hi("DiagnosticVirtualTextHint", { fg = semantic.bright_cyan, bg = c.black })
+  hi("DiagnosticVirtualTextOk", { fg = semantic.bright_green, bg = c.black })
+  hi("DiagnosticSignError", { fg = semantic.bright_red, bg = c.bg })
+  hi("DiagnosticSignWarn", { fg = semantic.bright_yellow, bg = c.bg })
+  hi("DiagnosticSignInfo", { fg = semantic.bright_blue, bg = c.bg })
+  hi("DiagnosticSignHint", { fg = semantic.bright_cyan, bg = c.bg })
+  hi("DiagnosticSignOk", { fg = semantic.bright_green, bg = c.bg })
   hi("LspReferenceText", { bg = c.black })
   hi("LspReferenceRead", { bg = c.black })
   hi("LspReferenceWrite", { bg = c.black, bold = true })
   hi("LspCodeLens", { fg = c.bright_black, italic = true })
   hi("LspInlayHint", { fg = c.bright_black, bg = c.black, italic = true })
-  hi("LspInfoBorder", { fg = c.bright_blue, bg = c.bg })
+  hi("LspInfoBorder", { fg = c.magenta, bg = c.bg })
 
   -- Diff and Git signs.
-  hi("DiffAdd", { fg = c.bright_green, bg = c.black })
-  hi("DiffChange", { fg = c.bright_blue, bg = c.black })
-  hi("DiffDelete", { fg = c.bright_red, bg = c.black })
-  hi("DiffText", { fg = c.fg, bg = c.blue, bold = true })
-  hi("Added", { fg = c.bright_green })
-  hi("Changed", { fg = c.bright_blue })
-  hi("Removed", { fg = c.bright_red })
-  hi("GitSignsAdd", { fg = c.bright_green, bg = c.bg })
-  hi("GitSignsChange", { fg = c.bright_blue, bg = c.bg })
-  hi("GitSignsDelete", { fg = c.bright_red, bg = c.bg })
-  hi("GitSignsChangedelete", { fg = c.bright_magenta, bg = c.bg })
-  hi("GitSignsTopdelete", { fg = c.bright_red, bg = c.bg })
-  hi("GitSignsUntracked", { fg = c.bright_cyan, bg = c.bg })
+  hi("DiffAdd", { fg = semantic.bright_green, bg = c.black })
+  hi("DiffChange", { fg = semantic.bright_blue, bg = c.black })
+  hi("DiffDelete", { fg = semantic.bright_red, bg = c.black })
+  hi("DiffText", { fg = c.fg, bg = c.selection_bg, bold = true })
+  hi("Added", { fg = semantic.bright_green })
+  hi("Changed", { fg = semantic.bright_blue })
+  hi("Removed", { fg = semantic.bright_red })
+  hi("GitSignsAdd", { fg = semantic.bright_green, bg = c.bg })
+  hi("GitSignsChange", { fg = semantic.bright_blue, bg = c.bg })
+  hi("GitSignsDelete", { fg = semantic.bright_red, bg = c.bg })
+  hi("GitSignsChangedelete", { fg = semantic.bright_magenta, bg = c.bg })
+  hi("GitSignsTopdelete", { fg = semantic.bright_red, bg = c.bg })
+  hi("GitSignsUntracked", { fg = semantic.bright_cyan, bg = c.bg })
   hi("GitSignsCurrentLineBlame", { fg = c.bright_black, italic = true })
-  hi("GitSignsDeleteVirtLn", { fg = c.bright_red, bg = c.black })
-  hi("GitSignsDeleteVirtLnInLine", { fg = c.bright_red, bg = c.black })
-  hi("GitSignsVirtLnum", { fg = c.bright_red, bg = c.black })
+  hi("GitSignsDeleteVirtLn", { fg = semantic.bright_red, bg = c.black })
+  hi("GitSignsDeleteVirtLnInLine", { fg = semantic.bright_red, bg = c.black })
+  hi("GitSignsVirtLnum", { fg = semantic.bright_red, bg = c.black })
 
   -- Lualine and bufferline.
-  local lualine_modes = {
-    normal = c.bright_blue,
-    insert = c.bright_green,
-    visual = c.bright_magenta,
-    replace = c.bright_red,
-    command = c.bright_yellow,
-    inactive = c.black,
-  }
-  for mode, color in pairs(lualine_modes) do
-    hi("lualine_a_" .. mode, { fg = c.cursor_text, bg = color, bold = true })
+  for _, mode in ipairs({ "normal", "insert", "visual", "replace", "command", "terminal", "inactive" }) do
+    hi("lualine_a_" .. mode, { fg = c.fg, bg = c.selection_bg, bold = true })
     hi("lualine_b_" .. mode, { fg = c.fg, bg = c.black })
     hi("lualine_c_" .. mode, { fg = c.fg, bg = c.bg })
   end
@@ -309,27 +309,27 @@ local function apply()
   hi("BufferLineDuplicate", { fg = c.bright_black, bg = c.black, italic = true })
   hi("BufferLineDuplicateSelected", { fg = c.bright_magenta, bg = c.bg, italic = true })
   hi("BufferLineOffsetSeparator", { fg = c.magenta, bg = c.bg })
-  hi("BufferLineError", { fg = c.bright_red, bg = c.black })
-  hi("BufferLineErrorSelected", { fg = c.bright_red, bg = c.bg })
-  hi("BufferLineWarning", { fg = c.bright_yellow, bg = c.black })
-  hi("BufferLineWarningSelected", { fg = c.bright_yellow, bg = c.bg })
-  hi("BufferLineInfo", { fg = c.bright_blue, bg = c.black })
-  hi("BufferLineInfoSelected", { fg = c.bright_blue, bg = c.bg })
-  hi("BufferLineHint", { fg = c.bright_cyan, bg = c.black })
-  hi("BufferLineHintSelected", { fg = c.bright_cyan, bg = c.bg })
+  hi("BufferLineError", { fg = semantic.bright_red, bg = c.black })
+  hi("BufferLineErrorSelected", { fg = semantic.bright_red, bg = c.bg })
+  hi("BufferLineWarning", { fg = semantic.bright_yellow, bg = c.black })
+  hi("BufferLineWarningSelected", { fg = semantic.bright_yellow, bg = c.bg })
+  hi("BufferLineInfo", { fg = semantic.bright_blue, bg = c.black })
+  hi("BufferLineInfoSelected", { fg = semantic.bright_blue, bg = c.bg })
+  hi("BufferLineHint", { fg = semantic.bright_cyan, bg = c.black })
+  hi("BufferLineHintSelected", { fg = semantic.bright_cyan, bg = c.bg })
 
   -- Telescope, Snacks, and completion UI.
   hi("TelescopeNormal", { fg = c.fg, bg = c.bg })
-  hi("TelescopeBorder", { fg = c.bright_magenta, bg = c.bg })
+  hi("TelescopeBorder", { fg = c.magenta, bg = c.bg })
   hi("TelescopePromptNormal", { fg = c.fg, bg = c.black })
-  hi("TelescopePromptBorder", { fg = c.bright_magenta, bg = c.black })
-  hi("TelescopePromptTitle", { fg = c.cursor_text, bg = c.magenta, bold = true })
+  hi("TelescopePromptBorder", { fg = c.magenta, bg = c.black })
+  hi("TelescopePromptTitle", { fg = c.fg, bg = c.magenta, bold = true })
   hi("TelescopePreviewNormal", { fg = c.fg, bg = c.bg })
-  hi("TelescopePreviewBorder", { fg = c.bright_blue, bg = c.bg })
+  hi("TelescopePreviewBorder", { fg = c.magenta, bg = c.bg })
   hi("TelescopePreviewTitle", { fg = c.cursor_text, bg = c.bright_blue, bold = true })
   hi("TelescopeResultsNormal", { fg = c.fg, bg = c.bg })
-  hi("TelescopeResultsBorder", { fg = c.bright_magenta, bg = c.bg })
-  hi("TelescopeResultsTitle", { fg = c.cursor_text, bg = c.magenta, bold = true })
+  hi("TelescopeResultsBorder", { fg = c.magenta, bg = c.bg })
+  hi("TelescopeResultsTitle", { fg = c.fg, bg = c.magenta, bold = true })
   hi("TelescopeSelection", { fg = c.selection_fg, bg = c.selection_bg, bold = true })
   hi("TelescopeSelectionCaret", { fg = c.bright_yellow, bg = c.selection_bg, bold = true })
   hi("TelescopeMatching", { fg = c.bright_yellow, bold = true })
@@ -353,8 +353,8 @@ local function apply()
   hi("SnacksIndentScope", { fg = c.magenta })
   hi("SnacksIndentChunk", { fg = c.bright_magenta })
   hi("SnacksInputNormal", { fg = c.fg, bg = c.black })
-  hi("SnacksInputBorder", { fg = c.bright_magenta, bg = c.black })
-  hi("SnacksInputTitle", { fg = c.cursor_text, bg = c.magenta, bold = true })
+  hi("SnacksInputBorder", { fg = c.magenta, bg = c.black })
+  hi("SnacksInputTitle", { fg = c.fg, bg = c.magenta, bold = true })
   hi("SnacksInputIcon", { fg = c.bright_yellow, bg = c.black })
   hi("SnacksScratch", { fg = c.fg, bg = c.bg })
   hi("SnacksScratchTitle", { fg = c.fg, bg = c.magenta, bold = true })
@@ -376,17 +376,17 @@ local function apply()
 
   hi("SnacksPicker", { fg = c.fg, bg = c.bg })
   hi("SnacksPickerNormal", { fg = c.fg, bg = c.bg })
-  hi("SnacksPickerBorder", { fg = c.bright_magenta, bg = c.bg })
+  hi("SnacksPickerBorder", { fg = c.magenta, bg = c.bg })
   hi("SnacksPickerBox", { fg = c.fg, bg = c.bg })
   hi("SnacksPickerInput", { fg = c.fg, bg = c.black })
-  hi("SnacksPickerInputBorder", { fg = c.bright_magenta, bg = c.black })
+  hi("SnacksPickerInputBorder", { fg = c.magenta, bg = c.black })
   hi("SnacksPickerInputSearch", { fg = c.bright_yellow, bg = c.black })
   hi("SnacksPickerPrompt", { fg = c.bright_yellow, bg = c.black, bold = true })
   hi("SnacksPickerList", { fg = c.fg, bg = c.bg })
-  hi("SnacksPickerListBorder", { fg = c.bright_magenta, bg = c.bg })
+  hi("SnacksPickerListBorder", { fg = c.magenta, bg = c.bg })
   hi("SnacksPickerListCursorLine", { fg = c.selection_fg, bg = c.selection_bg, bold = true })
   hi("SnacksPickerPreview", { fg = c.fg, bg = c.bg })
-  hi("SnacksPickerPreviewBorder", { fg = c.bright_blue, bg = c.bg })
+  hi("SnacksPickerPreviewBorder", { fg = c.magenta, bg = c.bg })
   hi("SnacksPickerPreviewCursorLine", { fg = c.fg, bg = c.black })
   hi("SnacksPickerSelected", { fg = c.selection_fg, bg = c.selection_bg, bold = true })
   hi("SnacksPickerMatch", { fg = c.bright_yellow, bold = true })
@@ -395,15 +395,15 @@ local function apply()
   hi("SnacksPickerDirectory", { fg = c.bright_blue, bold = true })
   hi("SnacksPickerDimmed", { fg = c.bright_black })
   hi("SnacksPickerComment", { fg = c.bright_black, italic = true })
-  hi("SnacksPickerGitAdded", { fg = c.bright_green })
-  hi("SnacksPickerGitModified", { fg = c.bright_blue })
-  hi("SnacksPickerGitDeleted", { fg = c.bright_red })
-  hi("SnacksPickerGitRenamed", { fg = c.bright_magenta })
-  hi("SnacksPickerGitUntracked", { fg = c.bright_cyan })
-  hi("SnacksPickerGitUnmerged", { fg = c.bright_red, bold = true })
-  hi("SnacksPickerGitStaged", { fg = c.bright_green })
-  hi("SnacksPickerGitBranch", { fg = c.bright_magenta })
-  hi("SnacksPickerGitBranchCurrent", { fg = c.bright_green, bold = true })
+  hi("SnacksPickerGitAdded", { fg = semantic.bright_green })
+  hi("SnacksPickerGitModified", { fg = semantic.bright_blue })
+  hi("SnacksPickerGitDeleted", { fg = semantic.bright_red })
+  hi("SnacksPickerGitRenamed", { fg = semantic.bright_magenta })
+  hi("SnacksPickerGitUntracked", { fg = semantic.bright_cyan })
+  hi("SnacksPickerGitUnmerged", { fg = semantic.bright_red, bold = true })
+  hi("SnacksPickerGitStaged", { fg = semantic.bright_green })
+  hi("SnacksPickerGitBranch", { fg = semantic.bright_magenta })
+  hi("SnacksPickerGitBranchCurrent", { fg = semantic.bright_green, bold = true })
   hi("SnacksPickerLspAttached", { fg = c.bright_green })
   hi("SnacksPickerLspDisabled", { fg = c.bright_red })
   hi("SnacksPickerLspUnavailable", { fg = c.bright_yellow })
@@ -419,15 +419,15 @@ local function apply()
   hi("SnacksPickerTotals", { fg = c.bright_black })
   hi("SnacksPickerSpinner", { fg = c.bright_yellow })
   hi("SnacksPickerTree", { fg = c.bright_black })
-  hi("SnacksDiffAdd", { fg = c.bright_green, bg = c.black })
-  hi("SnacksDiffDelete", { fg = c.bright_red, bg = c.black })
+  hi("SnacksDiffAdd", { fg = semantic.bright_green, bg = c.black })
+  hi("SnacksDiffDelete", { fg = semantic.bright_red, bg = c.black })
   hi("SnacksDiffContext", { fg = c.fg, bg = c.bg })
-  hi("SnacksDiffConflict", { fg = c.bright_yellow, bg = c.black, bold = true })
-  hi("SnacksDiffHeader", { fg = c.bright_magenta, bg = c.bg, bold = true })
-  hi("SnacksDiffLabel", { fg = c.bright_blue })
+  hi("SnacksDiffConflict", { fg = semantic.bright_yellow, bg = c.black, bold = true })
+  hi("SnacksDiffHeader", { fg = semantic.bright_magenta, bg = c.bg, bold = true })
+  hi("SnacksDiffLabel", { fg = semantic.bright_blue })
 
   hi("BlinkCmpMenu", { fg = c.fg, bg = c.black })
-  hi("BlinkCmpMenuBorder", { fg = c.bright_magenta, bg = c.black })
+  hi("BlinkCmpMenuBorder", { fg = c.magenta, bg = c.black })
   hi("BlinkCmpMenuSelection", { fg = c.selection_fg, bg = c.selection_bg, bold = true })
   hi("BlinkCmpLabel", { fg = c.fg, bg = c.black })
   hi("BlinkCmpLabelMatch", { fg = c.bright_yellow, bg = c.black, bold = true })
@@ -438,11 +438,11 @@ local function apply()
   hi("BlinkCmpKind", { fg = c.bright_magenta, bg = c.black })
   hi("BlinkCmpGhostText", { fg = c.bright_black })
   hi("BlinkCmpDoc", { fg = c.fg, bg = c.bg })
-  hi("BlinkCmpDocBorder", { fg = c.bright_blue, bg = c.bg })
+  hi("BlinkCmpDocBorder", { fg = c.magenta, bg = c.bg })
   hi("BlinkCmpDocCursorLine", { fg = c.fg, bg = c.black })
   hi("BlinkCmpDocSeparator", { fg = c.bright_black, bg = c.bg })
   hi("BlinkCmpSignatureHelp", { fg = c.fg, bg = c.bg })
-  hi("BlinkCmpSignatureHelpBorder", { fg = c.bright_blue, bg = c.bg })
+  hi("BlinkCmpSignatureHelpBorder", { fg = c.magenta, bg = c.bg })
   hi("BlinkCmpSignatureHelpActiveParameter", { fg = c.bright_yellow, bold = true })
 
   -- Other LazyVim interfaces.
@@ -473,17 +473,17 @@ local function apply()
   hi("TroubleSource", { fg = c.bright_cyan })
   hi("TroubleCode", { fg = c.bright_black })
   hi("TroublePreview", { bg = c.black })
-  hi("TroubleError", { fg = c.bright_red })
-  hi("TroubleWarning", { fg = c.bright_yellow })
-  hi("TroubleInformation", { fg = c.bright_blue })
-  hi("TroubleHint", { fg = c.bright_cyan })
-  hi("TroubleSignError", { fg = c.bright_red })
-  hi("TroubleSignWarning", { fg = c.bright_yellow })
-  hi("TroubleSignInformation", { fg = c.bright_blue })
-  hi("TroubleSignHint", { fg = c.bright_cyan })
+  hi("TroubleError", { fg = semantic.bright_red })
+  hi("TroubleWarning", { fg = semantic.bright_yellow })
+  hi("TroubleInformation", { fg = semantic.bright_blue })
+  hi("TroubleHint", { fg = semantic.bright_cyan })
+  hi("TroubleSignError", { fg = semantic.bright_red })
+  hi("TroubleSignWarning", { fg = semantic.bright_yellow })
+  hi("TroubleSignInformation", { fg = semantic.bright_blue })
+  hi("TroubleSignHint", { fg = semantic.bright_cyan })
 
   hi("MasonNormal", { fg = c.fg, bg = c.bg })
-  hi("MasonHeader", { fg = c.cursor_text, bg = c.magenta, bold = true })
+  hi("MasonHeader", { fg = c.fg, bg = c.magenta, bold = true })
   hi("MasonHeaderSecondary", { fg = c.cursor_text, bg = c.bright_blue, bold = true })
   hi("MasonHighlight", { fg = c.bright_blue })
   hi("MasonHighlightBlock", { fg = c.cursor_text, bg = c.bright_blue })
@@ -498,7 +498,7 @@ local function apply()
   hi("LazyNormal", { fg = c.fg, bg = c.bg })
   hi("LazyButton", { fg = c.fg, bg = c.black })
   hi("LazyButtonActive", { fg = c.selection_fg, bg = c.selection_bg, bold = true })
-  hi("LazyH1", { fg = c.cursor_text, bg = c.magenta, bold = true })
+  hi("LazyH1", { fg = c.fg, bg = c.magenta, bold = true })
   hi("LazyH2", { fg = c.bright_magenta, bold = true })
   hi("LazySpecial", { fg = c.bright_cyan })
   hi("LazyProgressDone", { fg = c.bright_green })
@@ -513,7 +513,7 @@ local function apply()
   hi("LazyReasonKeys", { fg = c.bright_blue })
 
   hi("NoicePopup", { fg = c.fg, bg = c.bg })
-  hi("NoicePopupBorder", { fg = c.bright_magenta, bg = c.bg })
+  hi("NoicePopupBorder", { fg = c.magenta, bg = c.bg })
   hi("NoicePopupTitle", { fg = c.fg, bg = c.magenta, bold = true })
   hi("NoiceSplit", { fg = c.fg, bg = c.bg })
   hi("NoiceSplitBorder", { fg = c.magenta, bg = c.bg })
@@ -521,14 +521,14 @@ local function apply()
   hi("NoiceCmdlineIcon", { fg = c.bright_yellow, bg = c.bg })
   hi("NoiceCmdlineIconSearch", { fg = c.bright_cyan, bg = c.bg })
   hi("NoiceCmdlinePopup", { fg = c.fg, bg = c.bg })
-  hi("NoiceCmdlinePopupBorder", { fg = c.bright_magenta, bg = c.bg })
+  hi("NoiceCmdlinePopupBorder", { fg = c.magenta, bg = c.bg })
   hi("NoiceCmdlinePopupTitle", { fg = c.fg, bg = c.magenta, bold = true })
   hi("NoiceCmdlinePopupBorderSearch", { fg = c.bright_cyan, bg = c.bg })
   hi("NoiceCmdlinePopupBorderHelp", { fg = c.bright_blue, bg = c.bg })
   hi("NoiceCmdlinePrompt", { fg = c.bright_yellow, bg = c.bg })
   hi("NoiceConfirm", { fg = c.fg, bg = c.bg })
-  hi("NoiceConfirmBorder", { fg = c.bright_magenta, bg = c.bg })
-  hi("NoiceConfirmDefaultChoice", { fg = c.cursor_text, bg = c.selection_bg, bold = true })
+  hi("NoiceConfirmBorder", { fg = c.magenta, bg = c.bg })
+  hi("NoiceConfirmDefaultChoice", { fg = c.selection_fg, bg = c.selection_bg, bold = true })
   hi("NoiceConfirmDefaultChoiceKey", { fg = c.bright_yellow, bg = c.selection_bg, bold = true })
   hi("NoiceVirtualText", { fg = c.bright_black })
   hi("NoiceFormatProgressTodo", { fg = c.bright_black, bg = c.black })
@@ -538,9 +538,9 @@ local function apply()
 
   set_groups({ "NotifyERRORBorder", "NotifyERRORIcon", "NotifyERRORTitle" }, { fg = c.bright_red })
   set_groups({ "NotifyWARNBorder", "NotifyWARNIcon", "NotifyWARNTitle" }, { fg = c.bright_yellow })
-  set_groups({ "NotifyINFOBorder", "NotifyINFOIcon", "NotifyINFOTitle" }, { fg = c.bright_blue })
+  set_groups({ "NotifyINFOBorder", "NotifyINFOIcon", "NotifyINFOTitle" }, { fg = c.magenta })
   set_groups({ "NotifyDEBUGBorder", "NotifyDEBUGIcon", "NotifyDEBUGTitle" }, { fg = c.bright_black })
-  set_groups({ "NotifyTRACEBorder", "NotifyTRACEIcon", "NotifyTRACETitle" }, { fg = c.bright_magenta })
+  set_groups({ "NotifyTRACEBorder", "NotifyTRACEIcon", "NotifyTRACETitle" }, { fg = c.magenta })
   hi("NotifyBackground", { fg = c.fg, bg = c.bg })
   hi("NotifyERRORBody", { fg = c.fg, bg = c.bg })
   hi("NotifyWARNBody", { fg = c.fg, bg = c.bg })
@@ -576,9 +576,9 @@ local function apply()
   hi("MiniStatuslineModeReplace", { fg = c.cursor_text, bg = c.bright_red, bold = true })
   hi("MiniStatuslineModeCommand", { fg = c.cursor_text, bg = c.bright_yellow, bold = true })
   hi("MiniStatuslineModeOther", { fg = c.cursor_text, bg = c.cyan, bold = true })
-  hi("DapBreakpoint", { fg = c.bright_red })
-  hi("DapBreakpointCondition", { fg = c.bright_yellow })
-  hi("DapLogPoint", { fg = c.bright_blue })
+  hi("DapBreakpoint", { fg = semantic.bright_red })
+  hi("DapBreakpointCondition", { fg = semantic.bright_yellow })
+  hi("DapLogPoint", { fg = semantic.bright_blue })
   hi("DapStoppedLine", { bg = c.black })
 end
 
@@ -586,12 +586,12 @@ apply()
 
 -- Reapply after LazyVim's lazy UI plugins initialize and when this scheme is
 -- selected again from a colorscheme picker.
-local group = vim.api.nvim_create_augroup("seafoam_colorscheme", { clear = true })
+local group = vim.api.nvim_create_augroup("minimal_colorscheme", { clear = true })
 vim.api.nvim_create_autocmd({ "ColorScheme", "User" }, {
   group = group,
-  pattern = { "seafoam", "VeryLazy" },
+  pattern = { "minimal", "VeryLazy" },
   callback = function()
-    if vim.g.colors_name == "seafoam" then
+    if vim.g.colors_name == "minimal" then
       apply()
     end
   end,

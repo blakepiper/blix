@@ -14,7 +14,7 @@ if not (vim.uv or vim.loop).fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
--- Home Manager keeps ~/.config/nvim in the read-only Nix store. Keep the
+-- Config directories may be read-only. Keep the
 -- declarative lockfile as the initial seed, but let lazy.nvim update its
 -- working copy in Neovim's writable state directory.
 local config_lockfile = vim.fn.stdpath("config") .. "/lazy-lock.json"
@@ -26,6 +26,7 @@ end
 
 require("lazy").setup({
   lockfile = lockfile,
+  rocks = { enabled = false }, -- This configuration has no LuaRocks dependencies.
   spec = {
     -- add LazyVim and import its plugins
     { "LazyVim/LazyVim", import = "lazyvim.plugins" },
@@ -41,7 +42,7 @@ require("lazy").setup({
     version = false, -- always use the latest git commit
     -- version = "*", -- try installing the latest stable version for plugins that support semver
   },
-  install = { colorscheme = { "tokyonight", "habamax" } },
+  install = { colorscheme = { "minimal", "habamax" } },
   checker = {
     enabled = true, -- check for plugin updates periodically
     notify = false, -- notify on update

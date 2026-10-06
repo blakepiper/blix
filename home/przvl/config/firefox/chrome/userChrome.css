@@ -1,0 +1,57 @@
+
+/* Square corners throughout Firefox's browser interface. */
+:root {
+  --border-radius-small: 0px !important;
+  --border-radius-medium: 0px !important;
+  --border-radius-large: 0px !important;
+  --tab-border-radius: 0px !important;
+  --toolbarbutton-border-radius: 0px !important;
+  --arrowpanel-border-radius: 0px !important;
+  --arrowpanel-menuitem-border-radius: 0px !important;
+  --urlbarView-item-radius: 0px !important;
+}
+
+*, *::before, *::after {
+  border-radius: 0 !important;
+}
+
+/* Hide account and Sync entry points and sign-in promotions. */
+#fxa-toolbar-menu-button,
+#appMenu-fxa-status2,
+#appMenu-fxa-signed-out-row,
+#appMenu-nova-fxa-label,
+#appMenu-fxa-sign-in-promo,
+#appMenu-fxa-separator,
+#PanelUI-history-sync-promo,
+#PanelUI-bookmarks-sync-promo,
+#sync-tabs-menuitem,
+#sync-setup,
+#sync-enable,
+#sync-unverifieditem,
+#sync-syncnowitem,
+#sync-reauthitem {
+  display: none !important;
+}
+
+/* Hide the sidebar utility strip; leave its slotted vertical tabstrip visible.
+ * These user-origin rules also apply inside sidebar-main's shadow root. */
+@-moz-document url("chrome://browser/content/browser.xhtml") {
+  .buttons-wrapper:has(.tools-and-extensions),
+  #sidebar-tools-and-extensions-splitter {
+    display: none !important;
+  }
+}
+
+/* Hidden tool buttons must not let the collapsed tab launcher shrink to zero. */
+@-moz-document url("chrome://browser/content/browser.xhtml") {
+  #sidebar-container:not([sidebar-launcher-expanded]) {
+    min-width: 50px !important;
+    width: 50px !important;
+    max-width: 50px !important;
+  }
+}
+
+/* Later preference: use the installed family throughout browser text. */
+:root, :root * {
+  font-family: "JetBrainsMono Nerd Font", monospace !important;
+}

@@ -18,7 +18,18 @@ The desktop uses:
 - Home Manager creates the user services and scripts for display hotplugging,
   locking, clipboard history, screenshots, brightness, status, and audio.
 - Firefox is managed with the Blix privacy policies and force-installed uBlock
-  Origin, Dark Reader, and Enhancer for YouTube extensions.
+  Origin, Dark Reader, and Enhancer for YouTube extensions. Its default profile
+  includes the captured privacy preferences, vertical tabs, square corners,
+  JetBrains Mono fonts, and dark PDF pages.
+- Neovim uses LazyVim with the minimal theme. `nvimide [project-directory]`
+  adds a left explorer and two stacked terminals on the right, with Fastfetch
+  in the second terminal. Plain `nvim` keeps the normal editor layout.
+
+Firefox and Neovim settings were imported from `/home/przvl/dots` at commit
+`b766a10de1db5048327e12e5df911f6ff0766edf` on 2026-10-06. Shared assets live in
+`home/przvl/config/`; the application modules own their Home Manager integration.
+The Neovim adapter uses Nix-packaged Lua language server, StyLua and shfmt in
+place of Mason downloads, and preserves the writable lazy.nvim lockfile.
 
 ## Repository map
 

@@ -41,7 +41,6 @@ in
 
   home.file = {
     ".config/mimeapps.list".source = ./config/mimeapps.list;
-    ".config/nvim".source = ./config/nvim;
     ".config/oxwm/config.lua".source = ./config/oxwm/config.lua;
     ".config/picom/picom.conf".source = ./config/picom/picom.conf;
     ".config/tmux/tmux.conf".source = ./config/tmux/tmux.conf;

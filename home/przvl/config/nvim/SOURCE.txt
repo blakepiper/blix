@@ -1,0 +1,7 @@
+Source: /home/przvl/dots/nvim/config, commit b766a10de1db5048327e12e5df911f6ff0766edf.
+Imported: 2026-10-06, including the 2026-10-05 terminal blue contrast update.
+Blix adapters: completion.lua replaces the platform-named gentoo.lua;
+nvimide uses NVIM_IDE_FETCH for the existing Fastfetch setup;
+Home Manager generates plugins/nix.lua with Nix-packaged tools instead of Mason.
+LuaRocks integration remains disabled. lazy.nvim keeps its working lockfile
+in Neovim's writable state directory, seeded from this captured lazy-lock.json.
