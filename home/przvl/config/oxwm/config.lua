@@ -60,12 +60,14 @@ if battery and battery:match("^[%w_%-]+$") then
     end
   end
 end
-table.insert(blocks, oxwm.bar.block.static({
-  text = "│",
-  interval = 999999999,
-  color = colors.lavender,
-  underline = false,
-}))
+if #blocks > 0 then
+  table.insert(blocks, oxwm.bar.block.static({
+    text = "│",
+    interval = 999999999,
+    color = colors.lavender,
+    underline = false,
+  }))
+end
 table.insert(blocks, oxwm.bar.block.ram({
   format = "Ram: {used}/{total} GB",
   interval = 5,
@@ -150,8 +152,10 @@ oxwm.key.bind({}, "XF86AudioMicMute", oxwm.spawn("wpctl set-mute @DEFAULT_AUDIO_
 oxwm.key.bind({}, "XF86AudioPlay", oxwm.spawn("playerctl play-pause"))
 oxwm.key.bind({}, "XF86AudioNext", oxwm.spawn("playerctl next"))
 oxwm.key.bind({}, "XF86AudioPrev", oxwm.spawn("playerctl previous"))
-oxwm.key.bind({}, "XF86MonBrightnessUp", oxwm.spawn("blix-brightness up"))
-oxwm.key.bind({}, "XF86MonBrightnessDown", oxwm.spawn("blix-brightness down"))
+if os.getenv("BLIX_HAS_BACKLIGHT") == "1" then
+  oxwm.key.bind({}, "XF86MonBrightnessUp", oxwm.spawn("blix-brightness up"))
+  oxwm.key.bind({}, "XF86MonBrightnessDown", oxwm.spawn("blix-brightness down"))
+end
 
 -- Core terminal/window bindings.
 oxwm.key.bind({ mod }, "Return", oxwm.spawn_terminal())

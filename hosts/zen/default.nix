@@ -6,7 +6,7 @@
 
 {
   imports = [
-    ../../modules/common
+    ../../profiles/laptop.nix
     ./hardware-configuration.nix
   ];
 

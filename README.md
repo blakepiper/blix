@@ -6,9 +6,9 @@
 
 Declarative NixOS and Home Manager configuration for the `przvl` user. The
 flake currently defines two hosts, `zen` and `t490`, with the same Blix-style
-desktop session.
+OXWM desktop session.
 
-The original desktop remains available unchanged:
+The desktop uses:
 
 - Xorg is started manually with `startx`; there is no display manager.
 - OXWM is the window manager, with the Blix configuration and local patches.
@@ -26,6 +26,10 @@ The original desktop remains available unchanged:
 flake.nix                         Inputs, OXWM/st overlays, and host outputs
 flake.lock                        Pinned nixpkgs and Home Manager revisions
 
+profiles/
+├── laptop.nix                    Common environment with laptop defaults
+└── desktop.nix                   Common environment with desktop defaults
+
 modules/common/
 ├── default.nix                   Shared module composition
 ├── boot.nix                      Shared UEFI/systemd-boot policy
@@ -34,19 +38,20 @@ modules/common/
 ├── fonts.nix                     Shared fonts
 ├── home-manager.nix              Shared Home Manager integration
 ├── locale.nix                    Locale and timezone
+├── machine.nix                   Typed capabilities, lid policy, and profile defaults
 ├── networking.nix                NetworkManager
 ├── nix.nix                       Nix version, flakes, GC, and optimization
 ├── packages.nix                  Shared system utilities
 └── users.nix                     Shared user definitions
 
 hosts/<host>/
-├── default.nix                   Host composition and hardware quirks
+├── default.nix                   Profile inheritance and hardware quirks
 ├── hardware-configuration.nix    Generated hardware facts
 └── home.nix                      Host-specific display connector settings
 
 home/przvl/
 ├── default.nix                   Home Manager composition root
-├── host.nix                      Typed host/display options
+├── host.nix                      Typed user hardware/display options
 ├── packages.nix                  Blix user packages
 ├── programs/                     Bash, Firefox, Git, Neovim, tmux, and tools
 ├── services/blix.nix              Blix session target and user services
@@ -57,11 +62,56 @@ home/przvl/
 packaging/
 ├── oxwm/                         Patches applied to the pinned OXWM release
 └── st/                           Blix st configuration and patch
+
+tests/machine-profiles.nix        Profile defaults and overrides checked by the flake
 ```
 
-Host-specific display values live in `hosts/<host>/home.nix`. The defaults are
-`eDP-1`, `HDMI-2`, `1920x1080`, and 60 Hz; change them there when a machine uses
-different connector names or a different mirror mode.
+## Machine profiles
+
+Each host imports either `../../profiles/laptop.nix` or
+`../../profiles/desktop.nix`, plus its generated hardware module. Both profiles
+include `modules/common`; hosts do not need to import it separately. `zen` and
+`t490` inherit the laptop profile.
+
+| Default | Laptop | Desktop |
+| --- | --- | --- |
+| `blix.machine.type` | `"laptop"` | `"desktop"` |
+| `hasBattery`, `hasBacklight`, `hasTouchpad` | `true` | `false` |
+| Lid close, on battery or external power | Suspend | Ignore |
+| Lid close while docked | Ignore | Ignore |
+| `blix.display.layout` | `"mirror"` | `"extend"` |
+
+Capabilities are typed NixOS options under `blix.machine` and can be overridden
+in `hosts/<host>/default.nix`. For example, a laptop without a controllable
+panel backlight can set `blix.machine.hasBacklight = false`. The system passes
+battery and backlight capabilities to Home Manager automatically. Desktop
+profiles omit battery widgets, Fastfetch battery reporting, and battery/brightness
+helpers; brightness bindings are only registered when a backlight is enabled. Battery
+reporting still checks for actual hardware at session startup.
+
+Charge thresholds, Wi-Fi power quirks, and panel-driver workarounds remain
+host-specific. The profiles share manual suspend, locking before suspend, and
+no automatic idle locking. Hosts can override individual logind lid defaults
+through `services.logind.settings.Login`.
+
+Display facts live in `hosts/<host>/home.nix`. Every host supplies
+`blix.display.primaryOutput`: an internal connector such as `eDP-1` on a
+laptop, or a monitor connector such as `DP-1` on a desktop. Extended layouts
+use preferred modes and place other connected monitors to the right of the
+primary monitor. Mirrored layouts use `externalOutput` and
+`additionalExternalOutputs`, with `mirrorMode`/`mirrorRate` defaulting to
+`1920x1080` and 60 Hz. `primaryScaleFrom` optionally sets a logical resolution
+for the primary display outside mirrored operation. Hosts can override the
+inherited layout, so a laptop can use extended monitors too.
+
+A desktop's `home.nix` can be as small as:
+
+```nix
+{ ... }:
+{
+  blix.display.primaryOutput = "DP-1";
+}
+```
 
 ## Starting the session
 
@@ -77,79 +127,29 @@ executes OXWM. The display helper uses these environment variables, populated
 from the host options:
 
 ```text
-BLIX_INTERNAL_OUTPUT
+BLIX_DISPLAY_LAYOUT
+BLIX_PRIMARY_OUTPUT
 BLIX_EXTERNAL_OUTPUT
 BLIX_ADDITIONAL_EXTERNAL_OUTPUTS
 BLIX_MIRROR_MODE
 BLIX_MIRROR_RATE
+BLIX_PRIMARY_SCALE_FROM
+BLIX_WALLPAPER
 ```
 
 To leave the session, exit OXWM or use the configured lock/power controls and
 return to the TTY.
 
-## Hyprland session
-
-After activation, exit OXWM to the TTY and run `start-hyprland`. Use `startx`
-for OXWM instead. Run one desktop at a time. There is no display manager or
-login autostart. `Super+Shift+Q` exits Hyprland back to the TTY.
-
-Hyprland uses dwindle tiling, the same colors, 2px borders, 8px window gaps,
-and nine workspaces. Animations, blur, shadows, transparency, and idle locking
-are disabled. A small Waybar shows workspaces, battery, RAM, CPU, and time;
-updates use the same 5/30/60-second cadence as OXWM. Helpers run only while
-Hyprland is open. This is a minimal configuration, not a measured RAM target.
-
-Most bindings match OXWM:
-
-| Shortcut | Action |
-| --- | --- |
-| Super+Enter | Foot terminal (native Wayland, matching st font/colors) |
-| Super+Space / D | Fuzzel application launcher |
-| Super+F / B | Xfe / managed Firefox |
-| Super+1–9 / Shift+1–9 | Workspace / move window |
-| Super+arrows / Shift+arrows | Cycle focus / swap windows in stack order |
-| Super+Ctrl+arrows / Ctrl+Shift+arrows | Focus monitor / move window to monitor |
-| Super+Tab | Previous numbered workspace, wrapping 1 to 9 |
-| Super+Q / P / Shift+F | Close / float / fullscreen |
-| Super+C / R / N | Master / dwindle / cycle those two layouts |
-| Super+minus / equal | Adjust master factor or dwindle split |
-| Super+Shift+minus / equal | Remove / add master in master layout |
-| Super+V | Text clipboard history (100 entries) |
-| Super+Shift+S / Print / Alt+Print | Region / full desktop / active-window screenshot |
-| Super+L / Shift+Space | Lock / control menu |
-
-Screenshots go to `~/Pictures/Screenshots` and the clipboard. Audio, media,
-brightness, repeat rate, touchpad behavior, and the external Gaming Keyboard
-Alt/Super swap follow OXWM. Hyprlock and Hypridle provide manual and
-lock-before-suspend behavior, without idle blanking. Foot replaces st only in
-Hyprland; Xfe still uses XWayland. Fuzzel lists desktop applications rather
-than every executable in PATH as dmenu_run does. Hyprland layouts are native
-approximations of OXWM layouts, not identical implementations.
-
-`blix.wayland.internalOutput` and `internalScale` are typed host settings.
-Zen uses the native internal-panel mode at 1.75x scale. External outputs,
-including dynamically named dock outputs, mirror the internal display using
-`blix.display.mirrorMode`/`mirrorRate`; differing aspect ratios may letterbox.
-The wallpaper reuses `blix.display.wallpaper` (plain dark background when the
-file is absent). No XRandR script or Picom runs in the Hyprland session.
-
-Configuration lives in `home/przvl/hyprland.nix`,
-`home/przvl/config/hypr/hyprland.lua`, and `home/przvl/scripts/hyprland.nix`.
-The Lua syntax follows the pinned Hyprland version; see the
-[upstream configuration guide](https://wiki.hypr.land/Configuring/Start/).
-After changing it, also run Hyprland's `--verify-config` on the generated Lua.
-For session diagnostics use `hyprctl configerrors` and
-`journalctl --user -b -u 'blix-hyprland-*' -u hypridle`.
-
 ## Adding a host
 
 1. Create `hosts/<hostname>/` and generate its hardware module with
    `nixos-generate-config --show-hardware-config`.
-2. Import `../../modules/common` and the generated hardware module from the
-   host's `default.nix`.
-3. Set the hostname, state version, hardware quirks, and any
-   host-specific networking settings there.
-4. Set the display connector and mirror values in `home.nix`.
+2. Import `../../profiles/laptop.nix` or `../../profiles/desktop.nix` and the
+   generated hardware module from the host's `default.nix`.
+3. Set the hostname, the state version of that machine's installation, hardware
+   quirks, capability overrides, and host-specific networking settings there.
+   Connect its `home.nix` with `home-manager.users.przvl = import ./home.nix;`.
+4. Set `blix.display.primaryOutput` and any other display values in `home.nix`.
 5. Register the host in `flake.nix`:
 
 ```nix
@@ -192,6 +192,9 @@ the `st-blix` overlay applies the local `st` configuration and scrollback/
 URL patch.
 
 ## Validation
+
+`nix flake check` also evaluates laptop and desktop profile fixtures and checks
+their capabilities, generated user configuration, and host override behavior.
 
 Evaluate every host and run the full closure builds before activation:
 

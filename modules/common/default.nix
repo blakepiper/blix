@@ -1,7 +1,7 @@
 # Shared Blix-style system configuration.
 #
-# Hosts import this directory for the common X11/OXWM environment and their
-# generated hardware settings. There is deliberately no display manager:
+# Laptop and desktop profiles import this common X11/OXWM environment. Hosts
+# compose a profile with their generated hardware settings. No display manager:
 # `startx` from a local TTY is the session entry point.
 { ... }:
 
@@ -14,10 +14,10 @@
     ./boot.nix
     ./desktop-services.nix
     ./desktop-session.nix
-    ./hyprland.nix
     ./fonts.nix
     ./home-manager.nix
     ./locale.nix
+    ./machine.nix
     ./networking.nix
     ./nix.nix
     ./packages.nix

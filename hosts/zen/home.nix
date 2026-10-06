@@ -4,13 +4,6 @@
 { pkgs, ... }:
 
 {
-  blix.wayland = {
-    internalOutput = "eDP-1";
-    # 2880x1800 / 1.8 = 1600x1000 logical pixels. 1.75 produces fractional
-    # dimensions, which Hyprland rejects before the docked mode is applied.
-    internalScale = 1.8;
-  };
-
   home.packages = [
     pkgs.nodejs_24
   ];
@@ -19,7 +12,7 @@
   # is connected. Override these names if this Zen revision reports different
   # XRandR connectors.
   blix.display = {
-    internalOutput = "eDP-1";
+    primaryOutput = "eDP-1";
     externalOutput = "HDMI-1";
     # USB-C dock HDMI adapters appear as dynamically numbered DP/MST outputs.
     additionalExternalOutputs = [ "DP-*" ];
@@ -28,7 +21,7 @@
     # Keep the native 2880x1800 panel sharp while presenting a 1.75x larger
     # logical desktop when no external monitor is connected. These rounded
     # logical dimensions preserve the panel's 16:10 aspect ratio.
-    internalScaleFrom = "1646x1029";
+    primaryScaleFrom = "1646x1029";
     wallpaper = "/home/przvl/Pictures/vibe.jpg";
   };
 }

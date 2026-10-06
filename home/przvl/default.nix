@@ -1,7 +1,10 @@
-{ pkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 let
-  blix = import ./scripts/blix.nix { inherit pkgs; };
+  blix = import ./scripts/blix.nix {
+    inherit lib pkgs;
+    inherit (config.blix.hardware) hasBattery hasBacklight;
+  };
 in
 {
   _module.args = {
@@ -20,7 +23,6 @@ in
     ./appearance.nix
     ./programs
     ./x11.nix
-    ./hyprland.nix
     ./services
   ];
 

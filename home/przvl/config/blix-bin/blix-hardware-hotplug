@@ -8,12 +8,13 @@ display_number=${display_number%%.*}
 xorg_log_path="${XDG_DATA_HOME:-$HOME/.local/share}/xorg/Xorg.${display_number}.log"
 runtime_dir="${XDG_RUNTIME_DIR:-/tmp}"
 pid_path="$runtime_dir/blix-hardware-hotplug-$UID.pid"
-internal_output=${BLIX_INTERNAL_OUTPUT:-eDP-1}
-external_output=${BLIX_EXTERNAL_OUTPUT:-HDMI-2}
+display_layout=${BLIX_DISPLAY_LAYOUT:-extend}
+primary_output=${BLIX_PRIMARY_OUTPUT:?BLIX_PRIMARY_OUTPUT must name the primary monitor}
+external_output=${BLIX_EXTERNAL_OUTPUT:-}
 read -r -a additional_external_outputs <<< "${BLIX_ADDITIONAL_EXTERNAL_OUTPUTS:-}"
 mirror_mode=${BLIX_MIRROR_MODE:-1920x1080}
 mirror_rate=${BLIX_MIRROR_RATE:-60}
-internal_scale_from=${BLIX_INTERNAL_SCALE_FROM:-}
+primary_scale_from=${BLIX_PRIMARY_SCALE_FROM:-}
 wallpaper=${BLIX_WALLPAPER:-}
 once_mode=0
 [[ ${1:-} == --once ]] && once_mode=1
@@ -66,14 +67,18 @@ last_display_state=''
 configure_external_monitor() {
   command -v xrandr >/dev/null 2>&1 || return 0
 
-  local outputs output status _rest pattern matched display_state=''
+  local outputs output status _rest pattern matched primary_connected=false display_state=''
   local -a connected=() disconnected=()
   outputs=$(xrandr --query 2>/dev/null) || return 0
   while read -r output status _rest; do
     [[ $status == connected || $status == disconnected ]] || continue
-    [[ $output != "$internal_output" ]] || continue
+    if [[ $output == "$primary_output" ]]; then
+      [[ $status != connected ]] || primary_connected=true
+      display_state+="$output $status;"
+      continue
+    fi
     matched=0
-    if [[ $output == "$external_output" ]]; then
+    if [[ $display_layout == extend || $output == "$external_output" ]]; then
       matched=1
     else
       for pattern in "${additional_external_outputs[@]}"; do
@@ -95,6 +100,11 @@ configure_external_monitor() {
     fi
   done <<< "$outputs"
 
+  if ! "$primary_connected"; then
+    printf 'Primary monitor %s is not connected; leaving the display layout unchanged.\n' "$primary_output" >&2
+    return 0
+  fi
+
   # A dock emits multiple notifications for one connection change. Mode and
   # property changes must not cause another reset of an already configured
   # connection. Remember disconnections too, so reconnecting resets once.
@@ -105,8 +115,19 @@ configure_external_monitor() {
     xrandr --output "$output" --off || true
   done
 
-  if (( ${#connected[@]} )); then
-    xrandr --output "$internal_output" --mode "$mirror_mode" --rate "$mirror_rate" \
+  if [[ $display_layout == extend ]]; then
+    local previous_output=$primary_output
+    if [[ -n $primary_scale_from ]]; then
+      xrandr --output "$primary_output" --auto --scale-from "$primary_scale_from" --pos 0x0 --primary || return 0
+    else
+      xrandr --output "$primary_output" --auto --scale 1x1 --pos 0x0 --primary || return 0
+    fi
+    for output in "${connected[@]}"; do
+      xrandr --output "$output" --auto --scale 1x1 --right-of "$previous_output" || return 0
+      previous_output=$output
+    done
+  elif (( ${#connected[@]} )); then
+    xrandr --output "$primary_output" --mode "$mirror_mode" --rate "$mirror_rate" \
       --scale 1x1 --pos 0x0 --primary || return 0
     for output in "${connected[@]}"; do
       # A reconnect can retain an active CRTC with a black screen. Reset once
@@ -116,14 +137,14 @@ configure_external_monitor() {
       # Keep enabling the display if an older driver lacks this property.
       xrandr --output "$output" --set "max bpc" 8 || true
       xrandr --output "$output" --mode "$mirror_mode" --rate "$mirror_rate" \
-        --scale 1x1 --same-as "$internal_output" || true
+        --scale 1x1 --same-as "$primary_output" || true
     done
     xset dpms force on || true
   else
-    if [[ -n $internal_scale_from ]]; then
-      xrandr --output "$internal_output" --auto --scale-from "$internal_scale_from" || true
+    if [[ -n $primary_scale_from ]]; then
+      xrandr --output "$primary_output" --auto --scale-from "$primary_scale_from" --pos 0x0 --primary || true
     else
-      xrandr --output "$internal_output" --auto || true
+      xrandr --output "$primary_output" --auto --scale 1x1 --pos 0x0 --primary || true
     fi
   fi
   apply_wallpaper

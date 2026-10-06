@@ -1,4 +1,4 @@
-{ pkgs }:
+{ lib, pkgs, hasBattery, hasBacklight }:
 
 let
   source = name: builtins.readFile (./../config/blix-bin + "/${name}");
@@ -136,10 +136,6 @@ in
       pkgs.util-linux
     ])
     fastfetchPackages
-    (writeScript "blix-brightness" [
-      pkgs.brightnessctl
-      pkgs.coreutils
-    ])
     hardwareHotplug
     blixLock
     (writeScript "blix-stats" [
@@ -152,7 +148,6 @@ in
       pkgs.util-linux
       pkgs.xrandr
     ])
-    (writeScript "oxwm-battery" [ pkgs.coreutils ])
     (writeScript "oxwm-cpu" [
       pkgs.coreutils
       pkgs.gawk
@@ -165,5 +160,10 @@ in
       pkgs.xprop
     ])
     xsecurelockWithoutPicom
-  ];
+  ]
+  ++ lib.optional hasBacklight (writeScript "blix-brightness" [
+    pkgs.brightnessctl
+    pkgs.coreutils
+  ])
+  ++ lib.optional hasBattery (writeScript "oxwm-battery" [ pkgs.coreutils ]);
 }

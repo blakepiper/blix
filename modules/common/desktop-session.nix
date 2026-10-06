@@ -25,16 +25,7 @@
     xkb.layout = "us";
   };
 
-  services.libinput = {
-    enable = true;
-    touchpad = {
-      clickMethod = "clickfinger";
-      naturalScrolling = true;
-      tapping = true;
-      tappingButtonMap = "lrm";
-      disableWhileTyping = true;
-    };
-  };
+  services.libinput.enable = true;
 
   # Match Blix's mouse classification: touchpads, tablets, and pointing
   # sticks are excluded; only ordinary pointer devices get natural scrolling.

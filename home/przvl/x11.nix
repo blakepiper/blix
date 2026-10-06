@@ -2,25 +2,25 @@
 
 let
   wallpaper = config.blix.display.wallpaper;
-  internalScaleFrom = config.blix.display.internalScaleFrom;
+  primaryScaleFrom = config.blix.display.primaryScaleFrom;
 in
 {
   home.sessionVariables = {
-    BLIX_INTERNAL_OUTPUT = config.blix.display.internalOutput;
-    BLIX_EXTERNAL_OUTPUT = config.blix.display.externalOutput;
+    BLIX_DISPLAY_LAYOUT = config.blix.display.layout;
+    BLIX_PRIMARY_OUTPUT = config.blix.display.primaryOutput;
+    BLIX_EXTERNAL_OUTPUT = if config.blix.display.externalOutput == null then "" else config.blix.display.externalOutput;
     BLIX_ADDITIONAL_EXTERNAL_OUTPUTS = lib.concatStringsSep " " config.blix.display.additionalExternalOutputs;
     BLIX_MIRROR_MODE = config.blix.display.mirrorMode;
     BLIX_MIRROR_RATE = config.blix.display.mirrorRate;
   }
-  // lib.optionalAttrs (internalScaleFrom != null) {
-    BLIX_INTERNAL_SCALE_FROM = internalScaleFrom;
+  // lib.optionalAttrs (primaryScaleFrom != null) {
+    BLIX_PRIMARY_SCALE_FROM = primaryScaleFrom;
   }
   // lib.optionalAttrs (wallpaper != null) {
     BLIX_WALLPAPER = wallpaper;
   };
 
   home.file = {
-    ".config/fastfetch/config.jsonc".source = ./config/fastfetch/config.jsonc;
     ".config/mimeapps.list".source = ./config/mimeapps.list;
     ".config/nvim".source = ./config/nvim;
     ".config/oxwm/config.lua".source = ./config/oxwm/config.lua;
@@ -54,15 +54,18 @@ in
     export CM_SELECTIONS=clipboard
     export CM_MAX_CLIPS=100
     export CM_OWN_CLIPBOARD=0
-    export BLIX_INTERNAL_OUTPUT=${lib.escapeShellArg config.blix.display.internalOutput}
-    export BLIX_EXTERNAL_OUTPUT=${lib.escapeShellArg config.blix.display.externalOutput}
+    export BLIX_DISPLAY_LAYOUT=${lib.escapeShellArg config.blix.display.layout}
+    export BLIX_PRIMARY_OUTPUT=${lib.escapeShellArg config.blix.display.primaryOutput}
+    export BLIX_EXTERNAL_OUTPUT=${lib.escapeShellArg (if config.blix.display.externalOutput == null then "" else config.blix.display.externalOutput)}
     export BLIX_ADDITIONAL_EXTERNAL_OUTPUTS=${lib.escapeShellArg (lib.concatStringsSep " " config.blix.display.additionalExternalOutputs)}
     export BLIX_MIRROR_MODE=${lib.escapeShellArg config.blix.display.mirrorMode}
     export BLIX_MIRROR_RATE=${lib.escapeShellArg config.blix.display.mirrorRate}
-    export BLIX_INTERNAL_SCALE_FROM=${lib.escapeShellArg (if internalScaleFrom == null then "" else internalScaleFrom)}
+    export BLIX_PRIMARY_SCALE_FROM=${lib.escapeShellArg (if primaryScaleFrom == null then "" else primaryScaleFrom)}
     export BLIX_WALLPAPER=${lib.escapeShellArg (if wallpaper == null then "" else wallpaper)}
     export BLIX_BATTERY=
+    export BLIX_HAS_BACKLIGHT=${if config.blix.hardware.hasBacklight then "1" else "0"}
 
+${lib.optionalString config.blix.hardware.hasBattery ''
     for battery in /sys/class/power_supply/*; do
       [[ -r $battery/type ]] || continue
       if [[ $(${pkgs.coreutils}/bin/cat "$battery/type") == Battery ]]; then
@@ -70,6 +73,7 @@ in
         break
       fi
     done
+''}
 
     ${pkgs.xsetroot}/bin/xsetroot -solid '#1a1b26'
     ${hardwareHotplug}/bin/blix-hardware-hotplug --once
@@ -104,8 +108,8 @@ ${lib.optionalString (wallpaper != null) ''
 
     ${pkgs.systemd}/bin/systemctl --user import-environment \
       DISPLAY XAUTHORITY PATH XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_ID \
-      BLIX_INTERNAL_OUTPUT BLIX_EXTERNAL_OUTPUT BLIX_ADDITIONAL_EXTERNAL_OUTPUTS BLIX_MIRROR_MODE BLIX_MIRROR_RATE \
-      BLIX_INTERNAL_SCALE_FROM BLIX_WALLPAPER
+      BLIX_DISPLAY_LAYOUT BLIX_PRIMARY_OUTPUT BLIX_EXTERNAL_OUTPUT BLIX_ADDITIONAL_EXTERNAL_OUTPUTS BLIX_MIRROR_MODE BLIX_MIRROR_RATE \
+      BLIX_PRIMARY_SCALE_FROM BLIX_WALLPAPER
     ${pkgs.systemd}/bin/systemctl --user daemon-reload
     if ! ${pkgs.systemd}/bin/systemctl --user start --no-block blix-session.target; then
       echo 'Warning: unable to start all Blix session services; continuing with OXWM.' >&2

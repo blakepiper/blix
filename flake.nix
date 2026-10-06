@@ -53,7 +53,7 @@
       };
 
       # Home Manager supplies NixOS module options used by the shared Blix
-      # configuration. Each host explicitly composes its shared, hardware, and
+      # configuration. Each host explicitly composes its profile, hardware, and
       # host-specific modules.
       mkHost = { modules, system ? "x86_64-linux" }:
         nixpkgs.lib.nixosSystem {
@@ -68,6 +68,13 @@
       nixosConfigurations = {
         t490 = mkHost { modules = [ ./hosts/t490 ]; };
         zen = mkHost { modules = [ ./hosts/zen ]; };
+      };
+
+      checks.x86_64-linux.machine-profiles = import ./tests/machine-profiles.nix {
+        inherit mkHost;
+        inherit (nixpkgs) lib;
+        pkgs = nixpkgs.legacyPackages.x86_64-linux;
+        stateVersion = (mkHost { modules = [ ./hosts/t490 ]; }).config.system.stateVersion;
       };
     };
 }

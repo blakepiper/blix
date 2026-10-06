@@ -1,33 +1,28 @@
 # Facts about the machine this user configuration is running on.
 #
-# Hosts supply the display values below to describe Blix's XRandR mirror setup;
-# each host can override them independently.
+# Profiles supply hardware capabilities; hosts supply their display connectors.
 { lib, ... }:
 
 {
   options.blix = {
-    wayland = {
-      internalOutput = lib.mkOption {
-        type = lib.types.str;
-        default = "eDP-1";
-        description = "DRM connector for the internal panel, also the mirror source.";
-      };
-      internalScale = lib.mkOption {
-        type = lib.types.number;
-        default = 1;
-        description = "Hyprland internal panel scale when using its preferred mode.";
-      };
+    hardware = {
+      hasBattery = lib.mkEnableOption "battery reporting, supplied by the machine profile";
+      hasBacklight = lib.mkEnableOption "internal-panel brightness controls, supplied by the machine profile";
     };
     display = {
-      internalOutput = lib.mkOption {
+      layout = lib.mkOption {
+        type = lib.types.enum [ "mirror" "extend" ];
+        default = "extend";
+        description = "Mirror configured external outputs or extend across all connected monitors.";
+      };
+      primaryOutput = lib.mkOption {
         type = lib.types.str;
-        default = "eDP-1";
-        description = "Internal XRandR connector used as the mirror source.";
+        description = "Primary XRandR connector: an internal panel or a desktop monitor.";
       };
       externalOutput = lib.mkOption {
-        type = lib.types.str;
-        default = "HDMI-2";
-        description = "External XRandR connector mirrored to the internal panel.";
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = "External XRandR connector to mirror; null when none is configured.";
       };
       additionalExternalOutputs = lib.mkOption {
         type = lib.types.listOf lib.types.str;
@@ -44,10 +39,10 @@
         default = "60";
         description = "Refresh rate used for the mirrored external output.";
       };
-      internalScaleFrom = lib.mkOption {
+      primaryScaleFrom = lib.mkOption {
         type = lib.types.nullOr lib.types.str;
         default = null;
-        description = "Logical XRandR mode used for the internal panel when no external output is connected.";
+        description = "Logical XRandR mode used for the primary output outside mirror mode.";
       };
       wallpaper = lib.mkOption {
         type = lib.types.nullOr lib.types.str;

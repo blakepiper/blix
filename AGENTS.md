@@ -23,12 +23,19 @@ evaluation as the minimum acceptance criterion for every configuration change.
   NixOS module; each host explicitly imports the shared and hardware modules it
   needs.
 - `flake.lock` pins all flake inputs.
+- `tests/machine-profiles.nix` checks laptop and desktop defaults and overrides
+  as part of `nix flake check`, without adding synthetic deployment hosts.
+- `profiles/laptop.nix` and `profiles/desktop.nix` compose the common environment
+  and select inherited machine defaults. Every host imports one profile.
 - `modules/common/default.nix` aggregates shared system modules for the
   standard Blix environment. Its sibling files separate boot, locale, Nix,
   networking, users, fonts, packages, the X11/OXWM session and its services,
   Home Manager integration, and the shared user configuration.
+- `modules/common/machine.nix` declares typed machine capabilities, supplies
+  profile-dependent lid and touchpad policy, and passes user capabilities and
+  display-layout defaults to Home Manager.
 - `hosts/<hostname>/default.nix` owns configuration specific to that machine
-  and composes `modules/common`, its generated hardware module, and genuinely
+  and composes a machine profile, its generated hardware module, and genuinely
   device-specific settings.
 - `hosts/<hostname>/hardware-configuration.nix` contains detected hardware;
   change it only when the machine's hardware or generated configuration
@@ -38,7 +45,7 @@ evaluation as the minimum acceptance criterion for every configuration change.
 - `home/przvl/config/` owns the Blix-derived OXWM, Picom, Xfe, Neovim, tmux,
   fastfetch, and helper-script configuration.
 - `hosts/<hostname>/home.nix` owns `przvl` Home Manager settings that depend on
-  the machine, currently the typed display connector and mirror options from
+  the machine, currently the typed display connector and layout options from
   `home/przvl/host.nix`.
 
 ## Scope and ownership
@@ -55,8 +62,11 @@ evaluation as the minimum acceptance criterion for every configuration change.
   typed option in `home/przvl/host.nix` and set it per host; do not branch on
   the hostname inside shared user configuration.
 - Never duplicate common configuration into individual hosts. A future host
-  should compose the shared modules and contain only its own facts and
+  should inherit a laptop or desktop profile and contain only its own facts and
   exceptions.
+- Keep machine-class defaults in `modules/common/machine.nix`; override typed
+  `blix.machine` capabilities in the host's system module for hardware exceptions.
+  Use the inherited capabilities in shared user configuration, not hostname checks.
 - Never move generated hardware facts out of a host's
   `hardware-configuration.nix`.
 - Keep package names inside the existing `with pkgs;` package lists. Do not add
