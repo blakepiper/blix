@@ -4,7 +4,6 @@
 # installed by the NixOS modules; the rest follows the same small X11 set.
 {
   home.packages = with pkgs; [
-    pkgs."st-blix"
     xfe
     dmenu
     mpv

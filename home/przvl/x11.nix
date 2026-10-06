@@ -67,6 +67,7 @@ in
     export PATH="${config.home.profileDirectory}/bin:${pkgs.systemd}/bin:${pkgs.coreutils}/bin:$PATH"
     export XDG_CURRENT_DESKTOP=OXWM
     export XDG_SESSION_TYPE=x11
+    export TERMINAL=${lib.escapeShellArg config.home.sessionVariables.TERMINAL}
     export CM_LAUNCHER=dmenu
     export CM_SELECTIONS=clipboard
     export CM_MAX_CLIPS=100

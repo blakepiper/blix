@@ -15,7 +15,7 @@ local colors = {
   orange = "#e0af68",
   green = "#9ece6a",
 }
-oxwm.set_terminal("st")
+oxwm.set_terminal(assert(os.getenv("TERMINAL"), "Blix requires TERMINAL in the session environment"))
 oxwm.set_modkey(mod)
 oxwm.set_tags({ "1", "2", "3", "4", "5", "6", "7", "8", "9" })
 -- Dwindle gives new windows recursive Fibonacci-style splits instead of the

@@ -16,18 +16,4 @@ final: prev:
     ];
   });
 
-  "st-blix" =
-    let
-      stWithConfig = prev.st.override {
-        conf = builtins.readFile ../packaging/st/config.h;
-        patches = [ ../packaging/st/0001-scrollback-and-urls.patch ];
-      };
-    in
-    stWithConfig.overrideAttrs (old: {
-      # Separate the upstream postPatch snippets when using a custom config.
-      postPatch = final.lib.replaceStrings
-        [ "config.def.hsubstituteInPlace" ]
-        [ "config.def.h\nsubstituteInPlace" ]
-        old.postPatch;
-    });
 }

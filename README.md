@@ -12,9 +12,12 @@ The desktop uses:
 
 - Xorg is started manually with `startx`; there is no display manager.
 - OXWM is the window manager, with the Blix configuration and local patches.
-- `st`, `dmenu`, `picom`, `xsecurelock`, `xss-lock`, `clipmenu`, and Xfe provide
+- Ghostty, `dmenu`, `picom`, `xsecurelock`, `xss-lock`, `clipmenu`, and Xfe provide
   the terminal, launcher, compositor, locking, clipboard, and file-manager
   pieces.
+- Ghostty runs Bash with ble.sh for interactive editing, highlighting and
+  completion. Home Manager manages its settings and Bash integration; OXWM's
+  terminal binding uses the same executable as `$TERMINAL`.
 - Home Manager creates the user services and scripts for display hotplugging,
   locking, clipboard history, screenshots, brightness, status, and audio.
 - Firefox is managed with the Blix privacy policies and force-installed uBlock
@@ -37,7 +40,7 @@ place of Mason downloads, and preserves the writable lazy.nvim lockfile.
 flake.nix                         Inputs, host composition, and checks
 flake.lock                        Pinned nixpkgs and Home Manager revisions
 lib/mk-host.nix                   Platform, overlays, and Home Manager wiring
-overlays/desktop.nix              Pinned OXWM and patched st packages
+overlays/desktop.nix              Pinned OXWM package and local patches
 overlays/codex.nix                Complete Codex runtime packaging
 
 profiles/
@@ -76,9 +79,7 @@ home/przvl/
 ├── x11.nix                       Dotfiles and generated ~/.xinitrc
 └── config/                       OXWM, Picom, Xfe, Neovim, and script assets
 
-packaging/
-├── oxwm/                         Patches applied to the pinned OXWM release
-└── st/                           Blix st configuration and patch
+packaging/oxwm/                   Patches applied to the pinned OXWM release
 
 tests/
 ├── default.nix                   Checks for x86_64-linux and aarch64-linux
@@ -204,7 +205,7 @@ Profiles choose capabilities; the host constructor chooses the package platform.
 ## Phone preparation
 
 `profiles/phone.nix` prepares a regular native NixOS workstation using the same
-OXWM, Xorg, st, dmenu, Firefox, Neovim and Home Manager configuration. It selects
+OXWM, Xorg, Ghostty, dmenu, Firefox, Neovim and Home Manager configuration. It selects
 no mobile shell, architecture, kernel, firmware, bootloader, partition layout,
 display connector or rotation. Those decisions belong to the future host and
 its hardware support modules.
@@ -256,9 +257,10 @@ binary hashes from the locked `codex-nix` input. When checking an update, test
 ordinary `codex` startup: `codex --version` and `codex --no-daemon` do not
 exercise background-server installation.
 
-The OXWM overlay pins upstream OXWM 0.13.0 and carries the two Blix patches;
-the `st-blix` overlay applies the local `st` configuration and scrollback/
-URL patch.
+Ghostty comes from nixpkgs; the current lock supplies 1.3.1, the
+[latest stable release](https://ghostty.org/download) checked on 2026-10-06.
+Updating nixpkgs refreshes Ghostty along with the other distribution packages.
+The OXWM overlay pins upstream OXWM 0.13.0 and carries the two Blix patches.
 
 ## Validation
 

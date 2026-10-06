@@ -21,7 +21,7 @@ evaluation as the minimum acceptance criterion for every configuration change.
 - `flake.nix` declares inputs, host outputs and per-platform checks.
   `lib/mk-host.nix` supplies the package platform, overlays and Home Manager
   NixOS module; each host explicitly imports its profile and hardware modules.
-- `overlays/desktop.nix` owns OXWM and st packaging; `overlays/codex.nix` owns
+- `overlays/desktop.nix` owns OXWM packaging; `overlays/codex.nix` owns
   the Codex runtime packaging additions.
 - `flake.lock` pins all flake inputs.
 - `tests/` checks laptop, desktop and ARM phone defaults, overrides and display
