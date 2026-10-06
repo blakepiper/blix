@@ -1,0 +1,390 @@
+diff --git a/src/bar/slider.zig b/src/bar/slider.zig
+new file mode 100644
+index 0000000..e4e4983
+--- /dev/null
++++ b/src/bar/slider.zig
+@@ -0,0 +1,215 @@
++const std = @import("std");
++const xlib = @import("../x11/xlib.zig");
++const config_mod = @import("../config/config.zig");
++const Bar = @import("bar.zig").Bar;
++
++/// A single override-redirect popup, using the bar's font and colors.
++pub const Slider = struct {
++    const width: i32 = 240;
++    const height: i32 = 82;
++    const track_x: i32 = 18;
++    const track_width: i32 = width - 2 * track_x;
++    const track_y: i32 = 48;
++    pub const EventResult = enum { ignored, handled, close };
++
++    window: xlib.Window,
++    pixmap: xlib.Pixmap,
++    gc: xlib.GC,
++    draw: *xlib.XftDraw,
++    font: *xlib.XftFont,
++    screen: c_int,
++    settings: config_mod.SliderConfig,
++    command: []const u8,
++    foreground: u32,
++    background: u32,
++    accent: c_ulong,
++    dim: u32,
++    value: i32,
++    dragging: bool = false,
++    applied_value: ?i32 = null,
++    last_apply: u32 = 0,
++
++    pub fn create(display: *xlib.Display, screen: c_int, bar: *Bar, click_x: i32, click: config_mod.ClickAction) ?Slider {
++        const settings = click.slider orelse return null;
++        var initial: i32 = settings.min;
++        var center = click_x;
++        var accent: c_ulong = bar.scheme_selected.foreground;
++        for (bar.blocks.items) |*block| {
++            if (click_x < block.x_start or click_x >= block.x_end) continue;
++            center = @divTrunc(block.x_start + block.x_end, 2);
++            accent = block.color();
++            const content = block.getContent();
++            if (std.mem.indexOfScalar(u8, content, '%')) |end| {
++                var start = end;
++                while (start > 0 and std.ascii.isDigit(content[start - 1])) start -= 1;
++                initial = std.fmt.parseInt(i32, content[start..end], 10) catch settings.min;
++            }
++            break;
++        }
++        var attrs: xlib.XWindowAttributes = undefined;
++        if (xlib.XGetWindowAttributes(display, bar.window, &attrs) == 0) return null;
++        const mon = bar.monitor;
++        const x = std.math.clamp(mon.mon_x + center - @divTrunc(width, 2), mon.mon_x, @max(mon.mon_x, mon.mon_x + mon.mon_w - width - 2));
++        const below = attrs.y + bar.height + 6;
++        const y = if (below + height <= mon.mon_y + mon.mon_h) below else attrs.y - height - 6;
++        return createWindow(display, screen, x, y, bar, settings, click.command, initial, accent);
++    }
++
++    fn createWindow(display: *xlib.Display, screen: c_int, x: i32, y: i32, bar: *Bar, settings: config_mod.SliderConfig, command: []const u8, initial: i32, accent: c_ulong) ?Slider {
++        const visual = xlib.XDefaultVisual(display, screen);
++        const colormap = xlib.XDefaultColormap(display, screen);
++        const window = xlib.c.XCreateSimpleWindow(display, xlib.XRootWindow(display, screen), x, y, width, height, 1, accent, bar.scheme_normal.background);
++        var attrs: xlib.c.XSetWindowAttributes = std.mem.zeroes(xlib.c.XSetWindowAttributes);
++        attrs.override_redirect = xlib.True;
++        attrs.event_mask = xlib.c.ExposureMask | xlib.c.ButtonPressMask | xlib.c.ButtonReleaseMask | xlib.c.PointerMotionMask | xlib.c.KeyPressMask;
++        _ = xlib.c.XChangeWindowAttributes(display, window, xlib.c.CWOverrideRedirect | xlib.c.CWEventMask, &attrs);
++        _ = xlib.c.XStoreName(display, window, "OXWM slider");
++        const pixmap = xlib.XCreatePixmap(display, window, width, height, @intCast(xlib.XDefaultDepth(display, screen)));
++        const gc = xlib.XCreateGC(display, pixmap, 0, null);
++        const draw = xlib.XftDrawCreate(display, pixmap, visual, colormap) orelse {
++            _ = xlib.XFreeGC(display, gc);
++            _ = xlib.XFreePixmap(display, pixmap);
++            _ = xlib.XDestroyWindow(display, window);
++            return null;
++        };
++        var self = Slider{
++            .window = window,
++            .pixmap = pixmap,
++            .gc = gc,
++            .draw = draw,
++            .font = bar.font.?,
++            .screen = screen,
++            .settings = settings,
++            .command = command,
++            .foreground = bar.scheme_normal.foreground,
++            .background = bar.scheme_normal.background,
++            .accent = accent,
++            .dim = bar.scheme_normal.border,
++            .value = std.math.clamp(initial, settings.min, settings.max),
++        };
++        _ = xlib.c.XMapRaised(display, window);
++        if (xlib.XGrabPointer(display, window, xlib.False, xlib.c.ButtonPressMask | xlib.c.ButtonReleaseMask | xlib.c.PointerMotionMask, xlib.GrabModeAsync, xlib.GrabModeAsync, 0, 0, xlib.CurrentTime) != xlib.c.GrabSuccess) {
++            self.deinit(display);
++            return null;
++        }
++        if (xlib.c.XGrabKeyboard(display, window, xlib.False, xlib.GrabModeAsync, xlib.GrabModeAsync, xlib.CurrentTime) != xlib.c.GrabSuccess) {
++            self.deinit(display);
++            return null;
++        }
++        self.render(display);
++        return self;
++    }
++
++    pub fn deinit(self: *Slider, display: *xlib.Display) void {
++        _ = xlib.XUngrabPointer(display, xlib.CurrentTime);
++        _ = xlib.c.XUngrabKeyboard(display, xlib.CurrentTime);
++        xlib.XftDrawDestroy(self.draw);
++        _ = xlib.XFreeGC(display, self.gc);
++        _ = xlib.XFreePixmap(display, self.pixmap);
++        _ = xlib.XDestroyWindow(display, self.window);
++        _ = xlib.c.XFlush(display);
++    }
++
++    pub fn handleEvent(self: *Slider, display: *xlib.Display, io: std.Io, allocator: std.mem.Allocator, event: *xlib.XEvent) EventResult {
++        if (event.xany.window != self.window) return .ignored;
++        switch (event.type) {
++            xlib.Expose => self.render(display),
++            xlib.ButtonPress => {
++                const button = event.xbutton;
++                if (button.x < 0 or button.x >= width or button.y < 0 or button.y >= height or button.button == 3) return .close;
++                if (button.button == 1 and @abs(button.y - track_y) <= 14) {
++                    self.dragging = true;
++                    self.setFromPointer(button.x);
++                    self.apply(io, allocator, button.time, false);
++                    self.render(display);
++                }
++            },
++            xlib.MotionNotify => {
++                if (self.dragging) {
++                    self.setFromPointer(event.xmotion.x);
++                    self.apply(io, allocator, event.xmotion.time, false);
++                    self.render(display);
++                }
++            },
++            xlib.ButtonRelease => {
++                if (event.xbutton.button == 1 and self.dragging) {
++                    self.setFromPointer(event.xbutton.x);
++                    self.apply(io, allocator, event.xbutton.time, true);
++                    self.dragging = false;
++                    self.render(display);
++                }
++            },
++            xlib.KeyPress => {
++                switch (xlib.c.XLookupKeysym(&event.xkey, 0)) {
++                    xlib.c.XK_Escape => return .close,
++                    xlib.c.XK_Left, xlib.c.XK_Down => self.value = @max(self.settings.min, self.value - 1),
++                    xlib.c.XK_Right, xlib.c.XK_Up => self.value = @min(self.settings.max, self.value + 1),
++                    xlib.c.XK_Home => self.value = self.settings.min,
++                    xlib.c.XK_End => self.value = self.settings.max,
++                    else => return .handled,
++                }
++                self.apply(io, allocator, event.xkey.time, true);
++                self.render(display);
++            },
++            else => return .ignored,
++        }
++        return .handled;
++    }
++
++    fn setFromPointer(self: *Slider, x: i32) void {
++        const position = std.math.clamp(x - track_x, 0, track_width);
++        self.value = self.settings.min + @divTrunc(position * (self.settings.max - self.settings.min) + @divTrunc(track_width, 2), track_width);
++    }
++
++    fn apply(self: *Slider, io: std.Io, allocator: std.mem.Allocator, time: c_ulong, force: bool) void {
++        if (self.applied_value == self.value) return;
++        const timestamp: u32 = @truncate(time);
++        if (!force and self.applied_value != null and timestamp -% self.last_apply < 40) return;
++        const placeholder = std.mem.indexOf(u8, self.command, "{}") orelse return;
++        var buffer: [1024]u8 = undefined;
++        const command = std.fmt.bufPrint(&buffer, "{s}{d}{s}", .{ self.command[0..placeholder], self.value, self.command[placeholder + 2 ..] }) catch return;
++        // Short setters run in order, at most 25 times/s, with a final release update.
++        const result = std.process.run(allocator, io, .{ .argv = &.{ "/bin/sh", "-c", command } }) catch |err| {
++            std.debug.print("slider command failed: {}\n", .{err});
++            return;
++        };
++        defer allocator.free(result.stdout);
++        defer allocator.free(result.stderr);
++        if (result.term == .exited and result.term.exited == 0) {
++            self.applied_value = self.value;
++            self.last_apply = timestamp;
++        } else {
++            std.debug.print("slider command failed: {s}\n", .{result.stderr});
++        }
++    }
++
++    fn render(self: *Slider, display: *xlib.Display) void {
++        self.rect(display, 0, 0, width, height, self.background);
++        var buffer: [160]u8 = undefined;
++        const label = std.fmt.bufPrint(&buffer, "{s} {d}%", .{ self.settings.label, self.value }) catch "";
++        self.text(display, track_x, self.font.ascent + 10, label, self.foreground);
++        self.rect(display, track_x, track_y - 2, track_width, 4, self.dim);
++        const filled = @divTrunc((self.value - self.settings.min) * track_width, self.settings.max - self.settings.min);
++        self.rect(display, track_x, track_y - 2, filled, 4, self.accent);
++        self.rect(display, track_x + filled - 5, track_y - 9, 10, 18, self.accent);
++        self.text(display, track_x, height - 8, "-", self.foreground);
++        self.text(display, width - track_x - 10, height - 8, "+", self.foreground);
++        _ = xlib.XCopyArea(display, self.pixmap, self.window, self.gc, 0, 0, width, height, 0, 0);
++        _ = xlib.c.XFlush(display);
++    }
++
++    fn rect(self: *Slider, display: *xlib.Display, x: i32, y: i32, w: i32, h: i32, color: c_ulong) void {
++        _ = xlib.XSetForeground(display, self.gc, color);
++        _ = xlib.XFillRectangle(display, self.pixmap, self.gc, x, y, @intCast(w), @intCast(h));
++    }
++
++    fn text(self: *Slider, display: *xlib.Display, x: i32, y: i32, value: []const u8, color: c_ulong) void {
++        const visual = xlib.XDefaultVisual(display, self.screen);
++        const colormap = xlib.XDefaultColormap(display, self.screen);
++        var render_color = xlib.XRenderColor{ .red = @intCast((color >> 16 & 0xff) * 257), .green = @intCast((color >> 8 & 0xff) * 257), .blue = @intCast((color & 0xff) * 257), .alpha = 0xffff };
++        var xft_color: xlib.XftColor = undefined;
++        if (xlib.XftColorAllocValue(display, visual, colormap, &render_color, &xft_color) == 0) return;
++        defer xlib.XftColorFree(display, visual, colormap, &xft_color);
++        xlib.XftDrawStringUtf8(self.draw, &xft_color, self.font, x, y, value.ptr, @intCast(value.len));
++    }
++};
+diff --git a/src/config/config.zig b/src/config/config.zig
+index 8a56d00..5067786 100644
+--- a/src/config/config.zig
++++ b/src/config/config.zig
+@@ -161,10 +161,17 @@ pub const FloatingPosition = enum {
+     }
+ };
+ 
++pub const SliderConfig = struct {
++    label: []const u8 = "Level",
++    min: i32 = 0,
++    max: i32 = 100,
++};
++
+ pub const ClickAction = struct {
+     command: []const u8,
+     floating: bool = false,
+     bypass_rules: bool = false,
++    slider: ?SliderConfig = null,
+ };
+ 
+ pub const Block = struct {
+diff --git a/src/config/lua.zig b/src/config/lua.zig
+index fbf673d..d78f7bc 100644
+--- a/src/config/lua.zig
++++ b/src/config/lua.zig
+@@ -1333,7 +1333,28 @@ fn parseClickAction(state: *c.lua_State, idx: c_int) ?config_mod.ClickAction {
+         const bypass_rules = c.lua_toboolean(state, -1) != 0;
+         c.lua_settop(state, -2);
+ 
+-        return .{ .command = cmd.?, .floating = floating, .bypass_rules = bypass_rules };
++        var slider: ?config_mod.SliderConfig = null;
++        _ = c.lua_getfield(state, idx, "slider");
++        if (c.lua_type(state, -1) == c.LUA_TTABLE) {
++            _ = c.lua_getfield(state, -1, "label");
++            const label = dupeLuaString(state, -1) orelse "Level";
++            c.lua_settop(state, -2);
++            _ = c.lua_getfield(state, -1, "min");
++            const min = if (c.lua_isinteger(state, -1) != 0) c.lua_tointegerx(state, -1, null) else 0;
++            c.lua_settop(state, -2);
++            _ = c.lua_getfield(state, -1, "max");
++            const max = if (c.lua_isinteger(state, -1) != 0) c.lua_tointegerx(state, -1, null) else 100;
++            c.lua_settop(state, -2);
++            if (min < 0 or max > 100 or min >= max or std.mem.indexOf(u8, cmd.?, "{}") == null) {
++                std.debug.print("slider: require 0 <= min < max <= 100 and a command containing {{}}\n", .{});
++                c.lua_settop(state, -2);
++                return null;
++            }
++            slider = .{ .label = label, .min = @intCast(min), .max = @intCast(max) };
++        }
++        c.lua_settop(state, -2);
++
++        return .{ .command = cmd.?, .floating = floating, .bypass_rules = bypass_rules, .slider = slider };
+     }
+     return null;
+ }
+diff --git a/src/wm/handlers.zig b/src/wm/handlers.zig
+index 30d25da..6fd1e86 100644
+--- a/src/wm/handlers.zig
++++ b/src/wm/handlers.zig
+@@ -2,6 +2,7 @@ const std = @import("std");
+ 
+ const actions = @import("actions.zig");
+ const bar_mod = @import("../bar/bar.zig");
++const slider_mod = @import("../bar/slider.zig");
+ const client_mod = @import("../client.zig");
+ const core = @import("core.zig");
+ const tiling = @import("../layouts/tiling.zig");
+@@ -13,6 +14,16 @@ const xlib = @import("../x11/xlib.zig");
+ const WindowManager = wm_mod.WindowManager;
+ 
+ pub fn handleEvent(event: *xlib.XEvent, wm: *WindowManager) void {
++    if (wm.slider) |*slider| {
++        switch (slider.handleEvent(wm.display.handle, wm.io, wm.allocator, event)) {
++            .close => {
++                wm.closeSlider();
++                return;
++            },
++            .handled => return,
++            .ignored => {},
++        }
++    }
+     const event_type = events.getEventType(event);
+ 
+     if (event_type == .button_press) {
+@@ -252,6 +263,12 @@ fn handleButtonPress(event: *xlib.XButtonEvent, wm: *WindowManager) void {
+             const tag_mask: u32 = @as(u32, 1) << @intCast(tag_index);
+             core.view(tag_mask, wm);
+         } else if (bar.handleBlockClick(event.x)) |click_action| {
++            if (click_action.slider != null) {
++                if (event.button != 1) return;
++                wm.closeSlider();
++                wm.slider = slider_mod.Slider.create(wm.display.handle, wm.display.screen, bar, event.x, click_action);
++                return;
++            }
+             wm.next_spawn_floating = click_action.floating;
+             wm.next_spawn_bypass_rules = click_action.bypass_rules;
+             actions.spawnCommand(wm, click_action.command);
+diff --git a/src/wm/wm.zig b/src/wm/wm.zig
+index c3eaee6..25e4d3c 100644
+--- a/src/wm/wm.zig
++++ b/src/wm/wm.zig
+@@ -8,6 +8,7 @@ const chord_mod = @import("../keyboard/chord.zig");
+ const monitor_mod = @import("../monitor.zig");
+ const client_mod = @import("../client.zig");
+ const bar_mod = @import("../bar/bar.zig");
++const slider_mod = @import("../bar/slider.zig");
+ const blocks_mod = @import("../bar/blocks/blocks.zig");
+ const config_mod = @import("../config/config.zig");
+ const overlay_mod = @import("../overlay.zig");
+@@ -79,6 +80,7 @@ pub const WindowManager = struct {
+ 
+     /// Head of the linked list of status bars (one per monitor).
+     bars: ?*Bar,
++    slider: ?slider_mod.Slider = null,
+ 
+     chord: ChordState,
+ 
+@@ -143,6 +145,7 @@ pub const WindowManager = struct {
+ 
+     /// Release all allocated memory owned by the WM.
+     pub fn deinit(self: *WindowManager) void {
++        self.closeSlider();
+         bar_mod.destroyBars(self.bars, self.display.handle);
+         self.bars = null;
+ 
+@@ -446,6 +449,7 @@ pub const WindowManager = struct {
+     }
+ 
+     pub fn rebuildBars(self: *WindowManager) void {
++        self.closeSlider();
+         bar_mod.destroyBars(self.bars, self.display.handle);
+         self.bars = null;
+         self.setupBars();
+@@ -741,6 +745,11 @@ pub const WindowManager = struct {
+         }
+     }
+ 
++    pub fn closeSlider(self: *WindowManager) void {
++        if (self.slider) |*slider| slider.deinit(self.display.handle);
++        self.slider = null;
++    }
++
+     /// Reloads the configuration
+     ///
+     /// `loadFn` repopulates `self.config`
+@@ -750,6 +759,7 @@ pub const WindowManager = struct {
+         loadFn: fn (*WindowManager) void,
+     ) void {
+         std.debug.print("reloading config...\n", .{});
++        self.closeSlider();
+ 
+         self.ungrabKeybinds();
+ 
+diff --git a/templates/oxwm.lua b/templates/oxwm.lua
+index 4b763a8..5e0708a 100644
+--- a/templates/oxwm.lua
++++ b/templates/oxwm.lua
+@@ -326,7 +326,9 @@ function oxwm.bar.block.ram(config) end
+ function oxwm.bar.block.datetime(config) end
+ 
+ ---Create a shell command block
+----@param config {format: string, command: string, interval: integer, color: string|integer, underline: boolean, click: string|{command: string, floating: boolean?, bypass_rules: boolean?}?} Block configuration
++---A click.slider opens a native percentage popup. Its command replaces {} with
++---the selected integer; the initial value comes from the block's displayed percentage.
++---@param config {format: string, command: string, interval: integer, color: string|integer, underline: boolean, click: string|{command: string, floating: boolean?, bypass_rules: boolean?, slider: {label: string?, min: integer?, max: integer?}?}?} Block configuration (slider range defaults to 0..100)
+ ---@return table Block configuration
+ function oxwm.bar.block.shell(config) end
+ 

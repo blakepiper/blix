@@ -49,8 +49,8 @@ in
   home.file = {
     ".config/mimeapps.list".source = ./config/mimeapps.list;
     ".config/oxwm/config.lua".text = lib.replaceStrings
-      [ "@nixos-logo@" "@oxwm-volume@" "@oxwm-brightness@" ]
-      [ "${nixosLogo}" "${oxwmVolume}/bin/oxwm-volume" "${oxwmBrightness}/bin/oxwm-brightness" ]
+      [ "@nixos-logo@" "@oxwm-volume@" "@oxwm-brightness@" "@wpctl@" "@brightnessctl@" ]
+      [ "${nixosLogo}" "${oxwmVolume}/bin/oxwm-volume" "${oxwmBrightness}/bin/oxwm-brightness" "${pkgs.wireplumber}/bin/wpctl" "${pkgs.brightnessctl}/bin/brightnessctl" ]
       (builtins.readFile ./config/oxwm/config.lua);
     ".config/picom/picom.conf" = {
       source = ./config/picom/picom.conf;

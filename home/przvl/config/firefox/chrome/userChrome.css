@@ -15,12 +15,10 @@
   border-radius: 0 !important;
 }
 
-/* Keep navigation gestures/shortcuts and the extensions menu available. */
+/* Keep gestures, the extensions menu, and the native + below vertical tabs. */
 #back-button,
 #forward-button,
 #new-tab-button,
-#tabs-newtab-button,
-#vertical-tabs-newtab-button,
 #alltabs-button,
 #nav-bar #ublock0_raymondhill_net-browser-action {
   display: none !important;

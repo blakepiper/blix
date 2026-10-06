@@ -75,6 +75,10 @@ table.insert(blocks, oxwm.bar.block.shell({
   interval = 1,
   color = colors.accent,
   underline = false,
+  click = {
+    command = "@wpctl@ set-volume -l 1 @DEFAULT_AUDIO_SINK@ {}%",
+    slider = { label = "Volume", min = 0, max = 100 },
+  },
 }))
 table.insert(blocks, oxwm.bar.block.static({
   text = "│",
@@ -89,6 +93,10 @@ if os.getenv("BLIX_HAS_BACKLIGHT") == "1" then
     interval = 1,
     color = colors.green,
     underline = false,
+    click = {
+      command = "@brightnessctl@ --class=backlight --min-value=1 set {}%",
+      slider = { label = "Brightness", min = 1, max = 100 },
+    },
   }))
   table.insert(blocks, oxwm.bar.block.static({
     text = "│",
