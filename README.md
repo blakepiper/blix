@@ -19,6 +19,8 @@ The desktop uses:
   completion. Home Manager manages its settings and Bash integration; OXWM's
   terminal binding uses the same executable as `$TERMINAL`.
   Clicking within the current shell command moves the editing cursor there.
+  Ctrl-click opens links in Firefox; use Ctrl-Shift-click when a terminal
+  application captures the mouse.
 - Home Manager creates the user services and scripts for display hotplugging,
   locking, clipboard history, screenshots, brightness, status, and audio.
 - Firefox is managed with the Blix privacy policies and force-installed uBlock
@@ -308,6 +310,11 @@ exercise background-server installation.
 Ghostty comes from nixpkgs; the current lock supplies 1.3.1, the
 [latest stable release](https://ghostty.org/download) checked on 2026-10-06.
 Updating nixpkgs refreshes Ghostty along with the other distribution packages.
+`packaging/ghostty/` backports the upstream Bash/ble.sh prompt fix to the
+integration script while the terminal executable stays cached.
+The wrapper preserves automatic shell integration and supplies `xdg-open` for
+links; Firefox is also exported as the session's browser.
+Neofetch uses its built-in NixOS logo.
 The OXWM overlay pins upstream OXWM 0.13.0 and carries the two Blix patches.
 `packaging/neofetch/` retains the original Neofetch package with its NixOS fixes.
 Its settings and ASCII layout are local assets under `home/przvl/config/neofetch/`.

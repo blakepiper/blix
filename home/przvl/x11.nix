@@ -67,6 +67,7 @@ in
     export XDG_CURRENT_DESKTOP=OXWM
     export XDG_SESSION_TYPE=x11
     export TERMINAL=${lib.escapeShellArg config.home.sessionVariables.TERMINAL}
+    export BROWSER=${lib.escapeShellArg config.home.sessionVariables.BROWSER}
     export CM_LAUNCHER=dmenu
     export CM_SELECTIONS=clipboard
     export CM_MAX_CLIPS=100
@@ -112,7 +113,7 @@ ${lib.optionalString (wallpaper != null) ''
     trap cleanup EXIT
 
     ${pkgs.systemd}/bin/systemctl --user import-environment \
-      DISPLAY XAUTHORITY PATH XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_ID \
+      DISPLAY XAUTHORITY PATH BROWSER XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_ID \
       ${lib.concatStringsSep " " (builtins.attrNames displayEnvironment)}
     ${pkgs.systemd}/bin/systemctl --user daemon-reload
     if ! ${pkgs.systemd}/bin/systemctl --user start --no-block blix-session.target; then

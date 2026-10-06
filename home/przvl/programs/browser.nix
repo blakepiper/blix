@@ -1,6 +1,8 @@
-{ pkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 {
+  home.sessionVariables.BROWSER = lib.getExe config.programs.firefox.finalPackage;
+
   programs.firefox = {
     enable = true;
     package = pkgs.firefox;

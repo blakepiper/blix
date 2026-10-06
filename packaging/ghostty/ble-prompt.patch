@@ -1,0 +1,30 @@
+From b1ad24e24f3c04d854ed2c516fd0b947cf800420 Mon Sep 17 00:00:00 2001
+From: Jon Parise <jon@indelible.org>
+Date: Wed, 18 Mar 2026 15:09:09 -0400
+Subject: [PATCH] bash: emit 133;P (instead of 133;A) under ble.sh
+
+Upstream: https://github.com/ghostty-org/ghostty/pull/11644
+Paths adjusted for the installed shell_integration output.
+
+diff --git a/bash/ghostty.bash b/bash/ghostty.bash
+--- a/bash/ghostty.bash
++++ b/bash/ghostty.bash
+@@ -232,8 +232,16 @@ function __ghostty_precmd() {
+     builtin printf "\e]133;D;%s;aid=%s\a" "$ret" "$BASHPID"
+   fi
+ 
+-  # Fresh line and start of prompt.
+-  builtin printf "\e]133;A;redraw=last;cl=line;aid=%s\a" "$BASHPID"
++  # Fresh line and start of prompt. When ble.sh is active, emit 133;P instead
++  # of 133;A because ble.sh maintains its own cursor position tracking. 133;A's
++  # cursor movement (CR+LF when not at column 0) is invisible to ble.sh and
++  # desyncs its position state, causing display artifacts like duplicate
++  # prompts. See: https://github.com/akinomyoga/ble.sh/issues/684
++  if [[ -n "${BLE_VERSION-}" ]]; then
++    builtin printf "\e]133;P;k=i\a"
++  else
++    builtin printf "\e]133;A;redraw=last;cl=line;aid=%s\a" "$BASHPID"
++  fi
+ 
+   # unfortunately bash provides no hooks to detect cwd changes
+   # in particular this means cwd reporting will not happen for a
