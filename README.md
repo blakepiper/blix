@@ -18,6 +18,7 @@ The desktop uses:
 - Ghostty runs Bash with ble.sh for interactive editing, highlighting and
   completion. Home Manager manages its settings and Bash integration; OXWM's
   terminal binding uses the same executable as `$TERMINAL`.
+  Clicking within the current shell command moves the editing cursor there.
 - Home Manager creates the user services and scripts for display hotplugging,
   locking, clipboard history, screenshots, brightness, status, and audio.
 - Firefox is managed with the Blix privacy policies and force-installed uBlock
@@ -25,12 +26,11 @@ The desktop uses:
   includes the captured privacy preferences, vertical tabs, square corners,
   JetBrains Mono fonts, and dark PDF pages.
 - Neovim uses LazyVim with the minimal theme. `nvimide [project-directory]`
-  adds a left explorer and two stacked terminals on the right, with Fastfetch
+  adds a left explorer and two stacked terminals on the right, with Neofetch
   in the second terminal. Plain `nvim` keeps the normal editor layout.
 
-Firefox and Neovim settings were imported from `/home/przvl/dots` at commit
-`b766a10de1db5048327e12e5df911f6ff0766edf` on 2026-10-06. Shared assets live in
-`home/przvl/config/`; the application modules own their Home Manager integration.
+Firefox and Neovim configuration lives in `home/przvl/config/`; the application
+modules own the Home Manager integration for these local files.
 The Neovim adapter uses Nix-packaged Lua language server, StyLua and shfmt in
 place of Mason downloads, and preserves the writable lazy.nvim lockfile.
 
@@ -40,7 +40,7 @@ place of Mason downloads, and preserves the writable lazy.nvim lockfile.
 flake.nix                         Inputs, host composition, and checks
 flake.lock                        Pinned nixpkgs and Home Manager revisions
 lib/mk-host.nix                   Platform, overlays, and Home Manager wiring
-overlays/desktop.nix              Pinned OXWM package and local patches
+overlays/desktop.nix              OXWM patches and the Neofetch package
 overlays/codex.nix                Complete Codex runtime packaging
 
 profiles/
@@ -79,7 +79,9 @@ home/przvl/
 ├── x11.nix                       Dotfiles and generated ~/.xinitrc
 └── config/                       OXWM, Picom, Xfe, Neovim, and script assets
 
-packaging/oxwm/                   Patches applied to the pinned OXWM release
+packaging/
+├── oxwm/                         Patches applied to the pinned OXWM release
+└── neofetch/                     Pinned Neofetch and NixOS compatibility fixes
 
 tests/
 ├── default.nix                   Checks for x86_64-linux and aarch64-linux
@@ -112,7 +114,7 @@ Capabilities are typed NixOS options under `blix.machine` and can be overridden
 in `hosts/<host>/default.nix`. For example, a laptop without a controllable
 panel backlight can set `blix.machine.hasBacklight = false`. The system passes
 battery and backlight capabilities to Home Manager automatically. Desktop
-profiles omit battery widgets, Fastfetch battery reporting, and battery/brightness
+profiles omit battery widgets, Neofetch battery reporting, and battery/brightness
 helpers; brightness bindings are only registered when a backlight is enabled. Battery
 reporting still checks for actual hardware at session startup. Lid behavior
 uses `hasLid`, independently of the profile's name. Bluetooth support enables
@@ -261,6 +263,8 @@ Ghostty comes from nixpkgs; the current lock supplies 1.3.1, the
 [latest stable release](https://ghostty.org/download) checked on 2026-10-06.
 Updating nixpkgs refreshes Ghostty along with the other distribution packages.
 The OXWM overlay pins upstream OXWM 0.13.0 and carries the two Blix patches.
+`packaging/neofetch/` retains the original Neofetch package with its NixOS fixes.
+Its settings and ASCII layout are local assets under `home/przvl/config/neofetch/`.
 
 ## Validation
 

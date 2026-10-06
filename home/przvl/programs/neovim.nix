@@ -11,7 +11,7 @@ let
       fi
 
       export NVIM_IDE=1
-      export NVIM_IDE_FETCH=${pkgs.fastfetch}/bin/fastfetch
+      export NVIM_IDE_FETCH=${pkgs.neofetch}/bin/neofetch
       exec nvim "$@"
     '';
   };

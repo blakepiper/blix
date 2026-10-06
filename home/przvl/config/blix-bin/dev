@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-for dependency in tmux nvim fastfetch sha256sum flock; do
+for dependency in tmux nvim neofetch sha256sum flock; do
   command -v "$dependency" >/dev/null || { echo "dev: missing dependency: $dependency" >&2; exit 1; }
 done
 project=$(pwd -P)
@@ -28,7 +28,7 @@ if ! tmux has-session -t "=$session" 2>/dev/null; then
   left=$(tmux new-session -d -s "$session" -n dev -c "$project" -x "$width" -y "$height" -P -F '#{pane_id}' nvim .)
   trap 'tmux kill-session -t "=$session" 2>/dev/null || true' ERR
   upper=$(tmux split-window -h -p 35 -t "$left" -c "$project" -P -F '#{pane_id}' bash -i)
-  tmux split-window -v -p 50 -t "$upper" -c "$project" bash -c 'fastfetch --logo arch_small; exec bash -i'
+  tmux split-window -v -p 50 -t "$upper" -c "$project" bash -c 'neofetch --ascii_distro arch_small; exec bash -i'
   tmux select-pane -t "$left"
   trap - ERR
 fi

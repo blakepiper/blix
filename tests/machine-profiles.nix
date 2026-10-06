@@ -13,7 +13,7 @@ let
       home = cfg.home-manager.users.przvl;
       packages = map lib.getName home.home.packages;
       init = home.home.file.".xinitrc".text;
-      fastfetch = home.programs.fastfetch.settings.modules;
+      neofetch = home.xdg.configFile."neofetch/config.conf".text;
     in
     builtins.seq cfg.system.build.toplevel.drvPath {
       inherit (cfg.blix.machine) type hasBattery hasBacklight hasTouchpad hasLid hasBluetooth;
@@ -30,10 +30,7 @@ let
       batteryProbe = lib.hasInfix "for battery in" init;
       xinitShebang = lib.hasPrefix "#!/nix/store/" init;
       backlightBindings = lib.hasInfix "export BLIX_HAS_BACKLIGHT=1" init;
-      batteryReporting = lib.any (module:
-        builtins.isAttrs module && (module.type or "") == "battery"
-      ) fastfetch;
-      powerAdapterReporting = builtins.elem "poweradapter" fastfetch;
+      batteryReporting = lib.hasInfix ''info "Battery" battery'' neofetch;
       hyprland = cfg.programs.hyprland.enable;
       xresources = home.xresources.properties;
       gtkDpi = home.gtk.gtk3.extraConfig.gtk-xft-dpi or null;
@@ -90,12 +87,12 @@ in
 assert laptop.type == "laptop" && laptop.layout == "mirror";
 assert laptop.hasBattery && laptop.hasBacklight && laptop.hasTouchpad && laptop.hasLid;
 assert laptop.batteryHelper && laptop.brightnessHelper && laptop.batteryProbe;
-assert laptop.backlightBindings && laptop.batteryReporting && laptop.powerAdapterReporting;
+assert laptop.backlightBindings && laptop.batteryReporting;
 assert laptop.lid.HandleLidSwitch == "suspend" && laptop.lid.HandleLidSwitchDocked == "ignore";
 assert desktop.type == "desktop" && desktop.layout == "extend";
 assert !desktop.hasBattery && !desktop.hasBacklight && !desktop.hasTouchpad && !desktop.hasLid;
 assert !desktop.batteryHelper && !desktop.brightnessHelper && !desktop.batteryProbe;
-assert !desktop.backlightBindings && !desktop.batteryReporting && !desktop.powerAdapterReporting;
+assert !desktop.backlightBindings && !desktop.batteryReporting;
 assert desktop.lid.HandleLidSwitch == "ignore";
 assert overrides.batteryHelper && overrides.brightnessHelper && overrides.batteryReporting;
 assert overrides.layout == "mirror" && overrides.lid.HandleLidSwitch == "suspend";

@@ -102,13 +102,6 @@ let
     pkgs.xset
   ];
 
-  fastfetchPackages = writeScript "blix-fastfetch-packages" [
-    pkgs.coreutils
-    pkgs.fastfetch
-    pkgs.gnugrep
-    pkgs.gnused
-    pkgs.util-linux
-  ];
 in
 {
   inherit
@@ -129,13 +122,13 @@ in
       blixLock
     ])
     (writeScript "dev" [
+      pkgs.bashInteractive
       pkgs.coreutils
-      pkgs.fastfetch
+      pkgs.neofetch
       pkgs.neovim
       pkgs.tmux
       pkgs.util-linux
     ])
-    fastfetchPackages
     hardwareHotplug
     blixLock
     (writeScript "blix-stats" [

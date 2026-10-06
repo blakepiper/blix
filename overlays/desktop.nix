@@ -1,6 +1,9 @@
 final: prev:
 
 {
+  # Retain the original tool after its removal from nixpkgs.
+  neofetch = final.callPackage ../packaging/neofetch { };
+
   # Pin OXWM 0.13.0 with Blix's microphone key and mirrored-monitor fixes.
   oxwm = prev.oxwm.overrideAttrs (old: {
     version = "0.13.0";

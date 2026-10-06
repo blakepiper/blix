@@ -21,7 +21,7 @@ evaluation as the minimum acceptance criterion for every configuration change.
 - `flake.nix` declares inputs, host outputs and per-platform checks.
   `lib/mk-host.nix` supplies the package platform, overlays and Home Manager
   NixOS module; each host explicitly imports its profile and hardware modules.
-- `overlays/desktop.nix` owns OXWM packaging; `overlays/codex.nix` owns
+- `overlays/desktop.nix` owns OXWM and Neofetch packaging; `overlays/codex.nix` owns
   the Codex runtime packaging additions.
 - `flake.lock` pins all flake inputs.
 - `tests/` checks laptop, desktop and ARM phone defaults, overrides and display
@@ -47,7 +47,7 @@ evaluation as the minimum acceptance criterion for every configuration change.
 - `home/przvl/default.nix` owns the `przvl` user's packages, programs, services,
   and dotfile configuration, shared across hosts.
 - `home/przvl/config/` owns the Blix-derived OXWM, Picom, Xfe, Neovim, tmux,
-  fastfetch, and helper-script configuration.
+  Neofetch, and helper-script configuration.
 - `hosts/<hostname>/home.nix` owns `przvl` Home Manager settings that depend on
   the machine, including typed connector, layout, rotation and DPI options from
   `home/przvl/host.nix`.

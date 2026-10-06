@@ -9,6 +9,6 @@
     ./terminal.nix
     ./neovim.nix
     ./tmux.nix
-    ./fastfetch.nix
+    ./neofetch.nix
   ];
 }

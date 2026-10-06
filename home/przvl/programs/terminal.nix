@@ -14,6 +14,7 @@
       foreground = "bbbbbb";
       cursor-color = "bbbbbb";
       cursor-style = "block";
+      cursor-click-to-move = true;
       window-decoration = "none";
       window-padding-x = 2;
       window-padding-y = 2;
