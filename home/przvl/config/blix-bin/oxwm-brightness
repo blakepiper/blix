@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+# Report the same first backlight device controlled by blix-brightness.
+for backlight in /sys/class/backlight/*; do
+  [[ -r $backlight/brightness && -r $backlight/max_brightness ]] || continue
+  current=$(<"$backlight/brightness")
+  maximum=$(<"$backlight/max_brightness")
+  (( maximum > 0 )) || continue
+  printf '%d%%\n' "$(((current * 100 + maximum / 2) / maximum))"
+  exit 0
+done
+printf 'n/a\n'

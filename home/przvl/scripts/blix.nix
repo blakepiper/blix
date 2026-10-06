@@ -13,6 +13,9 @@ let
     pkgs.xset
   ];
 
+  oxwmVolume = writeScript "oxwm-volume" [ pkgs.wireplumber pkgs.gawk ];
+  oxwmBrightness = writeScript "oxwm-brightness" [ ];
+
   xsecurelockWithoutPicom = pkgs.writeShellApplication {
     name = "xsecurelock-without-picom";
     runtimeInputs = [
@@ -95,6 +98,8 @@ in
     clipboardTextProbe
     lockService
     blixLock
+    oxwmVolume
+    oxwmBrightness
     xsecurelockWithoutPicom;
 
   scripts = [
@@ -108,6 +113,7 @@ in
       blixLock
     ])
     blixLock
+    oxwmVolume
     (writeScript "blix-stats" [
       pkgs.coreutils
       pkgs.gawk
@@ -135,5 +141,6 @@ in
     pkgs.brightnessctl
     pkgs.coreutils
   ])
+  ++ lib.optional hasBacklight oxwmBrightness
   ++ lib.optional hasBattery (writeScript "oxwm-battery" [ pkgs.coreutils ]);
 }

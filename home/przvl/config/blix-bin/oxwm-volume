@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+volume=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null) || {
+  printf 'n/a\n'
+  exit 0
+}
+awk '{ printf "%d%%%s\n", int($2 * 100 + 0.5), ($0 ~ /\[MUTED\]/ ? " (muted)" : "") }' <<< "$volume"

@@ -2,6 +2,11 @@
 // Load custom styling for the Firefox browser interface.
 user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
 
+// Native two-finger touchpad swipes navigate browser history under X11.
+user_pref("widget.disable-swipe-tracker", false);
+user_pref("browser.gesture.swipe.left", "Browser:BackOrBackDuplicate");
+user_pref("browser.gesture.swipe.right", "Browser:ForwardOrForwardDuplicate");
+
 // Privacy: strict tracking protection, no usage uploads or remote search suggestions,
 // and HTTPS-Only in all windows. Applied whenever Firefox starts.
 

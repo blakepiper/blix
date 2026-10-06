@@ -12,6 +12,8 @@ in
       clipboardTextProbe
       lockService
       blixLock
+      oxwmVolume
+      oxwmBrightness
       scripts
       xsecurelockWithoutPicom;
   };

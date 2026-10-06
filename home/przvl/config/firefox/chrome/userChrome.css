@@ -15,6 +15,17 @@
   border-radius: 0 !important;
 }
 
+/* Keep navigation gestures/shortcuts and the extensions menu available. */
+#back-button,
+#forward-button,
+#new-tab-button,
+#tabs-newtab-button,
+#vertical-tabs-newtab-button,
+#alltabs-button,
+#nav-bar #ublock0_raymondhill_net-browser-action {
+  display: none !important;
+}
+
 /* Hide account and Sync entry points and sign-in promotions. */
 #fxa-toolbar-menu-button,
 #appMenu-fxa-status2,

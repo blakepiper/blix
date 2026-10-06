@@ -34,6 +34,7 @@ oxwm.border.set_width(2)
 oxwm.border.set_focused_color(colors.accent)
 oxwm.border.set_unfocused_color(colors.dim)
 oxwm.bar.set_font("JetBrainsMono Nerd Font:size=10")
+oxwm.bar.set_logo("@nixos-logo@")
 oxwm.bar.set_scheme_normal(colors.fg, colors.bg, colors.dim)
 oxwm.bar.set_scheme_occupied(colors.workspace_occupied, colors.bg, colors.dim)
 oxwm.bar.set_scheme_selected(colors.accent, colors.bg, colors.workspace_highlight)
@@ -61,6 +62,34 @@ if battery and battery:match("^[%w_%-]+$") then
   end
 end
 if #blocks > 0 then
+  table.insert(blocks, oxwm.bar.block.static({
+    text = "│",
+    interval = 999999999,
+    color = colors.lavender,
+    underline = false,
+  }))
+end
+table.insert(blocks, oxwm.bar.block.shell({
+  format = "Vol {}",
+  command = "@oxwm-volume@",
+  interval = 1,
+  color = colors.accent,
+  underline = false,
+}))
+table.insert(blocks, oxwm.bar.block.static({
+  text = "│",
+  interval = 999999999,
+  color = colors.lavender,
+  underline = false,
+}))
+if os.getenv("BLIX_HAS_BACKLIGHT") == "1" then
+  table.insert(blocks, oxwm.bar.block.shell({
+    format = "Brit {}",
+    command = "@oxwm-brightness@",
+    interval = 1,
+    color = colors.green,
+    underline = false,
+  }))
   table.insert(blocks, oxwm.bar.block.static({
     text = "│",
     interval = 999999999,

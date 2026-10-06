@@ -1,9 +1,15 @@
-{ config, lib, pkgs, displayHotplug, ... }:
+{ config, lib, pkgs, displayHotplug, oxwmVolume, oxwmBrightness, ... }:
 
 let
   display = config.blix.display;
   wallpaper = config.blix.display.wallpaper;
   primaryScaleFrom = config.blix.display.primaryScaleFrom;
+  nixosLogo = pkgs.runCommand "blix-bar-nixos-logo.xpm" {
+    nativeBuildInputs = [ pkgs.imagemagick ];
+  } ''
+    magick ${pkgs.nixos-icons}/share/icons/hicolor/24x24/apps/nix-snowflake.png \
+      -resize 20x20 -background '#1a1b26' -alpha remove -alpha off "xpm:$out"
+  '';
   # One environment feeds shell startup, the X session and the hotplug unit.
   displayEnvironment = {
     BLIX_DISPLAY_LAYOUT = display.layout;
@@ -36,13 +42,20 @@ in
     blixSessionSettings = sessionSettings;
   };
 
-  home.sessionVariables = displayEnvironment;
+  # Firefox needs XInput2 scroll events for native two-finger history swipes.
+  home.sessionVariables = displayEnvironment // { MOZ_USE_XINPUT2 = "1"; };
   xresources.properties = lib.mkIf (display.dpi != null) { "Xft.dpi" = display.dpi; };
 
   home.file = {
     ".config/mimeapps.list".source = ./config/mimeapps.list;
-    ".config/oxwm/config.lua".source = ./config/oxwm/config.lua;
-    ".config/picom/picom.conf".source = ./config/picom/picom.conf;
+    ".config/oxwm/config.lua".text = lib.replaceStrings
+      [ "@nixos-logo@" "@oxwm-volume@" "@oxwm-brightness@" ]
+      [ "${nixosLogo}" "${oxwmVolume}/bin/oxwm-volume" "${oxwmBrightness}/bin/oxwm-brightness" ]
+      (builtins.readFile ./config/oxwm/config.lua);
+    ".config/picom/picom.conf" = {
+      source = ./config/picom/picom.conf;
+      onChange = "${pkgs.systemd}/bin/systemctl --user try-restart blix-picom.service";
+    };
     "Pictures/Screenshots/.keep".text = "";
   };
 
@@ -66,6 +79,7 @@ in
     export PATH="${config.home.profileDirectory}/bin:${pkgs.systemd}/bin:${pkgs.coreutils}/bin:$PATH"
     export XDG_CURRENT_DESKTOP=OXWM
     export XDG_SESSION_TYPE=x11
+    export MOZ_USE_XINPUT2=1
     export TERMINAL=${lib.escapeShellArg config.home.sessionVariables.TERMINAL}
     export BROWSER=${lib.escapeShellArg config.home.sessionVariables.BROWSER}
     export CM_LAUNCHER=dmenu
@@ -113,7 +127,7 @@ ${lib.optionalString (wallpaper != null) ''
     trap cleanup EXIT
 
     ${pkgs.systemd}/bin/systemctl --user import-environment \
-      DISPLAY XAUTHORITY PATH BROWSER XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_ID \
+      DISPLAY XAUTHORITY PATH BROWSER MOZ_USE_XINPUT2 XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_ID \
       ${lib.concatStringsSep " " (builtins.attrNames displayEnvironment)}
     ${pkgs.systemd}/bin/systemctl --user daemon-reload
     if ! ${pkgs.systemd}/bin/systemctl --user start --no-block blix-session.target; then

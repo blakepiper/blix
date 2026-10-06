@@ -1,0 +1,173 @@
+Add an optional XPM bar logo and keep workspace click positions aligned.
+
+--- a/build.zig
++++ b/build.zig
+@@ -31,6 +31,7 @@
+ 
+     exe.root_module.linkLibrary(lua);
+     exe.root_module.linkSystemLibrary("X11", .{});
++    exe.root_module.linkSystemLibrary("Xpm", .{});
+     exe.root_module.linkSystemLibrary("Xinerama", .{});
+     exe.root_module.linkSystemLibrary("Xft", .{});
+     exe.root_module.linkSystemLibrary("fontconfig", .{});
+@@ -68,6 +69,7 @@
+     src_main_unit_tests.root_module.addIncludePath(lua_headers);
+     src_main_unit_tests.root_module.linkLibrary(lua);
+     src_main_unit_tests.root_module.linkSystemLibrary("X11", .{});
++    src_main_unit_tests.root_module.linkSystemLibrary("Xpm", .{});
+     src_main_unit_tests.root_module.linkSystemLibrary("Xinerama", .{});
+     src_main_unit_tests.root_module.linkSystemLibrary("Xft", .{});
+     src_main_unit_tests.root_module.linkSystemLibrary("fontconfig", .{});
+--- a/src/x11/xlib.zig
++++ b/src/x11/xlib.zig
+@@ -1,6 +1,7 @@
+ pub const c = @cImport({
+     @cInclude("X11/Xlib.h");
+     @cInclude("X11/Xutil.h");
++    @cInclude("X11/xpm.h");
+     @cInclude("X11/Xatom.h");
+     @cInclude("X11/cursorfont.h");
+     @cInclude("X11/keysym.h");
+--- a/src/config/config.zig
++++ b/src/config/config.zig
+@@ -217,6 +217,7 @@
+     auto_tile: bool = false,
+     tag_back_and_forth: bool = false,
+     hide_vacant_tags: bool = false,
++    bar_logo: ?[]const u8 = null,
+     floating_position: FloatingPosition = .center,
+     tiled_resize_mode: bool = false,
+     warp_cursor_to_monitor: bool = false,
+--- a/src/config/lua.zig
++++ b/src/config/lua.zig
+@@ -259,6 +259,9 @@
+ fn registerBarModule(state: *c.lua_State) void {
+     c.lua_createtable(state, 0, 10);
+ 
++    c.lua_pushcfunction(state, luaBarSetLogo);
++    c.lua_setfield(state, -2, "set_logo");
++
+     c.lua_pushcfunction(state, luaBarSetFont);
+     c.lua_setfield(state, -2, "set_font");
+ 
+@@ -788,6 +791,13 @@
+     c.lua_settop(s, -2);
+ 
+     cfg.addRule(rule) catch return 0;
++    return 0;
++}
++
++fn luaBarSetLogo(state: ?*c.lua_State) callconv(.c) c_int {
++    const cfg = config orelse return 0;
++    const s = state orelse return 0;
++    cfg.bar_logo = dupeLuaString(s, 1);
+     return 0;
+ }
+ 
+--- a/src/bar/bar.zig
++++ b/src/bar/bar.zig
+@@ -47,6 +47,10 @@
+     systray: ?*Systray,
+     systray_underline: bool,
+     systray_color: u32,
++    logo_pixmap: xlib.Pixmap = 0,
++    logo_mask: xlib.Pixmap = 0,
++    logo_width: i32 = 0,
++    logo_height: i32 = 0,
+ 
+     /// Creates a bar window for `monitor` using the given config.
+     /// Returns null on allocation failure or if the font cannot be loaded.
+@@ -152,6 +156,8 @@
+             .systray_color = 0xffffff,
+         };
+ 
++        bar.loadLogo(display, config.bar_logo);
++
+         monitor.bar_win = window;
+         monitor.win_h = monitor.mon_h - bar_height;
+ 
+@@ -161,6 +167,8 @@
+     /// Destroys the bar's X resources and frees the allocation.
+     pub fn destroy(self: *Bar, display: *xlib.Display) void {
+         if (self.systray) |tray| tray.deinit();
++        if (self.logo_pixmap != 0) _ = xlib.XFreePixmap(display, self.logo_pixmap);
++        if (self.logo_mask != 0) _ = xlib.XFreePixmap(display, self.logo_mask);
+ 
+         if (self.xft_draw) |xft_draw| xlib.XftDrawDestroy(xft_draw);
+         if (self.font) |font| xlib.XftFontClose(display, font);
+@@ -172,6 +180,32 @@
+         self.allocator.destroy(self);
+     }
+ 
++    fn loadLogo(self: *Bar, display: *xlib.Display, path: ?[]const u8) void {
++        const logo_path = path orelse return;
++        const path_z = self.allocator.dupeZ(u8, logo_path) catch return;
++        defer self.allocator.free(path_z);
++
++        var attributes: xlib.c.XpmAttributes = std.mem.zeroes(xlib.c.XpmAttributes);
++        attributes.valuemask = xlib.c.XpmSize;
++        defer xlib.c.XpmFreeAttributes(&attributes);
++        const status = xlib.c.XpmReadFileToPixmap(display, self.window, path_z.ptr,
++            &self.logo_pixmap, &self.logo_mask, &attributes);
++        if (status != xlib.c.XpmSuccess or attributes.height > self.height or attributes.width > self.width) {
++            std.debug.print("unable to load bar logo {s}: Xpm status {d} or oversized image\n", .{ logo_path, status });
++            if (self.logo_pixmap != 0) _ = xlib.XFreePixmap(display, self.logo_pixmap);
++            if (self.logo_mask != 0) _ = xlib.XFreePixmap(display, self.logo_mask);
++            self.logo_pixmap = 0;
++            self.logo_mask = 0;
++            return;
++        }
++        self.logo_width = @intCast(attributes.width);
++        self.logo_height = @intCast(attributes.height);
++    }
++
++    fn tagOffset(self: *Bar) i32 {
++        return if (self.logo_pixmap != 0) self.logo_width + 16 else 0;
++    }
++
+     pub fn addBlock(self: *Bar, block: Block) void {
+         self.blocks.append(self.allocator, block) catch {};
+     }
+@@ -195,10 +229,19 @@
+ 
+         self.fillRect(display, 0, 0, self.width, self.height, self.scheme_normal.background);
+ 
+-        var x_position: i32 = 0;
++        var x_position: i32 = self.tagOffset();
+         const padding: i32 = 8;
+         const monitor = self.monitor;
+         const current_tags = monitor.tagset[monitor.sel_tags];
++
++        if (self.logo_pixmap != 0) {
++            const logo_y = @divTrunc(self.height - self.logo_height, 2);
++            _ = xlib.c.XSetClipMask(display, self.graphics_context, self.logo_mask);
++            _ = xlib.c.XSetClipOrigin(display, self.graphics_context, padding, logo_y);
++            _ = xlib.XCopyArea(display, self.logo_pixmap, self.pixmap, self.graphics_context,
++                0, 0, @intCast(self.logo_width), @intCast(self.logo_height), padding, logo_y);
++            _ = xlib.c.XSetClipMask(display, self.graphics_context, 0);
++        }
+ 
+         for (config.tags[0..config.tag_count], 0..) |tag, index| {
+             const tag_mask: u32 = @as(u32, 1) << @intCast(index);
+@@ -269,7 +312,7 @@
+     /// Returns the index of the tag the user clicked on, or null if the
+     /// click was outside the tag area.
+     pub fn handleClick(self: *Bar, display: *xlib.Display, click_x: i32, config: config_mod.Config) ?usize {
+-        var x_position: i32 = 0;
++        var x_position: i32 = self.tagOffset();
+         const padding: i32 = 8;
+         const monitor = self.monitor;
+         const current_tags = monitor.tagset[monitor.sel_tags];
+--- a/templates/oxwm.lua
++++ b/templates/oxwm.lua
+@@ -289,6 +289,10 @@
+ ---@param font string Font string (e.g., "monospace:style=Bold:size=10")
+ function oxwm.bar.set_font(font) end
+ 
++---Set an optional XPM image drawn before workspace tags.
++---@param path string Path to an XPM image no taller than the bar
++function oxwm.bar.set_logo(path) end
++
+ ---Set status bar position
+ ---@param position string Bar position ("top" or "bottom")
+ function oxwm.bar.set_position(position) end
