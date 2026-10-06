@@ -1,4 +1,4 @@
-![Blix logo](assets/blix-logo.png)
+<img src="assets/blix-logo.png" alt="Blix logo" width="314">
 
 # blix
 
