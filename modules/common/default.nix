@@ -11,6 +11,7 @@
   programs.dconf.enable = true;
 
   imports = [
+    ../hardware
     ./boot.nix
     ./desktop-services.nix
     ./desktop-session.nix

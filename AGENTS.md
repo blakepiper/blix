@@ -35,9 +35,11 @@ evaluation as the minimum acceptance criterion for every configuration change.
   standard Blix environment. Its sibling files separate boot, locale, Nix,
   networking, users, fonts, packages, the X11/OXWM session and its services,
   Home Manager integration, and the shared user configuration.
-- `modules/common/machine.nix` declares typed machine capabilities, supplies
-  capability-based lid, touchpad and Bluetooth policy, and passes user
-  capabilities to Home Manager. Behavior must not branch on the machine type.
+- `modules/common/machine.nix` declares typed machine capabilities and passes
+  user capabilities to Home Manager. Behavior must not branch on the machine type.
+- `modules/hardware/` separates keyboard, mouse, touchpad, lid/power and
+  Bluetooth policy. `keyboards/mechanical.nix` owns the USB-specific Cmd/Super
+  mapping; modifier swaps must never be applied to every keyboard.
 - `hosts/<hostname>/default.nix` owns configuration specific to that machine
   and composes a machine profile, its generated hardware module, and genuinely
   device-specific settings.
@@ -46,11 +48,13 @@ evaluation as the minimum acceptance criterion for every configuration change.
   intentionally changes.
 - `home/przvl/default.nix` owns the `przvl` user's packages, programs, services,
   and dotfile configuration, shared across hosts.
-- `home/przvl/config/` owns the Blix-derived OXWM, Picom, Xfe, Neovim, tmux,
+- `home/przvl/config/` owns the Blix-derived OXWM, Picom, Xfe, Neovim,
   Neofetch, and helper-script configuration.
-- `hosts/<hostname>/home.nix` owns `przvl` Home Manager settings that depend on
-  the machine, including typed connector, layout, rotation and DPI options from
-  `home/przvl/host.nix`.
+- `home/przvl/hardware/` declares typed user capabilities and display options;
+  `display.nix` owns the display helper package and hotplug service. The X11
+  display environment remains in `home/przvl/x11.nix`.
+- `hosts/<hostname>/home.nix` composes machine-dependent user settings and
+  imports `display.nix` for the host's connector, layout, rotation and DPI facts.
 
 ## Scope and ownership
 
@@ -62,9 +66,12 @@ evaluation as the minimum acceptance criterion for every configuration change.
 - Put only machine-dependent settings in `hosts/<hostname>/default.nix`:
   hostname, `system.stateVersion`, hardware quirks, device-specific power
   workarounds, and host-specific networking tweaks.
-- Put machine-dependent user settings in `hosts/<hostname>/home.nix`. Declare a
-  typed option in `home/przvl/host.nix` and set it per host; do not branch on
-  the hostname inside shared user configuration.
+- Put machine-dependent user settings in `hosts/<hostname>/home.nix` or a focused
+  file it imports, such as `display.nix`. Declare typed hardware options in
+  `home/przvl/hardware/` and set them per host; do not branch on hostnames.
+- Keep peripheral behavior in `modules/hardware/`; device-specific keyboard
+  rules belong in `modules/hardware/keyboards/` and match the device identity.
+  Keep tmux as an unconfigured package without a Blix layout helper or config.
 - Never duplicate common configuration into individual hosts. A future host
   should inherit a laptop, desktop or phone profile and contain only its facts and
   exceptions.
@@ -84,7 +91,7 @@ evaluation as the minimum acceptance criterion for every configuration change.
   (`${pkgs.foo}/bin/foo`), never by bare name. A multi-command script should
   use `pkgs.writeShellApplication` with `runtimeInputs` instead.
 - Keep the X11 session and display environment in `home/przvl/x11.nix`; keep
-  host-specific connector names in `hosts/<hostname>/home.nix` rather than
+  host-specific connector names in `hosts/<hostname>/display.nix` rather than
   branching on hostnames in shared user configuration.
 - Preserve `system.stateVersion` and `home.stateVersion`. Change either only as
   part of an explicit, researched state-version migration.

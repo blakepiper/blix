@@ -8,7 +8,7 @@ import tempfile
 
 
 source = Path(sys.argv[1]).read_text()
-functions = source.split("\napply_gaming_keyboard\nconfigure_external_monitor\n", 1)[0]
+functions = source.split("\nconfigure_external_monitor\n", 1)[0]
 
 with tempfile.TemporaryDirectory(prefix="blix-hotplug-check-") as temp:
     root = Path(temp)

@@ -89,24 +89,10 @@ let
 
     exec ${pkgs.xsel}/bin/xsel "$@"
   '';
-
-  hardwareHotplug = writeScript "blix-hardware-hotplug" [
-    pkgs.coreutils
-    pkgs.feh
-    pkgs.gnugrep
-    pkgs.gnused
-    pkgs.systemd
-    pkgs.setxkbmap
-    pkgs.xkbcomp
-    pkgs.xrandr
-    pkgs.xset
-  ];
-
 in
 {
   inherit
     clipboardTextProbe
-    hardwareHotplug
     lockService
     blixLock
     xsecurelockWithoutPicom;
@@ -121,15 +107,6 @@ in
       pkgs.xset
       blixLock
     ])
-    (writeScript "dev" [
-      pkgs.bashInteractive
-      pkgs.coreutils
-      pkgs.neofetch
-      pkgs.neovim
-      pkgs.tmux
-      pkgs.util-linux
-    ])
-    hardwareHotplug
     blixLock
     (writeScript "blix-stats" [
       pkgs.coreutils

@@ -1,4 +1,4 @@
-{ config, lib, pkgs, hardwareHotplug, ... }:
+{ config, lib, pkgs, displayHotplug, ... }:
 
 let
   display = config.blix.display;
@@ -43,7 +43,6 @@ in
     ".config/mimeapps.list".source = ./config/mimeapps.list;
     ".config/oxwm/config.lua".source = ./config/oxwm/config.lua;
     ".config/picom/picom.conf".source = ./config/picom/picom.conf;
-    ".config/tmux/tmux.conf".source = ./config/tmux/tmux.conf;
     "Pictures/Screenshots/.keep".text = "";
   };
 
@@ -89,7 +88,7 @@ ${lib.optionalString config.blix.hardware.hasBattery ''
 ''}
 
     ${pkgs.xsetroot}/bin/xsetroot -solid '#1a1b26'
-    ${hardwareHotplug}/bin/blix-hardware-hotplug --once
+    ${displayHotplug}/bin/blix-display-hotplug --once
     # Apply the same repeat, blanking and DPI settings on startup and rebuilds.
     ${sessionSettings}/bin/blix-session-settings
 ${lib.optionalString (wallpaper != null) ''

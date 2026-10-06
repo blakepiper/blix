@@ -28,6 +28,8 @@ The desktop uses:
 - Neovim uses LazyVim with the minimal theme. `nvimide [project-directory]`
   adds a left explorer and two stacked terminals on the right, with Neofetch
   in the second terminal. Plain `nvim` keeps the normal editor layout.
+- tmux is installed with its upstream defaults, without a Blix configuration
+  or custom layout launcher.
 
 Firefox and Neovim configuration lives in `home/przvl/config/`; the application
 modules own the Home Manager integration for these local files.
@@ -53,25 +55,38 @@ modules/boot/uefi.nix             Optional UEFI/systemd-boot defaults
 modules/common/
 ├── default.nix                   Shared module composition
 ├── boot.nix                      Bootloader-independent kernel policy
-├── desktop-session.nix           X11, startx, OXWM, and input behavior
+├── desktop-session.nix           X11, startx, and OXWM
 ├── desktop-services.nix          Graphics, PipeWire, polkit, and rtkit
 ├── fonts.nix                     Shared fonts
 ├── home-manager.nix              Shared Home Manager integration
 ├── locale.nix                    Locale and timezone
-├── machine.nix                   Typed capabilities and their shared behavior
+├── machine.nix                   Typed capabilities and Home Manager bridge
 ├── networking.nix                NetworkManager
 ├── nix.nix                       Nix version, flakes, GC, and optimization
 ├── packages.nix                  Shared system utilities
 └── users.nix                     Shared user definitions
 
+modules/hardware/
+├── default.nix                   Peripheral and power module composition
+├── keyboard.nix                  Keyboard layout and repeat defaults
+├── keyboards/mechanical.nix      Device-specific Cmd/Super mapping
+├── mouse.nix                     Natural scrolling for ordinary mice
+├── touchpad.nix                  Natural scrolling and click/tap defaults
+├── power.nix                     Capability-based lid policy
+└── bluetooth.nix                 Capability-based Bluetooth support
+
 hosts/<host>/
 ├── default.nix                   Profile inheritance and hardware quirks
 ├── hardware-configuration.nix    Generated hardware facts
-└── home.nix                      Host-specific display connector settings
+├── home.nix                      Machine-dependent Home Manager composition
+└── display.nix                   Host display connectors and scaling
 
 home/przvl/
 ├── default.nix                   Home Manager composition root
-├── host.nix                      Typed user hardware/display options
+├── hardware/
+│   ├── default.nix               Typed user capabilities
+│   ├── display.nix               Display options, helper package and service
+│   └── display-hotplug.sh        Mirroring, extension and reconnect behavior
 ├── packages.nix                  Blix user packages
 ├── programs/                     Bash, Firefox, Git, Neovim, tmux, and tools
 ├── services/blix.nix              Blix session target and user services
@@ -87,6 +102,8 @@ tests/
 ├── default.nix                   Checks for x86_64-linux and aarch64-linux
 ├── profile-fixture.nix           Synthetic hardware for evaluation/build checks
 ├── machine-profiles.nix          Profile defaults and hardware overrides
+├── keyboard-mapping.nix          Compiled built-in and mechanical keymaps
+├── keyboard-mapping.py           Win/Cmd modifier regression checks
 ├── display-hotplug.py            Monitor, rotation, scaling, and reconnect checks
 └── session-settings.nix          Generated blanking and Xresources behavior
 ```
@@ -127,7 +144,21 @@ battery, and makes a short power-button press lock the session. Automatic
 suspend is left to verified host policy. Hosts can override individual logind
 defaults through `services.logind.settings.Login`.
 
-Display facts live in `hosts/<host>/home.nix`. Every host supplies
+Keyboard, mouse, touchpad, lid and Bluetooth policy live in separate files under
+`modules/hardware/`. Natural scrolling applies to ordinary mice and all touchpads,
+including external touchpads on desktop and phone hosts. Pointing sticks and
+tablets retain their existing behavior. `hasTouchpad` enables the additional tap
+and click defaults; scrolling can be overridden with
+`services.libinput.touchpad.naturalScrolling`.
+
+`keyboards/mechanical.nix` matches USB ID `1fc9:e8c7` and swaps Alt/Super for that
+keyboard's Mac-mode Cmd key. Built-in laptop Win keys retain Super. Xorg applies
+the rule when the device connects; no keyboard hotplug daemon or Xorg log parsing
+is needed. New device-specific mappings belong alongside that module.
+
+Display behavior and its dedicated hotplug service live in
+`home/przvl/hardware/display.nix` and `display-hotplug.sh`. Display facts live in
+`hosts/<host>/display.nix`, imported by the host's `home.nix`. Every host supplies
 `blix.display.primaryOutput`: an internal connector such as `eDP-1` on a
 laptop, or a monitor connector such as `DP-1` on a desktop. Extended layouts
 use preferred modes and place other connected monitors to the right of the
@@ -144,7 +175,7 @@ their current sizing. Font changes may require restarting applications.
 Rotation and DPI are host facts, rather than assumptions in the phone profile.
 `blankAfterSeconds` controls idle DPMS display power-off; `0` disables it.
 
-A desktop's `home.nix` can be as small as:
+A desktop's `display.nix` can be as small as:
 
 ```nix
 { ... }:
@@ -191,7 +222,8 @@ return to the TTY.
 3. Set the hostname, the state version of that machine's installation, hardware
    quirks, capability overrides, and host-specific networking settings there.
    Connect its `home.nix` with `home-manager.users.przvl = import ./home.nix;`.
-4. Set `blix.display.primaryOutput` and any other display values in `home.nix`.
+4. Set `blix.display.primaryOutput` and any other display values in `display.nix`,
+   and import that file from `home.nix`.
 5. Register the host in `flake.nix`:
 
 ```nix
@@ -217,8 +249,9 @@ touchpad. Before registering `nixosConfigurations.phone`, verify a boot provider
 that supports the intended standard NixOS boot and kernel-update workflow, add
 the actual storage and firmware configuration, and inspect the display and
 input devices. Set the observed connector and chosen landscape rotation in
-`hosts/phone/home.nix`; tune DPI on the physical screen. Set `hasTouchpad = true`
-if the Bluetooth device exposes a touchpad that should use the shared settings.
+`hosts/phone/display.nix`; tune DPI on the physical screen. Set `hasTouchpad = true`
+if the Bluetooth touchpad should use the additional click/tap defaults. Natural
+scrolling already applies regardless of that capability.
 
 The flake currently keeps only `zen` and `t490` as deployable hosts. Its ARM
 phone fixture evaluates the entire standard NixOS system and shared desktop
@@ -269,8 +302,9 @@ Its settings and ASCII layout are local assets under `home/przvl/config/neofetch
 ## Validation
 
 `nix flake check` evaluates laptop, desktop and ARM phone profile fixtures,
-checks generated user configuration and overrides, and runs display hotplug
-regression checks. The ARM evaluation runs even on an x86 machine.
+checks generated user configuration and overrides, compiles keyboard mappings,
+and runs display hotplug regression checks. The ARM evaluation runs even on an
+x86 machine.
 
 Evaluate every host and run the full closure builds before activation:
 

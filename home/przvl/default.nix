@@ -10,7 +10,6 @@ in
   _module.args = {
     inherit (blix)
       clipboardTextProbe
-      hardwareHotplug
       lockService
       blixLock
       scripts
@@ -18,7 +17,7 @@ in
   };
 
   imports = [
-    ./host.nix
+    ./hardware
     ./packages.nix
     ./appearance.nix
     ./programs

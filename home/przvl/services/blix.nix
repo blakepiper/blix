@@ -1,5 +1,5 @@
-{ config, lib, pkgs, clipboardTextProbe, hardwareHotplug, lockService,
-  blixDisplayEnvironment, blixSessionSettings, ... }:
+{ config, lib, pkgs, clipboardTextProbe, lockService,
+  blixSessionSettings, ... }:
 
 let
   clipPath = lib.concatStringsSep ":" [
@@ -20,7 +20,6 @@ in
       Wants = [
         "blix-lock.service"
         "blix-clipboard.service"
-        "blix-hardware-hotplug.service"
         "blix-session-settings.service"
         "blix-picom.service"
         "pipewire.socket"
@@ -65,24 +64,6 @@ in
       };
     };
 
-    blix-hardware-hotplug = {
-      # Let Home Manager start this service during a switch when the desktop
-      # target is already active, including after a troubleshooting stop.
-      Install.WantedBy = [ "blix-session.target" ];
-      Unit = {
-        Description = "Configure external keyboard and monitor layout on hotplug";
-        PartOf = [ "blix-session.target" ];
-        After = [ "blix-lock.service" ];
-      };
-      Service = {
-        Type = "exec";
-        ExecStart = "${hardwareHotplug}/bin/blix-hardware-hotplug";
-        Environment = lib.mapAttrsToList (name: value: "${name}=${value}") blixDisplayEnvironment;
-        Restart = "on-failure";
-        RestartSec = 1;
-      };
-    };
-
     # Reapply settings when Home Manager reloads an already-running session.
     blix-session-settings = {
       Install.WantedBy = [ "blix-session.target" ];
@@ -90,7 +71,7 @@ in
         Description = "Configure X11 keyboard repeat, display blanking and font DPI";
         ConditionEnvironment = "DISPLAY";
         PartOf = [ "blix-session.target" ];
-        After = [ "blix-hardware-hotplug.service" ];
+        After = [ "blix-display-hotplug.service" ];
       };
       Service = {
         Type = "oneshot";

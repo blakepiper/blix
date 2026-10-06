@@ -3,11 +3,8 @@ set -u
 
 [[ -n ${DISPLAY:-} ]] || exit 0
 
-display_number=${DISPLAY##*:}
-display_number=${display_number%%.*}
-xorg_log_path="${XDG_DATA_HOME:-$HOME/.local/share}/xorg/Xorg.${display_number}.log"
 runtime_dir="${XDG_RUNTIME_DIR:-/tmp}"
-pid_path="$runtime_dir/blix-hardware-hotplug-$UID.pid"
+pid_path="$runtime_dir/blix-display-hotplug-$UID.pid"
 display_layout=${BLIX_DISPLAY_LAYOUT:-extend}
 primary_output=${BLIX_PRIMARY_OUTPUT:?BLIX_PRIMARY_OUTPUT must name the primary monitor}
 primary_rotation=${BLIX_PRIMARY_ROTATION:-normal}
@@ -31,32 +28,12 @@ if (( ! once_mode )); then
   printf '%s\n' "$$" > "$pid_path" 2>/dev/null || exit 0
 fi
 
-input_monitor_pid=''
 display_monitor_pid=''
 cleanup() {
-  [[ -z $input_monitor_pid ]] || kill "$input_monitor_pid" 2>/dev/null || true
   [[ -z $display_monitor_pid ]] || kill "$display_monitor_pid" 2>/dev/null || true
   (( once_mode )) || rm -f "$pid_path"
 }
 trap cleanup EXIT INT TERM
-
-apply_gaming_keyboard() {
-  local id
-  local -a ids=()
-  [[ -r $xorg_log_path ]] || return 0
-
-  mapfile -t ids < <(
-    sed -n 's/.*XINPUT: Adding extended input device "Gaming Keyboard" (type: KEYBOARD, id \([0-9][0-9]*\)).*/\1/p' \
-      "$xorg_log_path" | tail -n 2
-  )
-  for id in "${ids[@]}"; do
-    setxkbmap -device "$id" \
-      -option '' \
-      -option terminate:ctrl_alt_bksp \
-      -option altwin:swap_alt_win us -print |
-      xkbcomp -synch -i "$id" - "$DISPLAY" >/dev/null 2>&1 || true
-  done
-}
 
 apply_wallpaper() {
   [[ -n $wallpaper && -r $wallpaper ]] || return 0
@@ -156,30 +133,8 @@ configure_external_monitor() {
   apply_wallpaper
 }
 
-apply_gaming_keyboard
 configure_external_monitor
 [[ ${1:-} == --once ]] && exit 0
-
-watch_keyboard() {
-  local line action='' vendor='' model=''
-  while IFS= read -r line; do
-    if [[ -z $line ]]; then
-      if [[ $action == add && $vendor == 1fc9 && $model == e8c7 ]]; then
-        sleep 1
-        apply_gaming_keyboard
-      fi
-      action=''
-      vendor=''
-      model=''
-    elif [[ $line == ACTION=* ]]; then
-      action=${line#ACTION=}
-    elif [[ $line == ID_VENDOR_ID=* ]]; then
-      vendor=${line#ID_VENDOR_ID=}
-    elif [[ $line == ID_MODEL_ID=* ]]; then
-      model=${line#ID_MODEL_ID=}
-    fi
-  done
-}
 
 watch_display() {
   local line action='' hotplug=''
@@ -199,8 +154,6 @@ watch_display() {
   done
 }
 
-udevadm monitor --udev --property --subsystem-match=input 2>/dev/null | watch_keyboard &
-input_monitor_pid=$!
 udevadm monitor --udev --property --subsystem-match=drm 2>/dev/null | watch_display &
 display_monitor_pid=$!
-wait "$input_monitor_pid" "$display_monitor_pid"
+wait "$display_monitor_pid"

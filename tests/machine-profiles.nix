@@ -36,7 +36,7 @@ let
       gtkDpi = home.gtk.gtk3.extraConfig.gtk-xft-dpi or null;
       consistentEnvironment = lib.all (name:
         builtins.elem "${name}=${home.home.sessionVariables.${name}}"
-          home.systemd.user.services.blix-hardware-hotplug.Service.Environment
+          home.systemd.user.services.blix-display-hotplug.Service.Environment
       ) (lib.filter (lib.hasPrefix "BLIX_") (builtins.attrNames home.home.sessionVariables));
     };
 
@@ -90,6 +90,7 @@ assert laptop.batteryHelper && laptop.brightnessHelper && laptop.batteryProbe;
 assert laptop.backlightBindings && laptop.batteryReporting;
 assert laptop.lid.HandleLidSwitch == "suspend" && laptop.lid.HandleLidSwitchDocked == "ignore";
 assert desktop.type == "desktop" && desktop.layout == "extend";
+assert laptop.touchpadScrolling && desktop.touchpadScrolling && phone.touchpadScrolling;
 assert !desktop.hasBattery && !desktop.hasBacklight && !desktop.hasTouchpad && !desktop.hasLid;
 assert !desktop.batteryHelper && !desktop.brightnessHelper && !desktop.batteryProbe;
 assert !desktop.backlightBindings && !desktop.batteryReporting;
