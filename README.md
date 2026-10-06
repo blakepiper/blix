@@ -1,4 +1,6 @@
-<img src="assets/blix-logo.png" alt="Blix logo" width="314">
+<p align="center">
+  <img src="assets/blix-logo.png" alt="Blix logo" width="314">
+</p>
 
 # blix
 
