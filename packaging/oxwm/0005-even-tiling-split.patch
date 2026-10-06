@@ -1,0 +1,22 @@
+Default to an equal split on every monitor and workspace.
+
+--- a/src/monitor.zig
++++ b/src/monitor.zig
+@@ -13,7 +13,7 @@
+     curtag: u32 = 1,
+     prevtag: u32 = 1,
+     nmasters: [13]i32 = [_]i32{1} ** 13,
+-    mfacts: [13]f32 = [_]f32{0.55} ** 13,
++    mfacts: [13]f32 = [_]f32{0.5} ** 13,
+     sellts: [13]u32 = [_]u32{0} ** 13,
+     ltidxs: [13][6]?*const Layout = [_][6]?*const Layout{.{ null, null, null, null, null, null }} ** 13,
+     showbars: [13]bool = [_]bool{true} ** 13,
+@@ -22,7 +22,7 @@
+ pub const Monitor = struct {
+     lt_symbol: [16]u8 = std.mem.zeroes([16]u8),
+-    mfact: f32 = 0.55,
++    mfact: f32 = 0.5,
+     nmaster: i32 = 1,
+     num: i32 = 0,
+     bar_y: i32 = 0,
+     mon_x: i32 = 0,
