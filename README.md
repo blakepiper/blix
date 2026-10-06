@@ -23,22 +23,28 @@ The desktop uses:
 ## Repository map
 
 ```text
-flake.nix                         Inputs, OXWM/st overlays, and host outputs
+flake.nix                         Inputs, host composition, and checks
 flake.lock                        Pinned nixpkgs and Home Manager revisions
+lib/mk-host.nix                   Platform, overlays, and Home Manager wiring
+overlays/desktop.nix              Pinned OXWM and patched st packages
+overlays/codex.nix                Complete Codex runtime packaging
 
 profiles/
 ├── laptop.nix                    Common environment with laptop defaults
-└── desktop.nix                   Common environment with desktop defaults
+├── desktop.nix                   Common environment with desktop defaults
+└── phone.nix                     Ordinary Blix desktop with phone capabilities
+
+modules/boot/uefi.nix             Optional UEFI/systemd-boot defaults
 
 modules/common/
 ├── default.nix                   Shared module composition
-├── boot.nix                      Shared UEFI/systemd-boot policy
+├── boot.nix                      Bootloader-independent kernel policy
 ├── desktop-session.nix           X11, startx, OXWM, and input behavior
 ├── desktop-services.nix          Graphics, PipeWire, polkit, and rtkit
 ├── fonts.nix                     Shared fonts
 ├── home-manager.nix              Shared Home Manager integration
 ├── locale.nix                    Locale and timezone
-├── machine.nix                   Typed capabilities, lid policy, and profile defaults
+├── machine.nix                   Typed capabilities and their shared behavior
 ├── networking.nix                NetworkManager
 ├── nix.nix                       Nix version, flakes, GC, and optimization
 ├── packages.nix                  Shared system utilities
@@ -63,23 +69,32 @@ packaging/
 ├── oxwm/                         Patches applied to the pinned OXWM release
 └── st/                           Blix st configuration and patch
 
-tests/machine-profiles.nix        Profile defaults and overrides checked by the flake
+tests/
+├── default.nix                   Checks for x86_64-linux and aarch64-linux
+├── profile-fixture.nix           Synthetic hardware for evaluation/build checks
+├── machine-profiles.nix          Profile defaults and hardware overrides
+├── display-hotplug.py            Monitor, rotation, scaling, and reconnect checks
+└── session-settings.nix          Generated blanking and Xresources behavior
 ```
 
 ## Machine profiles
 
-Each host imports either `../../profiles/laptop.nix` or
-`../../profiles/desktop.nix`, plus its generated hardware module. Both profiles
-include `modules/common`; hosts do not need to import it separately. `zen` and
-`t490` inherit the laptop profile.
+Each host imports a profile from `profiles/`, plus its hardware module. Every
+profile includes `modules/common`; hosts do not need to import it separately.
+`zen` and `t490` inherit the laptop profile. Profiles supply defaults, shared
+modules implement capability-based behavior, and hosts supply facts and exceptions.
 
-| Default | Laptop | Desktop |
-| --- | --- | --- |
-| `blix.machine.type` | `"laptop"` | `"desktop"` |
-| `hasBattery`, `hasBacklight`, `hasTouchpad` | `true` | `false` |
-| Lid close, on battery or external power | Suspend | Ignore |
-| Lid close while docked | Ignore | Ignore |
-| `blix.display.layout` | `"mirror"` | `"extend"` |
+| Default | Laptop | Desktop | Phone |
+| --- | --- | --- | --- |
+| `blix.machine.type` | `"laptop"` | `"desktop"` | `"phone"` |
+| `hasBattery`, `hasBacklight` | `true` | `false` | `true` |
+| `hasTouchpad`, `hasLid` | `true` | `false` | `false` |
+| `hasBluetooth` | `false` | `false` | `true` |
+| Lid close, on battery or external power | Suspend | Ignore | Ignore |
+| Lid close while docked | Ignore | Ignore | Ignore |
+| `blix.display.layout` | `"mirror"` | `"extend"` | `"extend"` |
+| `blix.display.blankAfterSeconds` | `0` | `0` | `300` |
+| Boot provider | UEFI/systemd-boot | UEFI/systemd-boot | Supplied by hardware layer |
 
 Capabilities are typed NixOS options under `blix.machine` and can be overridden
 in `hosts/<host>/default.nix`. For example, a laptop without a controllable
@@ -87,12 +102,16 @@ panel backlight can set `blix.machine.hasBacklight = false`. The system passes
 battery and backlight capabilities to Home Manager automatically. Desktop
 profiles omit battery widgets, Fastfetch battery reporting, and battery/brightness
 helpers; brightness bindings are only registered when a backlight is enabled. Battery
-reporting still checks for actual hardware at session startup.
+reporting still checks for actual hardware at session startup. Lid behavior
+uses `hasLid`, independently of the profile's name. Bluetooth support enables
+BlueZ and its command-line tools; pairing and trust are established on the device.
 
 Charge thresholds, Wi-Fi power quirks, and panel-driver workarounds remain
-host-specific. The profiles share manual suspend, locking before suspend, and
-no automatic idle locking. Hosts can override individual logind lid defaults
-through `services.logind.settings.Login`.
+host-specific. The profiles share manual suspend and locking before suspend.
+The phone profile also enables zram and UPower, requests orderly shutdown at 3%
+battery, and makes a short power-button press lock the session. Automatic
+suspend is left to verified host policy. Hosts can override individual logind
+defaults through `services.logind.settings.Login`.
 
 Display facts live in `hosts/<host>/home.nix`. Every host supplies
 `blix.display.primaryOutput`: an internal connector such as `eDP-1` on a
@@ -103,6 +122,13 @@ primary monitor. Mirrored layouts use `externalOutput` and
 `1920x1080` and 60 Hz. `primaryScaleFrom` optionally sets a logical resolution
 for the primary display outside mirrored operation. Hosts can override the
 inherited layout, so a laptop can use extended monitors too.
+
+`primaryRotation` accepts `"normal"`, `"left"`, `"right"`, or `"inverted"`.
+Rotation is reapplied on startup and reconnect. `dpi` optionally sets X11,
+Xft and GTK font/UI sizing; it defaults to `null` so existing hosts retain
+their current sizing. Font changes may require restarting applications.
+Rotation and DPI are host facts, rather than assumptions in the phone profile.
+`blankAfterSeconds` controls idle DPMS display power-off; `0` disables it.
 
 A desktop's `home.nix` can be as small as:
 
@@ -129,6 +155,8 @@ from the host options:
 ```text
 BLIX_DISPLAY_LAYOUT
 BLIX_PRIMARY_OUTPUT
+BLIX_PRIMARY_ROTATION
+BLIX_DISPLAY_DPI
 BLIX_EXTERNAL_OUTPUT
 BLIX_ADDITIONAL_EXTERNAL_OUTPUTS
 BLIX_MIRROR_MODE
@@ -144,8 +172,8 @@ return to the TTY.
 
 1. Create `hosts/<hostname>/` and generate its hardware module with
    `nixos-generate-config --show-hardware-config`.
-2. Import `../../profiles/laptop.nix` or `../../profiles/desktop.nix` and the
-   generated hardware module from the host's `default.nix`.
+2. Import the appropriate laptop, desktop, or phone profile and the hardware
+   module from the host's `default.nix`. Supply any additional boot provider.
 3. Set the hostname, the state version of that machine's installation, hardware
    quirks, capability overrides, and host-specific networking settings there.
    Connect its `home.nix` with `home-manager.users.przvl = import ./home.nix;`.
@@ -158,6 +186,36 @@ nixosConfigurations = {
   t490 = mkHost { modules = [ ./hosts/t490 ]; };
 };
 ```
+
+An ARM host uses `mkHost { system = "aarch64-linux"; modules = [ ./hosts/phone ]; }`.
+Profiles choose capabilities; the host constructor chooses the package platform.
+
+## Phone preparation
+
+`profiles/phone.nix` prepares a regular native NixOS workstation using the same
+OXWM, Xorg, st, dmenu, Firefox, Neovim and Home Manager configuration. It selects
+no mobile shell, architecture, kernel, firmware, bootloader, partition layout,
+display connector or rotation. Those decisions belong to the future host and
+its hardware support modules.
+
+The planned hardware is a OnePlus 6T (fajita) with a Bluetooth keyboard and
+touchpad. Before registering `nixosConfigurations.phone`, verify a boot provider
+that supports the intended standard NixOS boot and kernel-update workflow, add
+the actual storage and firmware configuration, and inspect the display and
+input devices. Set the observed connector and chosen landscape rotation in
+`hosts/phone/home.nix`; tune DPI on the physical screen. Set `hasTouchpad = true`
+if the Bluetooth device exposes a touchpad that should use the shared settings.
+
+The flake currently keeps only `zen` and `t490` as deployable hosts. Its ARM
+phone fixture evaluates the entire standard NixOS system and shared desktop
+without borrowing x86 hardware facts. The fixture has synthetic storage and
+UEFI settings solely for checking composition; it is not a 6T installation
+image and must never be activated or flashed.
+
+After delivery, validate Bluetooth reconnect, accelerated Xorg, landscape
+display, brightness, charging, audio routing, locking, suspend/resume and
+updates across reboots. Hardware dependencies remain pinned imports in the
+finished host configuration.
 
 ## Updating inputs and Nix
 
@@ -193,18 +251,31 @@ URL patch.
 
 ## Validation
 
-`nix flake check` also evaluates laptop and desktop profile fixtures and checks
-their capabilities, generated user configuration, and host override behavior.
+`nix flake check` evaluates laptop, desktop and ARM phone profile fixtures,
+checks generated user configuration and overrides, and runs display hotplug
+regression checks. The ARM evaluation runs even on an x86 machine.
 
 Evaluate every host and run the full closure builds before activation:
 
 ```sh
 nix flake check
+nix flake check --all-systems --no-build
 nix eval .#nixosConfigurations.zen.config.system.build.toplevel.drvPath --raw
 nix eval .#nixosConfigurations.t490.config.system.build.toplevel.drvPath --raw
 nix build .#nixosConfigurations.zen.config.system.build.toplevel --no-link
 nix build .#nixosConfigurations.t490.config.system.build.toplevel --no-link
 ```
+
+With an ARM machine or an aarch64 builder configured, realize the full synthetic
+phone system to check the desktop and package closure:
+
+```sh
+nix build .#checks.aarch64-linux.phone-system --no-link
+```
+
+Evaluation does not require an ARM builder. Native ARM builds do; an x86
+machine needs a remote ARM builder or configured emulation. Building this
+fixture checks userspace composition and does not establish fajita boot support.
 
 Only after those checks succeed should a host be activated:
 

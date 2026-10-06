@@ -1,24 +1,43 @@
 { config, lib, pkgs, hardwareHotplug, ... }:
 
 let
+  display = config.blix.display;
   wallpaper = config.blix.display.wallpaper;
   primaryScaleFrom = config.blix.display.primaryScaleFrom;
+  # One environment feeds shell startup, the X session and the hotplug unit.
+  displayEnvironment = {
+    BLIX_DISPLAY_LAYOUT = display.layout;
+    BLIX_PRIMARY_OUTPUT = display.primaryOutput;
+    BLIX_PRIMARY_ROTATION = display.primaryRotation;
+    BLIX_DISPLAY_DPI = if display.dpi == null then "" else toString display.dpi;
+    BLIX_EXTERNAL_OUTPUT = if display.externalOutput == null then "" else display.externalOutput;
+    BLIX_ADDITIONAL_EXTERNAL_OUTPUTS = lib.concatStringsSep " " display.additionalExternalOutputs;
+    BLIX_MIRROR_MODE = display.mirrorMode;
+    BLIX_MIRROR_RATE = display.mirrorRate;
+    BLIX_PRIMARY_SCALE_FROM = if primaryScaleFrom == null then "" else primaryScaleFrom;
+    BLIX_WALLPAPER = if wallpaper == null then "" else wallpaper;
+  };
+  sessionSettings = pkgs.writeShellApplication {
+    name = "blix-session-settings";
+    runtimeInputs = [ pkgs.xset ] ++ lib.optional (display.dpi != null) pkgs.xrdb;
+    text = ''
+      xset r rate 200 50
+      xset s off
+      xset +dpms
+      xset dpms 0 0 ${toString display.blankAfterSeconds}
+    '' + lib.optionalString (display.dpi != null) ''
+      xrdb -merge ${config.home.file.${config.xresources.path}.source}
+    '';
+  };
 in
 {
-  home.sessionVariables = {
-    BLIX_DISPLAY_LAYOUT = config.blix.display.layout;
-    BLIX_PRIMARY_OUTPUT = config.blix.display.primaryOutput;
-    BLIX_EXTERNAL_OUTPUT = if config.blix.display.externalOutput == null then "" else config.blix.display.externalOutput;
-    BLIX_ADDITIONAL_EXTERNAL_OUTPUTS = lib.concatStringsSep " " config.blix.display.additionalExternalOutputs;
-    BLIX_MIRROR_MODE = config.blix.display.mirrorMode;
-    BLIX_MIRROR_RATE = config.blix.display.mirrorRate;
-  }
-  // lib.optionalAttrs (primaryScaleFrom != null) {
-    BLIX_PRIMARY_SCALE_FROM = primaryScaleFrom;
-  }
-  // lib.optionalAttrs (wallpaper != null) {
-    BLIX_WALLPAPER = wallpaper;
+  _module.args = {
+    blixDisplayEnvironment = displayEnvironment;
+    blixSessionSettings = sessionSettings;
   };
+
+  home.sessionVariables = displayEnvironment;
+  xresources.properties = lib.mkIf (display.dpi != null) { "Xft.dpi" = display.dpi; };
 
   home.file = {
     ".config/mimeapps.list".source = ./config/mimeapps.list;
@@ -37,8 +56,7 @@ in
   # appearing if a lock/compositor helper is temporarily unavailable.
   home.file.".xinitrc" = {
     executable = true;
-    text = ''
-    #!${pkgs.bash}/bin/bash
+    text = "#!${pkgs.bash}/bin/bash\n" + ''
     # Import the standard NixOS X11 hooks when present.
     if [[ -d /etc/X11/xinit/xinitrc.d ]]; then
       for hook in /etc/X11/xinit/xinitrc.d/?*.sh; do
@@ -54,14 +72,9 @@ in
     export CM_SELECTIONS=clipboard
     export CM_MAX_CLIPS=100
     export CM_OWN_CLIPBOARD=0
-    export BLIX_DISPLAY_LAYOUT=${lib.escapeShellArg config.blix.display.layout}
-    export BLIX_PRIMARY_OUTPUT=${lib.escapeShellArg config.blix.display.primaryOutput}
-    export BLIX_EXTERNAL_OUTPUT=${lib.escapeShellArg (if config.blix.display.externalOutput == null then "" else config.blix.display.externalOutput)}
-    export BLIX_ADDITIONAL_EXTERNAL_OUTPUTS=${lib.escapeShellArg (lib.concatStringsSep " " config.blix.display.additionalExternalOutputs)}
-    export BLIX_MIRROR_MODE=${lib.escapeShellArg config.blix.display.mirrorMode}
-    export BLIX_MIRROR_RATE=${lib.escapeShellArg config.blix.display.mirrorRate}
-    export BLIX_PRIMARY_SCALE_FROM=${lib.escapeShellArg (if primaryScaleFrom == null then "" else primaryScaleFrom)}
-    export BLIX_WALLPAPER=${lib.escapeShellArg (if wallpaper == null then "" else wallpaper)}
+${lib.concatStringsSep "\n" (lib.mapAttrsToList (name: value:
+  "    export ${name}=${lib.escapeShellArg value}"
+) displayEnvironment)}
     export BLIX_BATTERY=
     export BLIX_HAS_BACKLIGHT=${if config.blix.hardware.hasBacklight then "1" else "0"}
 
@@ -77,20 +90,13 @@ ${lib.optionalString config.blix.hardware.hasBattery ''
 
     ${pkgs.xsetroot}/bin/xsetroot -solid '#1a1b26'
     ${hardwareHotplug}/bin/blix-hardware-hotplug --once
-    # Apply immediately for this manually started session. The session
-    # service reapplies this after rebuilds that reload user units.
-    ${pkgs.xset}/bin/xset r rate 200 50
+    # Apply the same repeat, blanking and DPI settings on startup and rebuilds.
+    ${sessionSettings}/bin/blix-session-settings
 ${lib.optionalString (wallpaper != null) ''
     if [[ -r ${lib.escapeShellArg wallpaper} ]]; then
       ${pkgs.feh}/bin/feh --no-fehbg --bg-fill ${lib.escapeShellArg wallpaper} >/dev/null 2>&1 || true
     fi
 ''}
-
-    # No idle locking or automatic display blanking. Manual DPMS remains
-    # available through the control menu and logind suspend still locks.
-    ${pkgs.xset}/bin/xset s off
-    ${pkgs.xset}/bin/xset +dpms
-    ${pkgs.xset}/bin/xset dpms 0 0 0
 
     if [[ -z ''${XDG_SESSION_ID:-} ]]; then
       XDG_SESSION_ID=$(${pkgs.systemd}/bin/loginctl show-session self -p Id --value) || exit 1
@@ -108,8 +114,7 @@ ${lib.optionalString (wallpaper != null) ''
 
     ${pkgs.systemd}/bin/systemctl --user import-environment \
       DISPLAY XAUTHORITY PATH XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_ID \
-      BLIX_DISPLAY_LAYOUT BLIX_PRIMARY_OUTPUT BLIX_EXTERNAL_OUTPUT BLIX_ADDITIONAL_EXTERNAL_OUTPUTS BLIX_MIRROR_MODE BLIX_MIRROR_RATE \
-      BLIX_PRIMARY_SCALE_FROM BLIX_WALLPAPER
+      ${lib.concatStringsSep " " (builtins.attrNames displayEnvironment)}
     ${pkgs.systemd}/bin/systemctl --user daemon-reload
     if ! ${pkgs.systemd}/bin/systemctl --user start --no-block blix-session.target; then
       echo 'Warning: unable to start all Blix session services; continuing with OXWM.' >&2

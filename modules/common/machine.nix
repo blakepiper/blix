@@ -2,42 +2,41 @@
 
 let
   cfg = config.blix.machine;
-  laptop = cfg.type == "laptop";
 in
 {
   options.blix.machine = {
     type = lib.mkOption {
-      type = lib.types.enum [ "laptop" "desktop" ];
+      type = lib.types.enum [ "laptop" "desktop" "phone" ];
       description = "Machine class supplied by the host's inherited profile.";
     };
     hasBattery = lib.mkOption {
       type = lib.types.bool;
-      default = laptop;
-      defaultText = lib.literalExpression ''config.blix.machine.type == "laptop"'';
+      default = false;
       description = "Whether to include battery reporting and its status-bar helper.";
     };
     hasBacklight = lib.mkOption {
       type = lib.types.bool;
-      default = laptop;
-      defaultText = lib.literalExpression ''config.blix.machine.type == "laptop"'';
+      default = false;
       description = "Whether to include internal-panel brightness controls.";
     };
     hasTouchpad = lib.mkOption {
       type = lib.types.bool;
-      default = laptop;
-      defaultText = lib.literalExpression ''config.blix.machine.type == "laptop"'';
+      default = false;
       description = "Whether to apply the shared touchpad settings.";
     };
+    hasLid = lib.mkEnableOption "lid-triggered suspend";
+    hasBluetooth = lib.mkEnableOption "Bluetooth support for wireless peripherals";
   };
 
   config = {
-    # Make lid policy explicit. A docked laptop stays awake for its external
-    # monitors; a desktop ignores lid events. Hosts can override these defaults.
+    # Power behavior follows capabilities, independently of the profile name.
     services.logind.settings.Login = {
-      HandleLidSwitch = lib.mkDefault (if laptop then "suspend" else "ignore");
-      HandleLidSwitchExternalPower = lib.mkDefault (if laptop then "suspend" else "ignore");
+      HandleLidSwitch = lib.mkDefault (if cfg.hasLid then "suspend" else "ignore");
+      HandleLidSwitchExternalPower = lib.mkDefault (if cfg.hasLid then "suspend" else "ignore");
       HandleLidSwitchDocked = lib.mkDefault "ignore";
     };
+
+    hardware.bluetooth.enable = lib.mkDefault cfg.hasBluetooth;
 
     services.libinput.touchpad = lib.mkIf cfg.hasTouchpad {
       clickMethod = lib.mkDefault "clickfinger";
@@ -54,7 +53,6 @@ in
         hasBattery = cfg.hasBattery;
         hasBacklight = cfg.hasBacklight;
       };
-      display.layout = lib.mkDefault (if laptop then "mirror" else "extend");
     };
   };
 }

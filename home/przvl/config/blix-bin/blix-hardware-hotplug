@@ -10,6 +10,8 @@ runtime_dir="${XDG_RUNTIME_DIR:-/tmp}"
 pid_path="$runtime_dir/blix-hardware-hotplug-$UID.pid"
 display_layout=${BLIX_DISPLAY_LAYOUT:-extend}
 primary_output=${BLIX_PRIMARY_OUTPUT:?BLIX_PRIMARY_OUTPUT must name the primary monitor}
+primary_rotation=${BLIX_PRIMARY_ROTATION:-normal}
+display_dpi=${BLIX_DISPLAY_DPI:-}
 external_output=${BLIX_EXTERNAL_OUTPUT:-}
 read -r -a additional_external_outputs <<< "${BLIX_ADDITIONAL_EXTERNAL_OUTPUTS:-}"
 mirror_mode=${BLIX_MIRROR_MODE:-1920x1080}
@@ -101,6 +103,9 @@ configure_external_monitor() {
   done <<< "$outputs"
 
   if ! "$primary_connected"; then
+    # Reapply rotation and scaling when the primary panel reconnects, even if
+    # the other connectors have not changed. Keep other displays untouched.
+    last_display_state=''
     printf 'Primary monitor %s is not connected; leaving the display layout unchanged.\n' "$primary_output" >&2
     return 0
   fi
@@ -118,9 +123,9 @@ configure_external_monitor() {
   if [[ $display_layout == extend ]]; then
     local previous_output=$primary_output
     if [[ -n $primary_scale_from ]]; then
-      xrandr --output "$primary_output" --auto --scale-from "$primary_scale_from" --pos 0x0 --primary || return 0
+      xrandr --output "$primary_output" --auto --rotate "$primary_rotation" --scale-from "$primary_scale_from" --pos 0x0 --primary || return 0
     else
-      xrandr --output "$primary_output" --auto --scale 1x1 --pos 0x0 --primary || return 0
+      xrandr --output "$primary_output" --auto --rotate "$primary_rotation" --scale 1x1 --pos 0x0 --primary || return 0
     fi
     for output in "${connected[@]}"; do
       xrandr --output "$output" --auto --scale 1x1 --right-of "$previous_output" || return 0
@@ -128,7 +133,7 @@ configure_external_monitor() {
     done
   elif (( ${#connected[@]} )); then
     xrandr --output "$primary_output" --mode "$mirror_mode" --rate "$mirror_rate" \
-      --scale 1x1 --pos 0x0 --primary || return 0
+      --rotate "$primary_rotation" --scale 1x1 --pos 0x0 --primary || return 0
     for output in "${connected[@]}"; do
       # A reconnect can retain an active CRTC with a black screen. Reset once
       # for the new connection, never once per queued dock notification.
@@ -142,11 +147,12 @@ configure_external_monitor() {
     xset dpms force on || true
   else
     if [[ -n $primary_scale_from ]]; then
-      xrandr --output "$primary_output" --auto --scale-from "$primary_scale_from" --pos 0x0 --primary || true
+      xrandr --output "$primary_output" --auto --rotate "$primary_rotation" --scale-from "$primary_scale_from" --pos 0x0 --primary || true
     else
-      xrandr --output "$primary_output" --auto --scale 1x1 --pos 0x0 --primary || true
+      xrandr --output "$primary_output" --auto --rotate "$primary_rotation" --scale 1x1 --pos 0x0 --primary || true
     fi
   fi
+  [[ -z $display_dpi ]] || xrandr --dpi "$display_dpi" || true
   apply_wallpaper
 }
 

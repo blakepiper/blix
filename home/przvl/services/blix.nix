@@ -1,4 +1,5 @@
-{ config, lib, pkgs, clipboardTextProbe, hardwareHotplug, lockService, ... }:
+{ config, lib, pkgs, clipboardTextProbe, hardwareHotplug, lockService,
+  blixDisplayEnvironment, blixSessionSettings, ... }:
 
 let
   clipPath = lib.concatStringsSep ":" [
@@ -20,7 +21,7 @@ in
         "blix-lock.service"
         "blix-clipboard.service"
         "blix-hardware-hotplug.service"
-        "blix-keyboard-repeat.service"
+        "blix-session-settings.service"
         "blix-picom.service"
         "pipewire.socket"
         "pipewire-pulse.socket"
@@ -76,38 +77,24 @@ in
       Service = {
         Type = "exec";
         ExecStart = "${hardwareHotplug}/bin/blix-hardware-hotplug";
-        Environment =
-          [
-            "BLIX_DISPLAY_LAYOUT=${config.blix.display.layout}"
-            "BLIX_PRIMARY_OUTPUT=${config.blix.display.primaryOutput}"
-            "BLIX_EXTERNAL_OUTPUT=${if config.blix.display.externalOutput == null then "" else config.blix.display.externalOutput}"
-            "BLIX_ADDITIONAL_EXTERNAL_OUTPUTS=${lib.concatStringsSep " " config.blix.display.additionalExternalOutputs}"
-            "BLIX_MIRROR_MODE=${config.blix.display.mirrorMode}"
-            "BLIX_MIRROR_RATE=${config.blix.display.mirrorRate}"
-          ]
-          ++ lib.optional (config.blix.display.primaryScaleFrom != null)
-            "BLIX_PRIMARY_SCALE_FROM=${config.blix.display.primaryScaleFrom}"
-          ++ lib.optional (config.blix.display.wallpaper != null)
-            "BLIX_WALLPAPER=${config.blix.display.wallpaper}";
+        Environment = lib.mapAttrsToList (name: value: "${name}=${value}") blixDisplayEnvironment;
         Restart = "on-failure";
         RestartSec = 1;
       };
     };
 
-    # The X server flags and .xinitrc cover new sessions. Reapply the same
-    # setting from a user service as well because Home Manager can reload the
-    # session units during a rebuild without restarting the manually started
-    # X server.
-    blix-keyboard-repeat = {
+    # Reapply settings when Home Manager reloads an already-running session.
+    blix-session-settings = {
+      Install.WantedBy = [ "blix-session.target" ];
       Unit = {
-        Description = "Configure fast X11 keyboard repeat";
+        Description = "Configure X11 keyboard repeat, display blanking and font DPI";
         ConditionEnvironment = "DISPLAY";
         PartOf = [ "blix-session.target" ];
         After = [ "blix-hardware-hotplug.service" ];
       };
       Service = {
         Type = "oneshot";
-        ExecStart = "${pkgs.xset}/bin/xset r rate 200 50";
+        ExecStart = "${blixSessionSettings}/bin/blix-session-settings";
         RemainAfterExit = true;
       };
     };

@@ -18,22 +18,26 @@ evaluation as the minimum acceptance criterion for every configuration change.
 
 ## Repository map
 
-- `flake.nix` declares the flake inputs and the `nixosConfigurations` outputs.
-  Hosts are built through the `mkHost` helper, which supplies the Home Manager
-  NixOS module; each host explicitly imports the shared and hardware modules it
-  needs.
+- `flake.nix` declares inputs, host outputs and per-platform checks.
+  `lib/mk-host.nix` supplies the package platform, overlays and Home Manager
+  NixOS module; each host explicitly imports its profile and hardware modules.
+- `overlays/desktop.nix` owns OXWM and st packaging; `overlays/codex.nix` owns
+  the Codex runtime packaging additions.
 - `flake.lock` pins all flake inputs.
-- `tests/machine-profiles.nix` checks laptop and desktop defaults and overrides
-  as part of `nix flake check`, without adding synthetic deployment hosts.
-- `profiles/laptop.nix` and `profiles/desktop.nix` compose the common environment
-  and select inherited machine defaults. Every host imports one profile.
+- `tests/` checks laptop, desktop and ARM phone defaults, overrides and display
+  hotplug behavior. Its synthetic fixtures must never be activated or flashed.
+- `profiles/laptop.nix`, `profiles/desktop.nix` and `profiles/phone.nix` compose
+  the common environment and select inherited defaults. Every host imports one
+  profile. Profiles describe capabilities independently of CPU architecture.
+- `modules/boot/uefi.nix` supplies optional PC boot defaults. Shared common
+  modules and the phone profile do not select a bootloader or device kernel.
 - `modules/common/default.nix` aggregates shared system modules for the
   standard Blix environment. Its sibling files separate boot, locale, Nix,
   networking, users, fonts, packages, the X11/OXWM session and its services,
   Home Manager integration, and the shared user configuration.
 - `modules/common/machine.nix` declares typed machine capabilities, supplies
-  profile-dependent lid and touchpad policy, and passes user capabilities and
-  display-layout defaults to Home Manager.
+  capability-based lid, touchpad and Bluetooth policy, and passes user
+  capabilities to Home Manager. Behavior must not branch on the machine type.
 - `hosts/<hostname>/default.nix` owns configuration specific to that machine
   and composes a machine profile, its generated hardware module, and genuinely
   device-specific settings.
@@ -45,7 +49,7 @@ evaluation as the minimum acceptance criterion for every configuration change.
 - `home/przvl/config/` owns the Blix-derived OXWM, Picom, Xfe, Neovim, tmux,
   fastfetch, and helper-script configuration.
 - `hosts/<hostname>/home.nix` owns `przvl` Home Manager settings that depend on
-  the machine, currently the typed display connector and layout options from
+  the machine, including typed connector, layout, rotation and DPI options from
   `home/przvl/host.nix`.
 
 ## Scope and ownership
@@ -62,11 +66,15 @@ evaluation as the minimum acceptance criterion for every configuration change.
   typed option in `home/przvl/host.nix` and set it per host; do not branch on
   the hostname inside shared user configuration.
 - Never duplicate common configuration into individual hosts. A future host
-  should inherit a laptop or desktop profile and contain only its own facts and
+  should inherit a laptop, desktop or phone profile and contain only its facts and
   exceptions.
-- Keep machine-class defaults in `modules/common/machine.nix`; override typed
+- Keep machine-class defaults in `profiles/`; override typed
   `blix.machine` capabilities in the host's system module for hardware exceptions.
   Use the inherited capabilities in shared user configuration, not hostname checks.
+- Keep phone boot, SoC, firmware and storage details in the hardware layer.
+  Prepare ordinary NixOS userspace without adding an unverified deployment host
+  or guessing device facts. Register the phone host only after hardware support
+  and its boot/update workflow have been verified.
 - Never move generated hardware facts out of a host's
   `hardware-configuration.nix`.
 - Keep package names inside the existing `with pkgs;` package lists. Do not add
@@ -104,7 +112,13 @@ Always check the patch and evaluate every host the flake defines:
 ```bash
 git diff --check
 nix flake check
+nix flake check --all-systems --no-build
 ```
+
+The x86 profile check also evaluates the full ARM phone fixture. When an ARM
+builder is available, realize that synthetic system with
+`nix build .#checks.aarch64-linux.phone-system --no-link`; this checks userspace
+composition, not OnePlus boot compatibility. Never activate that fixture.
 
 `nix flake check` evaluates each entry in `nixosConfigurations`, so it covers
 new hosts automatically. To evaluate a single host while iterating:

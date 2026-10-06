@@ -2,6 +2,6 @@
 { lib, ... }:
 
 {
-  imports = [ ../modules/common ];
+  imports = [ ../modules/common ../modules/boot/uefi.nix ];
   blix.machine.type = lib.mkDefault "desktop";
 }

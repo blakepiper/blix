@@ -1,6 +1,6 @@
 # Shared Blix-style system configuration.
 #
-# Laptop and desktop profiles import this common X11/OXWM environment. Hosts
+# Machine profiles import this common X11/OXWM environment. Hosts
 # compose a profile with their generated hardware settings. No display manager:
 # `startx` from a local TTY is the session entry point.
 { ... }:

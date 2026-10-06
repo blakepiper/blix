@@ -19,6 +19,21 @@
         type = lib.types.str;
         description = "Primary XRandR connector: an internal panel or a desktop monitor.";
       };
+      primaryRotation = lib.mkOption {
+        type = lib.types.enum [ "normal" "left" "right" "inverted" ];
+        default = "normal";
+        description = "XRandR rotation of the primary panel, applied on startup and hotplug.";
+      };
+      dpi = lib.mkOption {
+        type = lib.types.nullOr lib.types.ints.positive;
+        default = null;
+        description = "Optional X11 and Xft DPI for fonts and application UI sizing.";
+      };
+      blankAfterSeconds = lib.mkOption {
+        type = lib.types.ints.unsigned;
+        default = 0;
+        description = "Idle time before DPMS powers off the display; zero disables automatic blanking.";
+      };
       externalOutput = lib.mkOption {
         type = lib.types.nullOr lib.types.str;
         default = null;
