@@ -10,6 +10,7 @@
     hasBacklight = lib.mkDefault true;
     hasTouchpad = lib.mkDefault true;
     hasLid = lib.mkDefault true;
+    hasBluetooth = lib.mkDefault true;
   };
 
   home-manager.users.przvl.blix.display.layout = lib.mkDefault "mirror";

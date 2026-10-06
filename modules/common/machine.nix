@@ -35,6 +35,7 @@ in
       hardware = {
         hasBattery = cfg.hasBattery;
         hasBacklight = cfg.hasBacklight;
+        hasBluetooth = config.hardware.bluetooth.enable;
       };
     };
   };

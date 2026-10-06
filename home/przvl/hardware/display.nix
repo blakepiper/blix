@@ -3,7 +3,7 @@
 let
   displayHotplug = pkgs.writeShellApplication {
     name = "blix-display-hotplug";
-    runtimeInputs = [ pkgs.coreutils pkgs.feh pkgs.systemd pkgs.xrandr pkgs.xset ];
+    runtimeInputs = [ pkgs.coreutils pkgs.feh pkgs.gawk pkgs.systemd pkgs.xrandr pkgs.xset ];
     text = builtins.readFile ./display-hotplug.sh;
   };
 in
@@ -49,9 +49,9 @@ in
       description = "Mode used for the mirrored external output.";
     };
     mirrorRate = lib.mkOption {
-      type = lib.types.str;
-      default = "60";
-      description = "Refresh rate used for the mirrored external output.";
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      description = "Optional fixed mirrored refresh rate; null selects each output's highest available rate.";
     };
     primaryScaleFrom = lib.mkOption {
       type = lib.types.nullOr lib.types.str;

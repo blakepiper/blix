@@ -13,7 +13,7 @@ let
     BLIX_EXTERNAL_OUTPUT = if display.externalOutput == null then "" else display.externalOutput;
     BLIX_ADDITIONAL_EXTERNAL_OUTPUTS = lib.concatStringsSep " " display.additionalExternalOutputs;
     BLIX_MIRROR_MODE = display.mirrorMode;
-    BLIX_MIRROR_RATE = display.mirrorRate;
+    BLIX_MIRROR_RATE = if display.mirrorRate == null then "" else display.mirrorRate;
     BLIX_PRIMARY_SCALE_FROM = if primaryScaleFrom == null then "" else primaryScaleFrom;
     BLIX_WALLPAPER = if wallpaper == null then "" else wallpaper;
   };

@@ -52,7 +52,8 @@ evaluation as the minimum acceptance criterion for every configuration change.
   Neofetch, and helper-script configuration.
 - `home/przvl/hardware/` declares typed user capabilities and display options;
   `display.nix` owns the display helper package and hotplug service. The X11
-  display environment remains in `home/przvl/x11.nix`.
+  display environment remains in `home/przvl/x11.nix`. `bluetooth.nix` binds the
+  Blueman pairing agent to the manual Blix session without a tray dependency.
 - `hosts/<hostname>/home.nix` composes machine-dependent user settings and
   imports `display.nix` for the host's connector, layout, rotation and DPI facts.
 
@@ -72,6 +73,9 @@ evaluation as the minimum acceptance criterion for every configuration change.
 - Keep peripheral behavior in `modules/hardware/`; device-specific keyboard
   rules belong in `modules/hardware/keyboards/` and match the device identity.
   Keep tmux as an unconfigured package without a Blix layout helper or config.
+- Select refresh rates from the display's advertised modes at the configured
+  resolution; preserve per-output selection instead of globally capping mirrors.
+  Keep Bluetooth defaults capability-based and device pairing state on the host.
 - Never duplicate common configuration into individual hosts. A future host
   should inherit a laptop, desktop or phone profile and contain only its facts and
   exceptions.

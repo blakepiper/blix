@@ -85,6 +85,7 @@ home/przvl/
 ├── default.nix                   Home Manager composition root
 ├── hardware/
 │   ├── default.nix               Typed user capabilities
+│   ├── bluetooth.nix             Bluetooth manager and session pairing agent
 │   ├── display.nix               Display options, helper package and service
 │   └── display-hotplug.sh        Mirroring, extension and reconnect behavior
 ├── packages.nix                  Blix user packages
@@ -120,7 +121,7 @@ modules implement capability-based behavior, and hosts supply facts and exceptio
 | `blix.machine.type` | `"laptop"` | `"desktop"` | `"phone"` |
 | `hasBattery`, `hasBacklight` | `true` | `false` | `true` |
 | `hasTouchpad`, `hasLid` | `true` | `false` | `false` |
-| `hasBluetooth` | `false` | `false` | `true` |
+| `hasBluetooth` | `true` | `false` | `true` |
 | Lid close, on battery or external power | Suspend | Ignore | Ignore |
 | Lid close while docked | Ignore | Ignore | Ignore |
 | `blix.display.layout` | `"mirror"` | `"extend"` | `"extend"` |
@@ -135,7 +136,11 @@ profiles omit battery widgets, Neofetch battery reporting, and battery/brightnes
 helpers; brightness bindings are only registered when a backlight is enabled. Battery
 reporting still checks for actual hardware at session startup. Lid behavior
 uses `hasLid`, independently of the profile's name. Bluetooth support enables
-BlueZ and its command-line tools; pairing and trust are established on the device.
+BlueZ, powers the controller on at boot, and supplies Blueman and `bluetoothctl`.
+The Blueman pairing agent starts with the Blix X11 session without requiring a
+system tray. Launch `blueman-manager` from dmenu or a terminal to pair, trust and
+connect devices. Pairing records stay on the machine; hosts can opt out with
+`blix.machine.hasBluetooth = false`.
 
 Charge thresholds, Wi-Fi power quirks, and panel-driver workarounds remain
 host-specific. The profiles share manual suspend and locking before suspend.
@@ -163,8 +168,16 @@ Display behavior and its dedicated hotplug service live in
 laptop, or a monitor connector such as `DP-1` on a desktop. Extended layouts
 use preferred modes and place other connected monitors to the right of the
 primary monitor. Mirrored layouts use `externalOutput` and
-`additionalExternalOutputs`, with `mirrorMode`/`mirrorRate` defaulting to
-`1920x1080` and 60 Hz. `primaryScaleFrom` optionally sets a logical resolution
+`additionalExternalOutputs`, with `mirrorMode` defaulting to `1920x1080`.
+For each display, the helper selects the highest advertised refresh rate at the
+chosen resolution: the preferred resolution for extended/undocked displays,
+and `mirrorMode` for mirrored displays. Rates are selected independently, so a
+slower monitor does not impose its rate on the others. `mirrorRate` defaults to
+`null` for automatic selection; setting a value such as `"60"` explicitly pins
+mirrored rates. If a driver rejects a selected rate, the helper retries the same
+resolution with automatic refresh selection. It reapplies newly advertised
+rates while ignoring duplicate events and changes to the active-mode marker.
+`primaryScaleFrom` optionally sets a logical resolution
 for the primary display outside mirrored operation. Hosts can override the
 inherited layout, so a laptop can use extended monitors too.
 

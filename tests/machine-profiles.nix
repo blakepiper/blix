@@ -17,11 +17,20 @@ let
     in
     builtins.seq cfg.system.build.toplevel.drvPath {
       inherit (cfg.blix.machine) type hasBattery hasBacklight hasTouchpad hasLid hasBluetooth;
-      inherit (home.blix.display) layout primaryRotation dpi blankAfterSeconds;
+      inherit (home.blix.display) layout primaryRotation dpi blankAfterSeconds mirrorRate;
       architecture = cfg.nixpkgs.hostPlatform.system;
       touchpadScrolling = cfg.services.libinput.touchpad.naturalScrolling;
       lid = cfg.services.logind.settings.Login;
       bluetooth = cfg.hardware.bluetooth.enable && cfg.hardware.bluetooth.powerOnBoot;
+      bluetoothManager = cfg.services.blueman.enable;
+      bluetoothApplet = home.services.blueman-applet.enable;
+      bluetoothInSession = builtins.elem "blueman-applet.service"
+        home.systemd.user.targets.blix-session.Unit.Wants;
+      bluetoothNoTray = !home.services.blueman-applet.enable || (
+        home.systemd.user.services.blueman-applet.Unit.Requires == [ ]
+        && home.systemd.user.services.blueman-applet.Unit.After == [ "blix-lock.service" ]
+        && home.systemd.user.services.blueman-applet.Unit.PartOf == [ "blix-session.target" ]
+      );
       efiVariables = cfg.boot.loader.efi.canTouchEfiVariables;
       systemdBoot = cfg.boot.loader.systemd-boot.enable;
       oxwm = cfg.services.xserver.windowManager.oxwm.enable;
@@ -57,6 +66,7 @@ let
       blix.machine.hasBattery = false;
       blix.machine.hasBacklight = false;
       blix.machine.hasLid = false;
+      blix.machine.hasBluetooth = false;
       services.libinput.touchpad.naturalScrolling = false;
     }
   ]);
@@ -86,12 +96,14 @@ let
 in
 assert laptop.type == "laptop" && laptop.layout == "mirror";
 assert laptop.hasBattery && laptop.hasBacklight && laptop.hasTouchpad && laptop.hasLid;
+assert laptop.hasBluetooth && laptop.bluetooth && laptop.bluetoothManager && laptop.bluetoothApplet;
 assert laptop.batteryHelper && laptop.brightnessHelper && laptop.batteryProbe;
 assert laptop.backlightBindings && laptop.batteryReporting;
 assert laptop.lid.HandleLidSwitch == "suspend" && laptop.lid.HandleLidSwitchDocked == "ignore";
 assert desktop.type == "desktop" && desktop.layout == "extend";
 assert laptop.touchpadScrolling && desktop.touchpadScrolling && phone.touchpadScrolling;
 assert !desktop.hasBattery && !desktop.hasBacklight && !desktop.hasTouchpad && !desktop.hasLid;
+assert !desktop.bluetooth && !desktop.bluetoothManager && !desktop.bluetoothApplet;
 assert !desktop.batteryHelper && !desktop.brightnessHelper && !desktop.batteryProbe;
 assert !desktop.backlightBindings && !desktop.batteryReporting;
 assert desktop.lid.HandleLidSwitch == "ignore";
@@ -101,6 +113,7 @@ assert overrides.bluetooth && !overrides.efiVariables;
 assert !laptopOverrides.batteryHelper && !laptopOverrides.brightnessHelper;
 assert !laptopOverrides.batteryReporting && !laptopOverrides.touchpadScrolling;
 assert laptopOverrides.lid.HandleLidSwitch == "ignore";
+assert !laptopOverrides.bluetooth && !laptopOverrides.bluetoothManager && !laptopOverrides.bluetoothApplet;
 assert laptop.systemdBoot && desktop.systemdBoot && laptop.efiVariables && desktop.efiVariables;
 assert phone.type == "phone" && phone.architecture == "aarch64-linux";
 assert phone.hasBattery && phone.hasBacklight && phone.hasBluetooth && phone.bluetooth;
@@ -113,9 +126,13 @@ assert phoneHost.config.zramSwap.enable && phoneHost.config.nix.settings.max-job
 assert !phoneWithoutBoot.boot.loader.systemd-boot.enable;
 assert !phoneWithoutBoot.boot.loader.efi.canTouchEfiVariables;
 assert !phoneOverrides.bluetooth && phoneOverrides.touchpadScrolling;
+assert !phoneOverrides.bluetoothManager && !phoneOverrides.bluetoothApplet;
 assert phoneOverrides.primaryRotation == "left" && phoneOverrides.blankAfterSeconds == 0;
 assert phoneOverrides.xresources."Xft.dpi" == 192 && phoneOverrides.gtkDpi == 192 * 1024;
 assert lib.all (profile: profile.oxwm && !profile.hyprland && profile.consistentEnvironment && profile.xinitShebang)
+  [ laptop desktop phone overrides laptopOverrides phoneOverrides ];
+assert lib.all (profile: profile.mirrorRate == null && profile.bluetoothNoTray
+  && profile.bluetoothApplet == profile.bluetoothInSession)
   [ laptop desktop phone overrides laptopOverrides phoneOverrides ];
 pkgs.runCommand "machine-profile-checks" { } ''
   touch "$out"
