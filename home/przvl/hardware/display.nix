@@ -1,10 +1,12 @@
-{ lib, pkgs, blixDisplayEnvironment, ... }:
+{ lib, pkgs, blixDisplayEnvironment, blixSettings, ... }:
 
 let
   displayHotplug = pkgs.writeShellApplication {
     name = "blix-display-hotplug";
-    runtimeInputs = [ pkgs.coreutils pkgs.feh pkgs.gawk pkgs.systemd pkgs.xrandr pkgs.xset ];
-    text = builtins.readFile ./display-hotplug.sh;
+    runtimeInputs = [ pkgs.coreutils pkgs.feh pkgs.gawk pkgs.systemd pkgs.util-linux pkgs.xrandr pkgs.xset ];
+    text = lib.replaceStrings [ "@blix-settings-apply@" ]
+      [ "${blixSettings}/bin/blix-settings-apply" ]
+      (builtins.readFile ./display-hotplug.sh);
   };
 in
 {

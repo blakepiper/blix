@@ -96,7 +96,7 @@ table.insert(blocks, oxwm.bar.block.static({
 }))
 if os.getenv("BLIX_HAS_BACKLIGHT") == "1" then
   table.insert(blocks, oxwm.bar.block.shell({
-    format = "Brit {}",
+    format = "Bri {}",
     command = "@oxwm-brightness@",
     interval = 1,
     color = colors.status.brightness,
@@ -154,6 +154,7 @@ oxwm.key.bind({ mod }, "Space", oxwm.spawn("dmenu_run"))
 oxwm.key.bind({ mod }, "D", oxwm.spawn("dmenu_run"))
 oxwm.key.bind({ mod }, "F", oxwm.spawn("xfe"))
 oxwm.key.bind({ mod }, "B", oxwm.spawn("firefox"))
+oxwm.key.bind({ mod }, "S", oxwm.spawn("@blix-settings@"))
 oxwm.key.bind({ mod }, "P", oxwm.client.toggle_floating())
 oxwm.key.bind({ mod }, "C", oxwm.layout.set("tiling"))
 oxwm.key.bind({ mod }, "R", oxwm.layout.set("dwindle"))

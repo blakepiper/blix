@@ -1,4 +1,5 @@
 """Exercise display changes without an X server or physical monitors."""
+import fcntl
 import os
 from pathlib import Path
 import shutil
@@ -28,7 +29,8 @@ fi
         path.chmod(0o755)
 
     def run(name, layout, primary, query, expected, *, scale="", rotation="normal",
-            dpi="", duplicates=False, unplug=None, reconnect=None, mirror_rate="", reject_rate=""):
+            dpi="", duplicates=False, unplug=None, reconnect=None, mirror_rate="", reject_rate="",
+            preview_lock=False):
         log = root / "commands.log"
         log.write_text("")
         (root / "query").write_text(query)
@@ -49,6 +51,15 @@ fi
         if reconnect:
             (root / "reconnect").write_text(reconnect)
             commands += '; cp "$3" "$TEST_QUERY"; configure_external_monitor'
+        if preview_lock:
+            settings_dir = root / f"blix-settings-{os.getuid()}"
+            settings_dir.mkdir(mode=0o700, exist_ok=True)
+            with (settings_dir / "display.lock").open("w") as lock:
+                fcntl.flock(lock, fcntl.LOCK_EX)
+                subprocess.run(["bash", "-eu", "-c", commands, "_", str(root / "functions.sh"),
+                                str(root / "unplug"), str(root / "reconnect")],
+                               env=env, check=True, capture_output=True, text=True)
+                assert log.read_text() == "", f"{name}: hotplug changed a display during a preview"
         subprocess.run(["bash", "-eu", "-c", commands, "_", str(root / "functions.sh"),
                         str(root / "unplug"), str(root / "reconnect")],
                        env=env, check=True, capture_output=True, text=True)
@@ -88,6 +99,10 @@ fi
     run("desktop single monitor", "extend", "DP-1", "DP-1 connected\n", [
         "--output DP-1 --auto --rotate normal --scale 1x1 --pos 0x0 --primary",
     ])
+    run("hotplug waits for a display preview and resumes after its lock is released", "extend", "DP-1",
+        "DP-1 connected\n", [
+            "--output DP-1 --auto --rotate normal --scale 1x1 --pos 0x0 --primary",
+        ], preview_lock=True)
     run("missing primary leaves displays untouched", "extend", "DP-1",
         "HDMI-1 connected\n", [], rotation="left", dpi="192")
 

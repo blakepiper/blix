@@ -1,0 +1,35 @@
+* { border-radius: 0; -gtk-outline-radius: 0; }
+window { background: #1a1b26; color: #c0c5d3; }
+window, button, entry, combobox, spinbutton { font-family: "JetBrainsMono Nerd Font", monospace; font-size: 12px; }
+.sidebar { background: #161720; border-right: 1px solid #34354a; }
+.brand { color: #9fe3c4; font-size: 22px; font-weight: bold; }
+.sidebar list { background: transparent; }
+.sidebar row { padding: 12px 14px; border-left: 3px solid transparent; }
+.sidebar row:selected { background: #293b38; border-left-color: #9fe3c4; color: #d7ffe8; }
+.sidebar row:hover { background: #242636; }
+.page-title { font-size: 26px; font-weight: bold; color: #e2e6ef; }
+.subtitle, .dim { color: #9299ae; }
+.section-title { font-size: 15px; font-weight: bold; color: #d7ffe8; }
+.card { background: #202230; border: 1px solid #35374b; padding: 16px; }
+.monitor { background: #283b39; border: 2px solid #9fe3c4; padding: 14px; color: #d7ffe8; }
+.status { padding: 10px 16px; background: #263a33; border-top: 1px solid #47695c; }
+.status.error { background: #43262d; border-top-color: #9c5363; color: #ffb4c1; }
+button { background-image: none; background: #2c2f41; color: #e2e6ef; border: 1px solid #45495f; padding: 7px 12px; box-shadow: none; }
+button:hover { background: #3c4255; }
+button:disabled { color: #72788b; background: #242634; }
+button.suggested-action { background: #9fe3c4; color: #15241c; border-color: #9fe3c4; }
+button.suggested-action:hover { background: #c1f5dc; }
+button.destructive-action { color: #ffb4c1; }
+entry { background: #171923; color: #d8ddeb; border: 1px solid #45495f; padding: 7px; box-shadow: none; }
+entry:focus { border-color: #9fe3c4; }
+combobox button, spinbutton { background: #292c3c; }
+scale trough { background: #363b50; min-height: 4px; }
+scale highlight { background: #9fe3c4; }
+scale slider { background: #d7ffe8; min-width: 13px; min-height: 13px; box-shadow: none; }
+switch { background: #34384b; }
+switch:checked { background: #436f60; }
+switch slider { background: #cbd1df; }
+progressbar trough { background: #34384b; min-height: 6px; }
+progressbar progress { background: #9fe3c4; min-height: 6px; }
+separator { background: #34354a; }
+dialog { background: #202230; }

@@ -23,6 +23,8 @@ The desktop uses:
   application captures the mouse.
 - Home Manager creates the user services and scripts for display hotplugging,
   locking, clipboard history, screenshots, brightness, status, and audio.
+- Blix Settings is a native GTK app for display, audio, Bluetooth, networking,
+  power and input controls. `Super+S` opens or focuses its window.
 - Firefox is managed with the Blix privacy policies and force-installed uBlock
   Origin, Dark Reader, and Enhancer for YouTube extensions. Its default profile
   includes the captured privacy preferences, vertical tabs, square corners,
@@ -98,6 +100,7 @@ home/przvl/
 └── config/                       OXWM, Picom, Xfe, Neovim, and script assets
 
 packaging/
+├── blix-settings/                Native settings app, backends and GTK styling
 ├── oxwm/                         Patches applied to the pinned OXWM release
 └── neofetch/                     Pinned Neofetch and NixOS compatibility fixes
 
@@ -108,6 +111,7 @@ tests/
 ├── keyboard-mapping.nix          Compiled built-in and mechanical keymaps
 ├── keyboard-mapping.py           Win/Cmd modifier regression checks
 ├── display-hotplug.py            Monitor, rotation, scaling, and reconnect checks
+├── blix-settings.nix             Settings backend and isolated GTK checks
 └── session-settings.nix          Generated blanking and Xresources behavior
 ```
 
@@ -198,6 +202,36 @@ A desktop's `display.nix` can be as small as:
   blix.display.primaryOutput = "DP-1";
 }
 ```
+
+## Blix Settings
+
+Open `blix-settings` from a terminal or launcher, or press `Super+S`. The app
+uses the existing NetworkManager, BlueZ, PipeWire/PulseAudio and X11 services;
+it also includes a searchable shortcut reference and system information.
+
+- Display controls cover mirror/extend layouts, monitor positions, resolutions,
+  each output's advertised refresh rates, rotation, scaling and brightness.
+  Applying a layout starts a 15-second confirmation window. A separate watchdog
+  restores the previous layout if it is rejected, times out or the app closes.
+- Audio controls select speakers and microphones, adjust volume and mute,
+  play a test tone, and show an optional microphone level meter without recording.
+- Bluetooth supports discovery, pairing confirmation, connection and forgetting
+  devices. Networking supports Wi-Fi passwords, saved profiles and Ethernet
+  status. Advanced Connections opens NetworkManager's editor for VPNs,
+  enterprise authentication and detailed connection settings.
+- Power shows battery and charge-limit information, configures display idle
+  time, and offers locking and suspend. Input controls configure pointing-device
+  speed, natural scrolling, touchpad tapping and keyboard repeat.
+
+Nix supplies immutable, capability-based defaults in `~/.config/blix/defaults.json`.
+User choices live separately in `~/.config/blix/settings.json`; Restore Defaults
+removes the corresponding override. Display preferences are reapplied by the
+existing hotplug helper, and saved input preferences return when matching
+devices reconnect. NetworkManager owns Wi-Fi credentials and connection profiles;
+BlueZ owns pairing records. Neither is copied into the settings file.
+
+`blix-settings --demo` previews the interface with sample devices and in-memory
+preferences. It does not change hardware or saved settings.
 
 ## Starting the session
 

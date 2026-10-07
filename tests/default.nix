@@ -10,8 +10,9 @@ in
   bar-sliders = import ./bar-sliders.nix { inherit pkgs fixture; };
   bar-async = import ./bar-async.nix { inherit pkgs fixture; };
   firefox-video-opacity = import ./firefox-video-opacity.nix { inherit pkgs fixture; };
+  blix-settings = import ./blix-settings.nix { inherit lib pkgs; };
   display-hotplug = pkgs.runCommand "display-hotplug-checks" {
-    nativeBuildInputs = [ pkgs.python3 pkgs.bash pkgs.coreutils pkgs.gawk ];
+    nativeBuildInputs = [ pkgs.python3 pkgs.bash pkgs.coreutils pkgs.gawk pkgs.util-linux ];
   } ''
     python3 ${./display-hotplug.py} ${../home/przvl/hardware/display-hotplug.sh}
     touch "$out"

@@ -99,8 +99,20 @@ apply_output_mode() {
   fi
 }
 
-configure_external_monitor() {
+configure_external_monitor_unlocked() {
   command -v xrandr >/dev/null 2>&1 || return 0
+
+  # Confirmed GUI layouts share this hotplug path. A preview's independent
+  # watchdog owns modesetting until confirmation or rollback.
+  if [[ -x @blix-settings-apply@ ]]; then
+    local settings_status=0
+    @blix-settings-apply@ display-hotplug || settings_status=$?
+    case $settings_status in
+      0) apply_wallpaper; return 0 ;;
+      3) return 0 ;;
+      *) ;; # No override, or invalid state: retain the declarative defaults.
+    esac
+  fi
 
   local outputs output status _rest pattern matched primary_connected=false display_state=''
   local -a connected=() disconnected=() mode_args=()
@@ -199,6 +211,27 @@ configure_external_monitor() {
   fi
   [[ -z $display_dpi ]] || xrandr --dpi "$display_dpi" || true
   apply_wallpaper
+}
+
+configure_external_monitor() {
+  # Serialize both the default policy and GUI overrides with the preview
+  # watchdog, so a dock event cannot overwrite a layout awaiting confirmation.
+  if command -v flock >/dev/null 2>&1; then
+    local settings_dir="$runtime_dir/blix-settings-$UID" display_lock_fd status=0
+    [[ ! -L $settings_dir ]] || return 0
+    if [[ ! -d $settings_dir ]]; then
+      mkdir -m 700 "$settings_dir" || return 0
+    fi
+    [[ -O $settings_dir ]] || return 0
+    chmod 700 "$settings_dir" || return 0
+    exec {display_lock_fd}>"$settings_dir/display.lock" || return 0
+    if flock -n "$display_lock_fd"; then
+      configure_external_monitor_unlocked || status=$?
+    fi
+    exec {display_lock_fd}>&-
+    return "$status"
+  fi
+  configure_external_monitor_unlocked
 }
 
 configure_external_monitor
