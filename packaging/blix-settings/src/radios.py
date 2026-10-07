@@ -69,7 +69,9 @@ class Network:
         if not self.client.get_nm_running():
             raise SettingsError("NetworkManager is not running.")
         networks, wired = {}, []
-        for device in self.client.get_devices():
+        devices = self.client.get_devices()
+        active_connections = {connection.get_uuid(): connection for connection in self.client.get_active_connections()}
+        for device in devices:
             state = device.get_state()
             status = state.value_nick.replace("-", " ").capitalize()
             if state == NM.DeviceState.ACTIVATED:
@@ -81,7 +83,11 @@ class Network:
             if device.get_device_type() != NM.DeviceType.WIFI:
                 continue
             active = device.get_active_access_point()
-            for ap in device.get_access_points():
+            connection = device.get_active_connection()
+            points = list(device.get_access_points())
+            if active and all(ap.get_path() != active.get_path() for ap in points):
+                points.insert(0, active)
+            for ap in points:
                 raw = ap.get_ssid()
                 if not raw:
                     continue
@@ -97,13 +103,32 @@ class Network:
                         "saved": saved.get_uuid() if saved else None,
                         "active": bool(active and active.get_path() == ap.get_path() and state == NM.DeviceState.ACTIVATED),
                         "connecting": bool(active and active.get_path() == ap.get_path() and
-                                           NM.DeviceState.PREPARE <= state < NM.DeviceState.ACTIVATED), "status": status}
-                if key not in networks or item["active"] or item["strength"] > networks[key]["strength"]:
+                                           NM.DeviceState.PREPARE <= state < NM.DeviceState.ACTIVATED),
+                        "disconnecting": bool(active and active.get_path() == ap.get_path() and state == NM.DeviceState.DEACTIVATING),
+                        "active_uuid": connection.get_uuid() if connection and active and active.get_path() == ap.get_path() else None,
+                        "status": status}
+                # The active AP wins even when another BSSID for this SSID is
+                # stronger. Keep its signal and connection state together.
+                def rank(value):
+                    return (value["active"], value["connecting"], value["disconnecting"], value["strength"])
+                if key not in networks or rank(item) > rank(networks[key]):
                     networks[key] = item
-        active_uuids = {connection.get_uuid() for connection in self.client.get_active_connections()}
-        profiles = [{"name": profile.get_id(), "uuid": profile.get_uuid(), "type": profile.get_connection_type(),
-                     "active": profile.get_uuid() in active_uuids} for profile in self.client.get_connections()]
-        return {"enabled": self.client.wireless_get_enabled(), "available": self.client.wireless_hardware_get_enabled(),
+        available = {profile.get_uuid() for device in devices for profile in device.get_available_connections()}
+        profiles = []
+        for profile in self.client.get_connections():
+            kind, uuid_value = profile.get_connection_type(), profile.get_uuid()
+            if kind == "loopback":
+                continue
+            active = active_connections.get(uuid_value)
+            state = active.get_state() if active else NM.ActiveConnectionState.DEACTIVATED
+            profiles.append({"name": profile.get_id(), "uuid": uuid_value, "type": kind,
+                "active": state == NM.ActiveConnectionState.ACTIVATED,
+                "connecting": state == NM.ActiveConnectionState.ACTIVATING,
+                "disconnecting": state == NM.ActiveConnectionState.DEACTIVATING,
+                "available": uuid_value in available or kind not in ("802-11-wireless", "802-3-ethernet")})
+        return {"enabled": self.client.wireless_get_enabled(), "has_adapter": any(device.get_device_type() == NM.DeviceType.WIFI for device in devices),
+                "available": self.client.wireless_hardware_get_enabled()
+                and any(device.get_device_type() == NM.DeviceType.WIFI for device in devices),
                 "networks": sorted(networks.values(), key=lambda item: (not item["active"], -item["strength"], item["name"])),
                 "wired": wired, "profiles": sorted(profiles, key=lambda item: item["name"].lower())}
 
@@ -270,7 +295,8 @@ class Bluetooth:
             device = interfaces.get("org.bluez.Device1")
             if adapter:
                 adapters.append({"path": str(path), "name": str(adapter.get("Alias", "Bluetooth")),
-                                 "powered": bool(adapter.get("Powered")), "discovering": bool(adapter.get("Discovering"))})
+                                 "powered": bool(adapter.get("Powered")), "discovering": bool(adapter.get("Discovering")),
+                                 "scanning": self.scanning == str(path) and bool(adapter.get("Discovering"))})
             if device:
                 devices.append({"path": str(path), "name": str(device.get("Alias", device.get("Address", "Bluetooth device"))),
                                 "adapter": str(device.get("Adapter")), "paired": bool(device.get("Paired")),

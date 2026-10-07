@@ -5,7 +5,7 @@ let
   python = pkgs.python3.withPackages (ps: [ ps.pygobject3 ps.pycairo ps.dbus-python ]);
 in
 pkgs.runCommand "blix-settings-checks" {
-  nativeBuildInputs = [ python pkgs.xvfb pkgs.dbus ];
+  nativeBuildInputs = [ python pkgs.xvfb pkgs.dbus pkgs.xdotool ];
   GI_TYPELIB_PATH = lib.makeSearchPath "lib/girepository-1.0" (map lib.getLib [
     pkgs.gtk3 pkgs.glib pkgs.gobject-introspection pkgs.networkmanager
     pkgs.pango pkgs.harfbuzz pkgs.atk pkgs.gdk-pixbuf

@@ -1,5 +1,5 @@
 { lib, stdenvNoCC, python3, gtk3, gobject-introspection, wrapGAppsHook3
-, networkmanager, networkmanagerapplet, pulseaudio, xrandr, xinput, xset
+, networkmanager, networkmanagerapplet, pulseaudio, xrandr, xinput, xset, xrdb
 , brightnessctl, systemd, adwaita-icon-theme }:
 
 let
@@ -8,6 +8,7 @@ let
     xrandr = "${xrandr}/bin/xrandr";
     xinput = "${xinput}/bin/xinput";
     xset = "${xset}/bin/xset";
+    xrdb = "${xrdb}/bin/xrdb";
     pactl = "${pulseaudio}/bin/pactl";
     paplay = "${pulseaudio}/bin/paplay";
     parec = "${pulseaudio}/bin/parec";

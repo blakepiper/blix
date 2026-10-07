@@ -2,7 +2,6 @@
 window { background: #1a1b26; color: #c0c5d3; }
 window, button, entry, combobox, spinbutton { font-family: "JetBrainsMono Nerd Font", monospace; font-size: 12px; }
 .sidebar { background: #161720; border-right: 1px solid #34354a; }
-.brand { color: #9fe3c4; font-size: 22px; font-weight: bold; }
 .sidebar list { background: transparent; }
 .sidebar row { padding: 12px 14px; border-left: 3px solid transparent; }
 .sidebar row:selected { background: #293b38; border-left-color: #9fe3c4; color: #d7ffe8; }
@@ -19,16 +18,22 @@ button:hover { background: #3c4255; }
 button:disabled { color: #72788b; background: #242634; }
 button.suggested-action { background: #9fe3c4; color: #15241c; border-color: #9fe3c4; }
 button.suggested-action:hover { background: #c1f5dc; }
+button.suggested-action:disabled { color: #72788b; background: #242634; border-color: #45495f; }
 button.destructive-action { color: #ffb4c1; }
 entry { background: #171923; color: #d8ddeb; border: 1px solid #45495f; padding: 7px; box-shadow: none; }
 entry:focus { border-color: #9fe3c4; }
 combobox button, spinbutton { background: #292c3c; }
-scale trough { background: #363b50; min-height: 4px; }
-scale highlight { background: #9fe3c4; }
-scale slider { background: #d7ffe8; min-width: 13px; min-height: 13px; box-shadow: none; }
+scale { padding: 8px 0; }
+scale trough { background-image: none; background: #363b50; min-height: 4px; }
+scale highlight { background-image: none; background: #9fe3c4; min-height: 4px; }
+scale slider { background-image: none; background: #d7ffe8; border: 1px solid #9fe3c4; min-width: 13px; min-height: 13px; box-shadow: none; }
+scale value { color: #c0c5d3; font-size: 12px; margin-left: 12px; min-width: 48px; }
+scale:disabled highlight, scale:disabled slider { background: #5b6077; border-color: #5b6077; }
 switch { background: #34384b; }
 switch:checked { background: #436f60; }
 switch slider { background: #cbd1df; }
+switch:disabled { background: #292c3c; }
+switch:disabled slider { background: #72788b; }
 progressbar trough { background: #34384b; min-height: 6px; }
 progressbar progress { background: #9fe3c4; min-height: 6px; }
 separator { background: #34354a; }

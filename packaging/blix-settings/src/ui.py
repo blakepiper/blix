@@ -76,6 +76,17 @@ def spin(value, minimum, maximum, step=1):
     return widget
 
 
+def slider(minimum, maximum, step=1, percent=False):
+    widget = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, minimum, maximum, step)
+    widget.set_size_request(300, -1)
+    widget.set_hexpand(True)
+    widget.set_value_pos(Gtk.PositionType.RIGHT)
+    if percent:
+        widget.set_digits(0)
+        widget.connect("format-value", lambda _, value: f"{value:.0f}%")
+    return widget
+
+
 class Window(Gtk.ApplicationWindow):
     def __init__(self, application, demo=False):
         super().__init__(application=application, title="Blix Settings")
@@ -88,16 +99,31 @@ class Window(Gtk.ApplicationWindow):
         self.executor = ThreadPoolExecutor(max_workers=3, thread_name_prefix="blix-settings")
         self.closed = False
         self.syncing = False
-        self.refreshing = False
+        self.refreshing = set()
+        self.revisions = {}
         self.page = None
         self.dirty_display = False
         self.preview = None
+        self.applying_display = False
         self.meter = None
         self.radio_errors = {}
         self.last_models = {}
         self.pages = {}
         self.controls = {}
         self.pending_sliders = {}
+        self.slider_commands = {}
+        self.applying_sliders = set()
+        self.dragging_sliders = set()
+        self.slider_versions = {}
+        self.pending_radios = {}
+        self.pending_audio_devices = set()
+        self.dirty_inputs = set()
+        self.dirty_keyboard = False
+        self.dirty_blank = False
+        self.saving_keyboard = False
+        self.saving_blank = False
+        self.pending_inputs = set()
+        self.demo_meter = False
         self.dialogs = []
         self.connect("delete-event", self.close_window)
         self.connect("key-press-event", self.key_pressed)
@@ -144,14 +170,8 @@ class Window(Gtk.ApplicationWindow):
         sidebar = box(spacing=18)
         sidebar.set_size_request(220, -1)
         sidebar.get_style_context().add_class("sidebar")
-        brand = label("BLIX", "brand")
-        brand.set_margin_start(22)
-        brand.set_margin_top(26)
-        sidebar.pack_start(brand, False, False, 0)
-        caption = label("Settings" + (" · Preview" if self.demo else ""), "dim")
-        caption.set_margin_start(22)
-        sidebar.pack_start(caption, False, False, 0)
         self.search = Gtk.SearchEntry(placeholder_text="Find a setting…")
+        self.search.set_margin_top(18)
         self.search.set_margin_start(12)
         self.search.set_margin_end(12)
         self.search.connect("search-changed", self.search_changed)
@@ -232,8 +252,6 @@ class Window(Gtk.ApplicationWindow):
                         done(result)
                 except Exception as error:
                     failed(error) if failed else self.notify(str(error), True)
-                finally:
-                    self.refreshing = False
                 return False
             GLib.idle_add(update)
         future.add_done_callback(complete)
@@ -291,12 +309,36 @@ class Window(Gtk.ApplicationWindow):
     def radio_done(self, error):
         if error:
             self.notify(error, True)
-        self.last_models.pop(self.page, None)
+        self.invalidate(self.page)
         self.refresh()
+
+    def invalidate(self, page, rebuild=True):
+        self.revisions[page] = self.revisions.get(page, 0) + 1
+        if rebuild:
+            self.last_models.pop(page, None)
+
+    def radio_request(self, page, key, progress, request):
+        identity = (page, key)
+        if identity in self.pending_radios:
+            return
+        self.pending_radios[identity] = progress
+        self.invalidate(page)
+        self.refresh()
+        def finished(error=None):
+            self.pending_radios.pop(identity, None)
+            self.invalidate(page)
+            if error:
+                self.notify(str(error), True)
+            self.refresh()
+        try:
+            request(finished)
+        except Exception as error:
+            finished(error)
 
     def radio_changed(self):
         if not self.closed and self.page in ("network", "bluetooth") and not self.dialogs:
             def once():
+                self.invalidate(self.page)
                 self.refresh()
                 return False
             GLib.idle_add(once)
@@ -335,7 +377,7 @@ class Window(Gtk.ApplicationWindow):
                 self.close()
             return True
         if event.keyval == Gdk.KEY_F5:
-            self.last_models.pop(self.page, None)
+            self.invalidate(self.page)
             self.refresh()
             return True
         return False
@@ -361,24 +403,35 @@ class Window(Gtk.ApplicationWindow):
         if description:
             text.pack_start(label(description, "dim", True), False, False, 0)
         content.pack_start(text, True, True, 0)
-        content.pack_end(widget, False, False, 0)
+        content.pack_end(widget, widget.get_hexpand(), widget.get_hexpand(), 0)
         parent.pack_start(content, False, False, 0)
+
+    def connect_control(self, widget, signal, callback):
+        # Disposing old GTK controls can emit value/selection notifications.
+        # Only edits to a mounted control may change settings or mark a draft.
+        def changed(*args):
+            if not self.closed and not self.syncing and not widget.in_destruction() and widget.get_toplevel() == self:
+                return callback(*args)
+        widget.connect(signal, changed)
 
     def refresh(self):
         if self.closed:
             return False
-        if not self.page or self.refreshing or self.dialogs or self.preview:
+        if not self.page or self.page in self.refreshing or self.dialogs or self.preview:
             return True
         page = self.page
+        function = done = None
         if page in ("display", "input"):
-            if page == "display" and self.dirty_display:
-                return True
-            self.refreshing = True
-            function = (lambda: self.demo.snapshot(page)) if self.demo else (core.outputs if page == "display" else core.input_devices)
-            self.run(function, lambda value: self.build_devices(page, value))
+            if self.demo:
+                function = lambda: self.demo.snapshot(page)
+            elif page == "display":
+                function = lambda: core.display_state(self.defaults.get("capabilities", {}).get("hasBacklight", False))
+            else:
+                function = core.input_state
+            done = self.update_display if page == "display" else lambda value, _: self.build_devices(page, value)
         elif page == "audio":
-            self.refreshing = True
-            self.run(lambda: self.demo.snapshot("audio") if self.demo else core.audio_state(), self.update_audio)
+            function = lambda: self.demo.snapshot("audio") if self.demo else core.audio_state()
+            done = self.update_audio
         elif page in ("network", "bluetooth"):
             radio = self.network if page == "network" else self.bluetooth
             if not radio:
@@ -388,10 +441,45 @@ class Window(Gtk.ApplicationWindow):
             else:
                 self.attempt(lambda: self.build_radio(page, radio.snapshot()))
         elif page == "power":
-            self.refreshing = True
-            self.run(lambda: [{"name": "Battery", "capacity": "82", "status": "Discharging", "charge_limit": "80"}]
-                     if self.demo else core.batteries(), self.update_batteries)
+            function = (lambda: self.demo.snapshot("power")) if self.demo else core.power_state
+            done = lambda value, _: self.update_power(value)
+        elif page == "about":
+            function = (lambda: self.demo.snapshot("about")) if self.demo else core.system_info
+            done = lambda value, _: self.build_about(value)
+        if function:
+            self.refreshing.add(page)
+            revision = self.revisions.get(page, 0)
+            versions = self.slider_versions.copy()
+            def finish(value=None, error=None):
+                self.refreshing.discard(page)
+                if self.page != page:
+                    return
+                if self.revisions.get(page, 0) != revision:
+                    self.refresh()
+                elif error:
+                    self.notify(str(error), True)
+                else:
+                    done(value, versions)
+            self.run(function, finish, lambda error: finish(error=error))
         return True
+
+    def update_display(self, state, versions=None):
+        if not self.dirty_display and not self.applying_display and not self.slider_busy("brightness", versions):
+            self.build_devices("display", state["outputs"])
+        if hasattr(self, "brightness_slider") and not self.slider_busy("brightness", versions):
+            self.syncing = True
+            try:
+                value = state["brightness"]
+                self.brightness_slider.set_sensitive(value is not None)
+                self.brightness_slider.set_draw_value(value is not None)
+                self.brightness_slider.set_tooltip_text(state.get("brightness_error"))
+                if value is not None:
+                    self.brightness_slider.set_value(value)
+            finally:
+                self.syncing = False
+        if hasattr(self, "text_size"):
+            dpi = state.get("dpi")
+            self.text_size.set_text(f"{dpi / 96 * 100:g}% ({dpi:g} DPI)" if dpi else "Default")
 
     def build_devices(self, page, value):
         model = json.dumps(value, sort_keys=True)
@@ -401,7 +489,7 @@ class Window(Gtk.ApplicationWindow):
         if page == "display":
             self.build_display(value)
         else:
-            self.build_input(value)
+            self.build_input(value["devices"], value["keyboard"])
 
     def build_display(self, available):
         body = self.clear("display")
@@ -419,16 +507,18 @@ class Window(Gtk.ApplicationWindow):
             overview.pack_start(monitor, True, True, 0)
         body.pack_start(overview, False, False, 0)
         settings = self.card(body)
-        remembered = self.preferences.read().get("display")
-        current_layout = remembered.get("layout") if remembered else ("mirror" if len(connected) > 1 and
-            all(item["x"] == connected[0]["x"] and item["y"] == connected[0]["y"] for item in connected) else "extend")
+        enabled = [item for item in connected if item["enabled"]]
+        current_layout = "mirror" if len(enabled) > 1 and all(
+            (item["x"], item["y"]) == (enabled[0]["x"], enabled[0]["y"]) for item in enabled) else "extend"
         self.display_layout = combo([("extend", "Extend"), ("mirror", "Mirror")], current_layout)
-        self.display_layout.connect("changed", lambda *_: self.display_changed())
+        self.connect_control(self.display_layout, "changed", lambda *_: self.display_changed())
         self.row(settings, "Layout", self.display_layout, "Mirroring shares a resolution; each display keeps its own refresh rate.")
         primary = next((item["name"] for item in connected if item["primary"]), connected[0]["name"])
         self.display_primary = combo([(item["name"], item["name"]) for item in connected], primary)
-        self.display_primary.connect("changed", lambda *_: self.display_changed())
+        self.connect_control(self.display_primary, "changed", lambda *_: self.display_changed())
         self.row(settings, "Primary display", self.display_primary)
+        self.text_size = label("Reading…", "dim")
+        self.row(settings, "Text size", self.text_size)
         self.display_controls = {}
         for item in connected:
             card = self.card(body, item["name"])
@@ -442,7 +532,7 @@ class Window(Gtk.ApplicationWindow):
             scales = sorted(set([1.0, 1.25, 1.5, 1.75, 2.0, round(item["scale"], 3)]))
             scale = combo([(str(value), f"{value * 100:g}%") for value in scales], str(round(item["scale"], 3)))
             grid = Gtk.Grid(column_spacing=16, row_spacing=10)
-            for index, (title, widget) in enumerate((("Resolution", resolution), ("Refresh rate", rate), ("Rotation", rotation), ("Scale", scale))):
+            for index, (title, widget) in enumerate((("Resolution", resolution), ("Refresh rate", rate), ("Rotation", rotation), ("Output scale", scale))):
                 column, row = (index % 2) * 2, index // 2
                 grid.attach(label(title, "dim"), column, row, 1, 1)
                 grid.attach(widget, column + 1, row, 1, 1)
@@ -460,34 +550,29 @@ class Window(Gtk.ApplicationWindow):
                 values = item["modes"][selected]
                 update_combo(rate, [(value, f"{value} Hz") for value in values], max(values, key=float))
                 self.display_changed()
-            resolution.connect("changed", mode_changed)
+            self.connect_control(resolution, "changed", mode_changed)
             for key, widget in controls.items():
                 if key == "mode":
                     continue
-                widget.connect("notify::active" if key == "enabled" else "value-changed" if key in ("x", "y") else "changed",
-                               lambda *_: self.display_changed())
+                self.connect_control(widget, "notify::active" if key == "enabled" else "value-changed" if key in ("x", "y") else "changed",
+                                     lambda *_: self.display_changed())
         actions = box(False, 10)
         actions.pack_start(button("Arrange left to right", self.arrange_displays), False, False, 0)
-        actions.pack_end(button("Apply…", lambda: self.apply_display(False), True), False, False, 0)
-        actions.pack_end(button("Restore defaults…", lambda: self.apply_display(True)), False, False, 0)
+        self.display_apply = button("Apply…", lambda: self.apply_display(False), True)
+        self.display_apply.set_sensitive(False)
+        self.display_restore = button("Restore defaults…", lambda: self.apply_display(True))
+        actions.pack_end(self.display_apply, False, False, 0)
+        actions.pack_end(self.display_restore, False, False, 0)
         self.display_footer.pack_start(actions, False, False, 0)
         self.display_footer.pack_start(label("Changes revert after 15 seconds unless you keep them.", "dim", True), False, False, 0)
         if self.defaults.get("capabilities", {}).get("hasBacklight"):
             card = self.card(body, "Panel brightness")
-            scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 1, 100, 1)
-            scale.set_hexpand(True)
-            scale.set_value(70)
+            scale = self.brightness_slider = slider(1, 100, percent=True)
+            scale.set_sensitive(False)
+            scale.set_draw_value(False)
+            self.track_slider(scale, "brightness")
             self.row(card, "Brightness", scale)
-            if not self.demo:
-                def initial_brightness(value):
-                    self.syncing = True
-                    try:
-                        if value is not None:
-                            scale.set_value(value)
-                    finally:
-                        self.syncing = False
-                self.run(core.brightness, initial_brightness)
-            scale.connect("value-changed", lambda widget: self.defer_slider("brightness", lambda value=round(widget.get_value()): self.command(
+            self.connect_control(scale, "value-changed", lambda widget: self.defer_slider("brightness", lambda value=round(widget.get_value()): self.command(
                 "brightnessctl", "--class=backlight", "--min-value=1", "set", f"{value}%")))
         self.dirty_display = False
         body.show_all()
@@ -495,6 +580,7 @@ class Window(Gtk.ApplicationWindow):
 
     def display_changed(self):
         self.dirty_display = True
+        self.display_apply.set_sensitive(not self.applying_display)
 
     def display_plan(self):
         plan = {"layout": self.display_layout.get_active_id(), "outputs": []}
@@ -515,12 +601,24 @@ class Window(Gtk.ApplicationWindow):
         self.display_changed()
 
     def apply_display(self, restore):
+        if self.applying_display:
+            return
         def start():
             plan = core.default_display(self.available_outputs, self.defaults.get("display")) if restore else self.display_plan()
+            self.applying_display = True
+            self.display_apply.set_sensitive(False)
+            self.display_restore.set_sensitive(False)
             if self.demo:
                 self.demo.calls.append(("display", "preview"))
+                def confirmed(value):
+                    if value:
+                        self.demo.apply_display(plan)
+                        self.preferences.update("display", None if restore else plan)
+                    self.applying_display = self.dirty_display = False
+                    self.invalidate("display")
+                    self.refresh()
                 self.prompt("Keep display changes?", "In the live app, this layout reverts automatically after 15 seconds.", False,
-                            lambda value: self.preferences.update("display", None if restore else plan) if value else None)
+                            confirmed)
                 return
             self.notify("Applying display changes…")
             def begin():
@@ -536,7 +634,12 @@ class Window(Gtk.ApplicationWindow):
                 if not response.get("ready"):
                     raise SettingsError("The display preview could not start.")
                 return process
-            self.run(begin, self.confirm_display)
+            def failed(error):
+                self.applying_display = False
+                self.display_apply.set_sensitive(self.dirty_display)
+                self.display_restore.set_sensitive(True)
+                self.notify(str(error), True)
+            self.run(begin, self.confirm_display, failed)
         self.attempt(start)
 
     def confirm_display(self, process):
@@ -572,6 +675,7 @@ class Window(Gtk.ApplicationWindow):
                 return json.loads(line)
             def done(result):
                 self.preview = None
+                self.applying_display = False
                 self.dirty_display = False
                 self.last_models.pop("display", None)
                 if result.get("error"):
@@ -596,36 +700,74 @@ class Window(Gtk.ApplicationWindow):
     def defer_slider(self, key, function):
         if self.syncing:
             return
+        self.slider_versions[key] = self.slider_versions.get(key, 0) + 1
+        self.slider_commands[key] = function
         if key in self.pending_sliders:
             GLib.source_remove(self.pending_sliders.pop(key))
         def apply():
             self.pending_sliders.pop(key, None)
-            if not self.closed:
-                self.run(function)
+            if self.closed or key in self.applying_sliders:
+                return False
+            latest = self.slider_commands.pop(key)
+            self.applying_sliders.add(key)
+            def finished(_, error=False):
+                self.applying_sliders.discard(key)
+                if error:
+                    self.notify(str(_), True)
+                if key in self.slider_commands:
+                    if key in self.pending_sliders:
+                        GLib.source_remove(self.pending_sliders.pop(key))
+                    self.pending_sliders[key] = GLib.timeout_add(1, apply)
+                else:
+                    self.invalidate("display" if key == "brightness" else "audio", False)
+                    self.refresh()
+            self.run(latest, finished, lambda error: finished(error, True))
             return False
         self.pending_sliders[key] = GLib.timeout_add(180, apply)
+
+    def slider_busy(self, key, versions=None):
+        return (key in self.pending_sliders or key in self.slider_commands or key in self.applying_sliders
+                or key in self.dragging_sliders or versions is not None
+                and versions.get(key, 0) != self.slider_versions.get(key, 0))
+
+    def track_slider(self, widget, key):
+        def pressed(*_):
+            self.dragging_sliders.add(key)
+            return False
+        def released(*_):
+            self.dragging_sliders.discard(key)
+            self.refresh()
+            return False
+        widget.connect("button-press-event", pressed)
+        widget.connect("button-release-event", released)
 
     def build_audio(self):
         body = self.pages["audio"]
         for kind, title in (("sink", "Output"), ("source", "Microphone")):
             card = self.card(body, title)
             devices = combo([])
-            volume = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 100, 1)
-            volume.set_size_request(300, -1)
+            volume = slider(0, 100, percent=True)
+            self.track_slider(volume, kind)
             mute = Gtk.Switch()
             self.row(card, "Device", devices)
             self.row(card, "Volume", volume)
             self.row(card, "Muted", mute)
             self.controls[kind] = {"device": devices, "volume": volume, "mute": mute}
-            devices.connect("changed", lambda widget, kind=kind: None if self.syncing or not widget.get_active_id() else
+            for widget in self.controls[kind].values():
+                widget.set_sensitive(False)
+            self.connect_control(devices, "changed", lambda widget, kind=kind: None if not widget.get_active_id() else
                             self.set_audio_device(kind, widget.get_active_id()))
-            volume.connect("value-changed", lambda widget, kind=kind, devices=devices: self.defer_slider(kind,
+            self.connect_control(volume, "value-changed", lambda widget, kind=kind, devices=devices: self.defer_slider(kind,
                            lambda name=devices.get_active_id(), value=round(widget.get_value()): self.command("pactl", f"set-{kind}-volume", name, f"{value}%")))
-            mute.connect("notify::active", lambda widget, _, kind=kind, devices=devices: None if self.syncing or not devices.get_active_id() else
-                         self.run(lambda name=devices.get_active_id(), value=int(widget.get_active()): self.command("pactl", f"set-{kind}-mute", name, value)))
-        self.pages["audio"].pack_start(button("Test output sound", self.test_sound), False, False, 0)
+            self.connect_control(mute, "notify::active", lambda widget, _, kind=kind, devices=devices: None if not devices.get_active_id() else
+                         self.defer_slider(kind + "-mute", lambda name=devices.get_active_id(), value=int(widget.get_active()):
+                                           self.command("pactl", f"set-{kind}-mute", name, value)))
+        self.sound_button = button("Test output sound", self.test_sound)
+        self.sound_button.set_sensitive(False)
+        self.pages["audio"].pack_start(self.sound_button, False, False, 0)
         test = box(False, 12)
         self.meter_button = button("Test microphone", self.toggle_meter)
+        self.meter_button.set_sensitive(False)
         self.meter_level = Gtk.LevelBar()
         self.meter_level.set_hexpand(True)
         test.pack_start(self.meter_button, False, False, 0)
@@ -636,20 +778,44 @@ class Window(Gtk.ApplicationWindow):
     def set_audio_device(self, kind, name):
         if kind == "source":
             self.stop_meter()
-        self.run(lambda: self.command("pactl", f"set-default-{kind}", name), lambda _: self.refresh())
+        self.pending_audio_devices.add(kind)
+        self.invalidate("audio")
+        for widget in self.controls[kind].values():
+            widget.set_sensitive(False)
+        def finished(_, error=False):
+            self.pending_audio_devices.discard(kind)
+            if error:
+                self.notify(str(_), True)
+            self.invalidate("audio")
+            self.refresh()
+        self.run(lambda: self.command("pactl", f"set-default-{kind}", name), finished,
+                 lambda error: finished(error, True))
 
-    def update_audio(self, state):
+    def update_audio(self, state, versions=None):
         self.syncing = True
         try:
             for kind, plural in (("sink", "sinks"), ("source", "sources")):
                 widgets = self.controls[kind]
-                update_combo(widgets["device"], [(item["name"], item["description"]) for item in state[plural]], state[kind])
-                device = next((item for item in state[plural] if item["name"] == state[kind]), None)
-                for widget in widgets.values():
-                    widget.set_sensitive(bool(device))
-                if device and kind not in self.pending_sliders:
-                    widgets["volume"].set_value(min(100, device["volume"]))
-                    widgets["mute"].set_active(device["mute"])
+                if kind in self.pending_audio_devices:
+                    continue
+                busy = self.slider_busy(kind, versions) or self.slider_busy(kind + "-mute", versions)
+                selected = widgets["device"].get_active_id() if busy else state[kind]
+                update_combo(widgets["device"], [(item["name"], item["description"]) for item in state[plural]], selected)
+                device = next((item for item in state[plural] if item["name"] == selected), None)
+                widgets["device"].set_sensitive(bool(state[plural]))
+                widgets["volume"].set_sensitive(bool(device))
+                widgets["volume"].set_draw_value(bool(device))
+                widgets["mute"].set_sensitive(bool(device))
+                if device:
+                    if not self.slider_busy(kind, versions):
+                        widgets["volume"].set_range(0, max(100, device["volume"]))
+                        widgets["volume"].set_value(device["volume"])
+                    if not self.slider_busy(kind + "-mute", versions):
+                        widgets["mute"].set_active(device["mute"])
+            self.sound_button.set_sensitive(bool(self.controls["sink"]["device"].get_active_id())
+                                            and "sink" not in self.pending_audio_devices)
+            self.meter_button.set_sensitive(bool(self.controls["source"]["device"].get_active_id())
+                                            and "source" not in self.pending_audio_devices)
         finally:
             self.syncing = False
 
@@ -661,11 +827,13 @@ class Window(Gtk.ApplicationWindow):
         self.run(lambda: self.command("paplay", "--device", device, str(Path(__file__).with_name("test.wav"))))
 
     def toggle_meter(self):
-        if self.meter:
+        if self.meter or self.demo_meter:
             self.stop_meter()
             return
         if self.demo:
             self.demo.calls.append(("microphone", "test"))
+            self.demo_meter = True
+            self.meter_button.set_label("Stop microphone test")
             self.meter_level.set_value(0.55)
             return
         source = self.controls["source"]["device"].get_active_id()
@@ -692,6 +860,7 @@ class Window(Gtk.ApplicationWindow):
         threading.Thread(target=read, daemon=True).start()
 
     def stop_meter(self):
+        self.demo_meter = False
         if self.meter:
             process, self.meter = self.meter, None
             process.terminate()
@@ -719,17 +888,24 @@ class Window(Gtk.ApplicationWindow):
     def build_network(self, body, state):
         card = self.card(body)
         enabled = Gtk.Switch(active=state["enabled"])
-        enabled.set_sensitive(state["available"])
-        enabled.connect("notify::active", lambda widget, _: self.attempt(lambda: self.network.toggle(widget.get_active())))
-        self.row(card, "Wi-Fi", enabled, "Disabled by hardware" if not state["available"] else None)
-        card.pack_start(button("Scan for networks", lambda: self.attempt(lambda: self.network.scan(self.radio_done))), False, False, 0)
+        enabled.set_sensitive(state["available"] and ("network", "toggle") not in self.pending_radios)
+        self.connect_control(enabled, "notify::active", lambda widget, _: self.radio_request("network", "toggle", "Updating…",
+            lambda done, value=widget.get_active(): (self.network.toggle(value), done(None))))
+        self.row(card, "Wi-Fi", enabled, "No Wi-Fi adapter found" if not state.get("has_adapter", True) else
+                 "Disabled by hardware" if not state["available"] else None)
+        scan = button(self.pending_radios.get(("network", "scan"), "Scan for networks"), lambda:
+            self.radio_request("network", "scan", "Scanning…", self.network.scan))
+        scan.set_sensitive(state["enabled"] and state["available"] and ("network", "scan") not in self.pending_radios)
+        card.pack_start(scan, False, False, 0)
         networks = self.card(body, "Nearby networks")
         if not state["networks"]:
             networks.pack_start(label("No networks found. Enable Wi-Fi and scan.", "dim"), False, False, 0)
         for item in state["networks"]:
-            status = "Connected" if item["active"] else "Connecting…" if item.get("connecting") else f"{item['strength']}% signal · " + ("Open" if item["security"] == "open" else "Secured")
-            action = button("Disconnect" if item["active"] else "Connecting…" if item.get("connecting") else "Connect", lambda item=item: self.connect_wifi(item))
-            action.set_sensitive(state["enabled"] and not item.get("connecting"))
+            pending = self.pending_radios.get(("network", self.network_key(item)))
+            transient = pending or ("Connecting…" if item.get("connecting") else "Disconnecting…" if item.get("disconnecting") else None)
+            status = (transient or ("Connected" if item["active"] else "Open" if item["security"] == "open" else "Secured")) + f" · {item['strength']}% signal"
+            action = button(transient or ("Disconnect" if item["active"] else "Connect"), lambda item=item: self.connect_wifi(item))
+            action.set_sensitive(state["enabled"] and state["available"] and not transient)
             self.row(networks, item["name"], action, status)
         if state["wired"]:
             wired = self.card(body, "Ethernet")
@@ -739,17 +915,31 @@ class Window(Gtk.ApplicationWindow):
             saved = self.card(body, "Saved connections")
             for item in state["profiles"]:
                 actions = box(False, 8)
-                actions.pack_start(button("Disconnect" if item["active"] else "Connect",
-                    lambda item=item: self.attempt(lambda: (self.network.disconnect if item["active"] else self.network.activate)(item["uuid"], self.radio_done))), False, False, 0)
-                actions.pack_start(button("Forget…", lambda item=item: self.prompt("Forget connection?", f"Remove {item['name']} and its saved credentials?", False,
-                    lambda answer: self.attempt(lambda: self.network.forget(item["uuid"], self.radio_done)) if answer else None)), False, False, 0)
-                self.row(saved, item["name"], actions)
+                pending = self.pending_radios.get(("network", item["uuid"]))
+                transient = pending or ("Connecting…" if item.get("connecting") else "Disconnecting…" if item.get("disconnecting") else None)
+                connect = button(transient or ("Disconnect" if item["active"] else "Connect"), lambda item=item:
+                    self.radio_request("network", item["uuid"], "Disconnecting…" if item["active"] else "Connecting…",
+                        lambda done: (self.network.disconnect if item["active"] else self.network.activate)(item["uuid"], done)))
+                available = item["active"] or item.get("available", True) and (item["type"] != "802-11-wireless" or state["enabled"] and state["available"])
+                connect.set_sensitive(bool(available and not transient))
+                actions.pack_start(connect, False, False, 0)
+                forget = button("Forget…", lambda item=item: self.prompt("Forget connection?", f"Remove {item['name']} and its saved credentials?", False,
+                    lambda answer: self.radio_request("network", item["uuid"], "Removing…",
+                        lambda done: self.network.forget(item["uuid"], done)) if answer else None))
+                forget.set_sensitive(not transient)
+                actions.pack_start(forget, False, False, 0)
+                self.row(saved, item["name"], actions, transient or ("Connected" if item["active"] else None))
         body.pack_start(button("Advanced connections…", self.advanced_connections), False, False, 0)
+
+    @staticmethod
+    def network_key(item):
+        return item.get("active_uuid") or item.get("saved") or item["path"]
 
     def connect_wifi(self, item):
         if item["active"]:
-            if item["saved"]:
-                self.attempt(lambda: self.network.disconnect(item["saved"], self.radio_done))
+            identity = item.get("active_uuid") or item["saved"]
+            if identity:
+                self.radio_request("network", identity, "Disconnecting…", lambda done: self.network.disconnect(identity, done))
             return
         if item["security"] in ("enterprise", "wep") and not item["saved"]:
             self.notify("Use Advanced Connections for this network's authentication.")
@@ -757,7 +947,7 @@ class Window(Gtk.ApplicationWindow):
             return
         def connect(password=None):
             self.notify(f"Connecting to {item['name']}…")
-            self.attempt(lambda: self.network.connect_network(item, password, self.radio_done))
+            self.radio_request("network", self.network_key(item), "Connecting…", lambda done: self.network.connect_network(item, password, done))
         if item["security"] in ("wpa", "sae") and not item["saved"]:
             self.prompt("Wi-Fi password", f"Password for {item['name']}", True,
                         lambda password: connect(password) if password is not None else None, secret=True)
@@ -771,13 +961,14 @@ class Window(Gtk.ApplicationWindow):
         for adapter in state["adapters"]:
             card = self.card(body, adapter["name"])
             powered = Gtk.Switch(active=adapter["powered"])
-            powered.connect("notify::active", lambda widget, _, adapter=adapter:
-                            self.attempt(lambda: self.bluetooth.toggle(adapter["path"], widget.get_active())))
+            powered.set_sensitive(("bluetooth", adapter["path"]) not in self.pending_radios)
+            self.connect_control(powered, "notify::active", lambda widget, _, adapter=adapter:
+                self.radio_request("bluetooth", adapter["path"], "Updating…",
+                    lambda done, value=widget.get_active(): (self.bluetooth.toggle(adapter["path"], value), done(None))))
             self.row(card, "Bluetooth", powered)
-            scanning = adapter.get("discovering")
-            scan = button("Stop discovery" if scanning else "Find devices",
-                lambda adapter=adapter, scanning=scanning: self.attempt(lambda:
-                    self.bluetooth.stop_scan() if scanning else self.bluetooth.scan(adapter["path"])))
+            scanning = adapter.get("scanning", False)
+            scan = button("Stop discovery" if scanning else "Join discovery" if adapter.get("discovering") else "Find devices",
+                lambda adapter=adapter, scanning=scanning: self.scan_bluetooth(adapter, scanning))
             scan.set_sensitive(adapter["powered"])
             card.pack_start(scan, False, False, 0)
             for item in state["devices"]:
@@ -785,31 +976,64 @@ class Window(Gtk.ApplicationWindow):
                     continue
                 actions = box(False, 8)
                 action = "Disconnect" if item["connected"] else "Connect" if item["paired"] else "Pair"
-                connect = button(action, lambda item=item, action=action: self.attempt(lambda: self.bluetooth.action(item, action, self.radio_done)))
-                connect.set_sensitive(adapter["powered"])
+                pending = self.pending_radios.get(("bluetooth", item["path"]))
+                connect = button(pending or action, lambda item=item, action=action:
+                    self.radio_request("bluetooth", item["path"], {"Pair": "Pairing…", "Connect": "Connecting…", "Disconnect": "Disconnecting…"}[action],
+                        lambda done: self.bluetooth.action(item, action, done)))
+                connect.set_sensitive(adapter["powered"] and not pending)
                 actions.pack_start(connect, False, False, 0)
                 if item["paired"]:
-                    actions.pack_start(button("Forget…", lambda item=item: self.prompt("Forget Bluetooth device?", f"Remove pairing with {item['name']}?", False,
-                        lambda answer: self.attempt(lambda: self.bluetooth.action(item, "RemoveDevice", self.radio_done)) if answer else None)), False, False, 0)
-                self.row(card, item["name"], actions, "Connected" if item["connected"] else "Paired" if item["paired"] else "Not paired")
+                    forget = button("Forget…", lambda item=item: self.prompt("Forget Bluetooth device?", f"Remove pairing with {item['name']}?", False,
+                        lambda answer: self.radio_request("bluetooth", item["path"], "Removing…",
+                            lambda done: self.bluetooth.action(item, "RemoveDevice", done)) if answer else None))
+                    forget.set_sensitive(not pending)
+                    actions.pack_start(forget, False, False, 0)
+                self.row(card, item["name"], actions, pending or ("Connected" if item["connected"] else "Paired" if item["paired"] else "Not paired"))
+
+    def scan_bluetooth(self, adapter, stopping):
+        self.attempt(lambda: self.bluetooth.stop_scan() if stopping else self.bluetooth.scan(adapter["path"]))
+        self.invalidate("bluetooth")
+        self.refresh()
 
     def build_power(self):
         body = self.pages["power"]
         self.battery_card = self.card(body, "Battery")
         card = self.card(body, "Screen")
-        saved = self.preferences.read().get("blank_seconds", self.defaults.get("display", {}).get("blankAfterSeconds", 0))
-        self.blank_minutes = spin(saved / 60, 0, 1440)
+        self.blank_minutes = spin(0, 0, 1440)
+        self.blank_minutes.set_digits(2)
+        self.blank_minutes.set_sensitive(False)
         self.row(card, "Turn screen off after", self.blank_minutes, "Minutes of inactivity. Zero keeps the display on.")
         actions = box(False, 10)
-        actions.pack_start(button("Apply", self.save_blank, True), False, False, 0)
-        actions.pack_start(button("Restore defaults", lambda: self.save_blank(True)), False, False, 0)
+        self.blank_apply = button("Apply", self.save_blank, True)
+        self.blank_apply.set_sensitive(False)
+        actions.pack_start(self.blank_apply, False, False, 0)
+        self.blank_restore = button("Restore defaults", lambda: self.save_blank(True))
+        self.blank_restore.set_sensitive(False)
+        actions.pack_start(self.blank_restore, False, False, 0)
         card.pack_start(actions, False, False, 0)
+        def changed(*_):
+            if not self.syncing:
+                self.dirty_blank = True
+                self.blank_apply.set_sensitive(True)
+        self.connect_control(self.blank_minutes, "value-changed", changed)
         session = self.card(body, "Session")
         controls = box(False, 10)
         controls.pack_start(button("Lock screen", lambda: self.session_action(False)), False, False, 0)
         controls.pack_start(button("Suspend…", lambda: self.prompt("Suspend device?", "The screen will lock before suspending.", False,
                             lambda answer: self.session_action(True) if answer else None)), False, False, 0)
         session.pack_start(controls, False, False, 0)
+
+    def update_power(self, state):
+        self.update_batteries(state["batteries"])
+        if not self.saving_blank:
+            self.blank_minutes.set_sensitive(True)
+            self.blank_restore.set_sensitive(True)
+            if not self.dirty_blank:
+                self.syncing = True
+                try:
+                    self.blank_minutes.set_value(state["blank_seconds"] / 60)
+                finally:
+                    self.syncing = False
 
     def update_batteries(self, items):
         for child in self.battery_card.get_children()[1:]:
@@ -822,11 +1046,36 @@ class Window(Gtk.ApplicationWindow):
         self.battery_card.show_all()
 
     def save_blank(self, restore=False):
+        if self.saving_blank:
+            return
         seconds = self.defaults.get("display", {}).get("blankAfterSeconds", 0) if restore else round(self.blank_minutes.get_value() * 60)
+        self.saving_blank = True
+        self.invalidate("power")
+        self.blank_minutes.set_sensitive(False)
+        self.blank_apply.set_sensitive(False)
+        self.blank_restore.set_sensitive(False)
         def apply():
+            self.command("xset", "+dpms")
             self.command("xset", "dpms", 0, 0, seconds)
             self.preferences.update("blank_seconds", None if restore else seconds)
-        self.run(apply, lambda _: (self.blank_minutes.set_value(seconds / 60), self.notify("Screen-off timer saved.")))
+        def finished(_, error=False):
+            self.saving_blank = False
+            self.blank_minutes.set_sensitive(True)
+            self.blank_restore.set_sensitive(True)
+            if error:
+                self.notify(str(_), True)
+                self.blank_apply.set_sensitive(self.dirty_blank)
+            else:
+                self.dirty_blank = False
+                self.syncing = True
+                try:
+                    self.blank_minutes.set_value(seconds / 60)
+                finally:
+                    self.syncing = False
+                self.notify("Screen-off timer saved.")
+            self.invalidate("power")
+            self.refresh()
+        self.run(apply, finished, lambda error: finished(error, True))
 
     def session_action(self, suspend):
         if self.demo:
@@ -843,50 +1092,81 @@ class Window(Gtk.ApplicationWindow):
                 self.command("systemctl", "suspend")
         self.run(apply)
 
-    def build_input(self, devices):
+    def build_input(self, devices, keyboard_state):
+        drafts = {key: {name: widget.get_value() if name == "speed" else widget.get_active()
+                       for name, widget in controls.items()}
+                  for key, (_, controls) in getattr(self, "input_controls", {}).items() if key in self.dirty_inputs}
+        keyboard_draft = {"delay": self.repeat_delay.get_value_as_int(), "rate": self.repeat_rate.get_value_as_int()} if (
+            self.dirty_keyboard and hasattr(self, "repeat_delay")) else keyboard_state
         body = self.clear("input")
         self.input_controls = {}
+        self.dirty_inputs.intersection_update(device["key"] for device in devices)
         if not devices:
             body.pack_start(label("No configurable libinput pointing devices were found.", "dim", True), False, False, 0)
         for device in devices:
             card = self.card(body, device["name"])
-            speed = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, -1, 1, 0.05)
+            values = {**device, **drafts.get(device["key"], {})}
+            speed = slider(-1, 1, 0.05)
             speed.set_digits(2)
-            speed.set_value(device["speed"])
-            speed.set_size_request(250, -1)
+            speed.set_value(values["speed"])
             self.row(card, "Pointer speed", speed)
             controls = {"speed": speed}
             for key, title in (("natural", "Natural scrolling"), ("tapping", "Tap to click")):
                 if device[key] is not None:
-                    widget = Gtk.Switch(active=device[key])
+                    widget = Gtk.Switch(active=values[key])
                     controls[key] = widget
                     self.row(card, title, widget)
             self.input_controls[device["key"]] = (device, controls)
             actions = box(False, 10)
-            actions.pack_start(button("Apply", lambda device=device: self.save_input(device, False), True), False, False, 0)
-            actions.pack_start(button("Restore defaults", lambda device=device: self.save_input(device, True)), False, False, 0)
+            apply = button("Apply", lambda device=device: self.save_input(device, False), True)
+            apply.set_sensitive(device["key"] in self.dirty_inputs and device["key"] not in self.pending_inputs)
+            actions.pack_start(apply, False, False, 0)
+            restore = button("Restore defaults", lambda device=device: self.save_input(device, True))
+            restore.set_sensitive(device["key"] not in self.pending_inputs)
+            actions.pack_start(restore, False, False, 0)
             card.pack_start(actions, False, False, 0)
+            def changed(*_, key=device["key"], apply=apply):
+                self.dirty_inputs.add(key)
+                apply.set_sensitive(key not in self.pending_inputs)
+            for name, widget in controls.items():
+                widget.set_sensitive(device["key"] not in self.pending_inputs)
+                self.connect_control(widget, "value-changed" if name == "speed" else "notify::active", changed)
         keyboard = self.card(body, "Keyboard repeat")
-        baseline = self.defaults.get("keyboard", {"delay": 200, "rate": 50})
-        current = self.preferences.read().get("keyboard", baseline)
-        self.repeat_delay = spin(current["delay"], 100, 2000, 25)
-        self.repeat_rate = spin(current["rate"], 1, 100)
+        self.repeat_delay = spin(keyboard_draft["delay"], 0, max(2000, keyboard_draft["delay"]), 25)
+        self.repeat_rate = spin(keyboard_draft["rate"], 1, max(100, keyboard_draft["rate"]))
         self.row(keyboard, "Initial delay", self.repeat_delay, "Milliseconds before a held key starts repeating.")
         self.row(keyboard, "Repeat rate", self.repeat_rate, "Characters per second.")
         actions = box(False, 10)
-        actions.pack_start(button("Apply", self.save_keyboard, True), False, False, 0)
-        actions.pack_start(button("Restore defaults", lambda: self.save_keyboard(True)), False, False, 0)
+        self.keyboard_apply = button("Apply", self.save_keyboard, True)
+        self.keyboard_apply.set_sensitive(self.dirty_keyboard and not self.saving_keyboard)
+        actions.pack_start(self.keyboard_apply, False, False, 0)
+        self.keyboard_restore = button("Restore defaults", lambda: self.save_keyboard(True))
+        self.keyboard_restore.set_sensitive(not self.saving_keyboard)
+        actions.pack_start(self.keyboard_restore, False, False, 0)
         keyboard.pack_start(actions, False, False, 0)
+        def keyboard_changed(*_):
+            if not self.syncing:
+                self.dirty_keyboard = True
+                self.keyboard_apply.set_sensitive(not self.saving_keyboard)
+        for widget in (self.repeat_delay, self.repeat_rate):
+            widget.set_sensitive(not self.saving_keyboard)
+            self.connect_control(widget, "value-changed", keyboard_changed)
         body.show_all()
 
     def save_input(self, device, restore):
+        if device["key"] in self.pending_inputs:
+            return
         controls = self.input_controls[device["key"]][1]
         values = self.defaults.get("input", {}).get("touchpad" if device["touchpad"] else "mouse", {"speed": 0, "natural": True}) if restore else {
             key: widget.get_value() if key == "speed" else widget.get_active() for key, widget in controls.items()}
+        values = {key: value for key, value in values.items() if key in controls}
+        self.pending_inputs.add(device["key"])
+        self.invalidate("input")
+        self.refresh()
         def apply():
             if self.demo:
                 self.demo.calls.append(("input", device["key"], values))
-                self.demo.devices[0].update(values)
+                next(item for item in self.demo.devices if item["key"] == device["key"]).update(values)
             else:
                 live = next((item for item in core.input_devices() if item["key"] == device["key"]), None)
                 if not live:
@@ -895,15 +1175,39 @@ class Window(Gtk.ApplicationWindow):
             saved = self.preferences.read().get("input_devices", {})
             saved.pop(device["key"], None) if restore else saved.update({device["key"]: values})
             self.preferences.update("input_devices", saved or None)
-        self.run(apply, lambda _: (self.notify("Pointing-device settings saved."), self.last_models.pop("input", None), self.refresh()))
+        def finished(_, error=False):
+            self.pending_inputs.discard(device["key"])
+            if error:
+                self.notify(str(_), True)
+            else:
+                self.dirty_inputs.discard(device["key"])
+                self.notify("Pointing-device settings saved.")
+            self.invalidate("input")
+            self.refresh()
+        self.run(apply, finished, lambda error: finished(error, True))
 
     def save_keyboard(self, restore=False):
+        if self.saving_keyboard:
+            return
         value = self.defaults.get("keyboard", {"delay": 200, "rate": 50}) if restore else {
             "delay": self.repeat_delay.get_value_as_int(), "rate": self.repeat_rate.get_value_as_int()}
+        self.saving_keyboard = True
+        self.invalidate("input")
+        for widget in (self.repeat_delay, self.repeat_rate, self.keyboard_apply, self.keyboard_restore):
+            widget.set_sensitive(False)
         def apply():
             self.command("xset", "r", "rate", value["delay"], value["rate"])
             self.preferences.update("keyboard", None if restore else value)
-        self.run(apply, lambda _: (self.repeat_delay.set_value(value["delay"]), self.repeat_rate.set_value(value["rate"]), self.notify("Keyboard repeat saved.")))
+        def finished(_, error=False):
+            self.saving_keyboard = False
+            if error:
+                self.notify(str(_), True)
+            else:
+                self.dirty_keyboard = False
+                self.notify("Keyboard repeat saved.")
+            self.invalidate("input")
+            self.refresh()
+        self.run(apply, finished, lambda error: finished(error, True))
 
     def build_shortcuts(self):
         body = self.pages["shortcuts"]
@@ -922,16 +1226,20 @@ class Window(Gtk.ApplicationWindow):
             rows.append((content, (key + " " + title).lower()))
         search.connect("search-changed", lambda widget: [row.set_visible(widget.get_text().lower() in text) for row, text in rows])
 
-    def build_about(self):
-        body = self.pages["about"]
+    def build_about(self, values=None):
+        values = values if values is not None else self.demo.snapshot("about") if self.demo else core.system_info()
+        model = repr(values)
+        if self.last_models.get("about") == model:
+            return
+        self.last_models["about"] = model
+        body = self.clear("about")
         card = self.card(body)
-        values = [("System", "NixOS · Blix desktop"), ("Device", "Preview device"), ("Session", "OXWM / X11"),
-                  ("Memory", "16 GiB"), ("Blix Settings", "0.1.0")] if self.demo else core.system_info()
         for key, value in values:
             text = label(value, "dim", True)
             text.set_selectable(True)
             self.row(card, key, text)
         body.pack_start(label("Nix provides the defaults. Display and input choices are saved for your user; audio, connections and pairing are remembered by their services.", "dim", True), False, False, 0)
+        body.show_all()
 
     def close_window(self, *_):
         if self.closed:

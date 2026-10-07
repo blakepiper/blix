@@ -153,6 +153,37 @@ def outputs():
     return result
 
 
+def display_state(backlight=True):
+    state = {"outputs": outputs(), "brightness": None, "brightness_error": None}
+    resources = command("xrdb", "-query")
+    dpi = re.search(r"^Xft\.dpi:\s*([\d.]+)\s*$", resources, re.M)
+    state["dpi"] = float(dpi[1]) if dpi else None
+    if backlight:
+        try:
+            state["brightness"] = brightness()
+        except SettingsError as error:
+            state["brightness_error"] = str(error)
+    return state
+
+
+def session_state():
+    query = command("xset", "q")
+    keyboard = re.search(r"auto repeat delay:\s*(\d+)\s+repeat rate:\s*(\d+)", query)
+    off = re.search(r"Standby:\s*\d+\s+Suspend:\s*\d+\s+Off:\s*(\d+)", query)
+    if not keyboard:
+        raise SettingsError("Could not read the X11 keyboard repeat settings.")
+    return {"keyboard": {"delay": int(keyboard[1]), "rate": int(keyboard[2])},
+            "blank_seconds": int(off[1]) if off and "DPMS is Enabled" in query else 0}
+
+
+def input_state():
+    return {"devices": input_devices(), "keyboard": session_state()["keyboard"]}
+
+
+def power_state():
+    return {"batteries": batteries(), "blank_seconds": session_state()["blank_seconds"]}
+
+
 def mode_size(mode, rotation="normal", scale=1):
     width, height = map(int, mode.split("x"))
     if rotation in ("left", "right"):
@@ -461,13 +492,14 @@ def apply_session_preferences():
     keyboard = saved.get("keyboard")
     if keyboard:
         delay, rate = keyboard.get("delay"), keyboard.get("rate")
-        if not isinstance(delay, int) or not 100 <= delay <= 2000 or not isinstance(rate, int) or not 1 <= rate <= 100:
+        if not isinstance(delay, int) or not 0 <= delay <= 65535 or not isinstance(rate, int) or not 1 <= rate <= 1000:
             raise SettingsError("The saved keyboard repeat setting is invalid.")
         command("xset", "r", "rate", delay, rate)
     blank = saved.get("blank_seconds")
     if blank is not None:
         if not isinstance(blank, int) or not 0 <= blank <= 86400:
             raise SettingsError("The saved screen-off timer is invalid.")
+        command("xset", "+dpms")
         command("xset", "dpms", 0, 0, blank)
     apply_input_preferences()
 
