@@ -68,9 +68,6 @@ in
     "Pictures/Screenshots/.keep".text = "";
   };
 
-  # Xfe rewrites xferc with mutable layout, history, and keybinding state;
-  # preserve that user-owned file instead of clobbering it on activation.
-
   # This is intentionally a manual startx session. Auxiliary services are
   # started before OXWM, but none of them may prevent the window manager from
   # appearing if a lock/compositor helper is temporarily unavailable.
