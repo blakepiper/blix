@@ -9,11 +9,15 @@ local colors = {
   workspace_occupied = "#6ee7a0",
   dim = "#34324a",
   red = "#f7768e",
-  blue = "#7aa2f7",
-  lavender = "#bb9af7",
-  cyan = "#0db9d7",
-  orange = "#e0af68",
-  green = "#9ece6a",
+  status = {
+    battery = "#a6da95",
+    volume = "#8aadf4",
+    brightness = "#eed49f",
+    ram = "#c6a0f6",
+    cpu = "#ed8796",
+    clock = "#cad3f5",
+    separator = "#6e738d",
+  },
 }
 oxwm.set_terminal(assert(os.getenv("TERMINAL"), "Blix requires TERMINAL in the session environment"))
 oxwm.set_modkey(mod)
@@ -21,6 +25,10 @@ oxwm.set_tags({ "1", "2", "3", "4", "5", "6", "7", "8", "9" })
 -- Dwindle gives new windows recursive Fibonacci-style splits instead of the
 -- traditional master/stack arrangement.
 oxwm.set_layout("dwindle")
+-- Leave only the numbered workspaces on the left side of the bar.
+for _, layout in ipairs({ "tiling", "normie", "grid", "monocle", "scrolling", "dwindle" }) do
+  oxwm.set_layout_symbol(layout, "")
+end
 -- OXWM stores the selected layout per workspace; initialize every workspace
 -- explicitly so each tag starts in dwindle mode on every monitor.
 for i = 1, 9 do
@@ -55,7 +63,7 @@ if battery and battery:match("^[%w_%-]+$") then
         format = "{}",
         command = "oxwm-battery",
         interval = 30,
-        color = colors.green,
+        color = colors.status.battery,
         underline = false,
       }))
     end
@@ -65,7 +73,7 @@ if #blocks > 0 then
   table.insert(blocks, oxwm.bar.block.static({
     text = "│",
     interval = 999999999,
-    color = colors.lavender,
+    color = colors.status.separator,
     underline = false,
   }))
 end
@@ -73,7 +81,7 @@ table.insert(blocks, oxwm.bar.block.shell({
   format = "Vol {}",
   command = "@oxwm-volume@",
   interval = 1,
-  color = colors.accent,
+  color = colors.status.volume,
   underline = false,
   click = {
     command = "@wpctl@ set-volume -l 1 @DEFAULT_AUDIO_SINK@ {}%",
@@ -83,7 +91,7 @@ table.insert(blocks, oxwm.bar.block.shell({
 table.insert(blocks, oxwm.bar.block.static({
   text = "│",
   interval = 999999999,
-  color = colors.lavender,
+  color = colors.status.separator,
   underline = false,
 }))
 if os.getenv("BLIX_HAS_BACKLIGHT") == "1" then
@@ -91,7 +99,7 @@ if os.getenv("BLIX_HAS_BACKLIGHT") == "1" then
     format = "Brit {}",
     command = "@oxwm-brightness@",
     interval = 1,
-    color = colors.green,
+    color = colors.status.brightness,
     underline = false,
     click = {
       command = "@brightnessctl@ --class=backlight --min-value=1 set {}%",
@@ -101,41 +109,41 @@ if os.getenv("BLIX_HAS_BACKLIGHT") == "1" then
   table.insert(blocks, oxwm.bar.block.static({
     text = "│",
     interval = 999999999,
-    color = colors.lavender,
+    color = colors.status.separator,
     underline = false,
   }))
 end
 table.insert(blocks, oxwm.bar.block.ram({
   format = "Ram: {used}/{total} GB",
   interval = 5,
-  color = colors.blue,
-  underline = true,
+  color = colors.status.ram,
+  underline = false,
 }))
 table.insert(blocks, oxwm.bar.block.static({
   text = "│",
   interval = 999999999,
-  color = colors.lavender,
+  color = colors.status.separator,
   underline = false,
 }))
 table.insert(blocks, oxwm.bar.block.shell({
   format = "CPU: {}%",
   command = "oxwm-cpu",
   interval = 5,
-  color = colors.orange,
-  underline = true,
+  color = colors.status.cpu,
+  underline = false,
 }))
 table.insert(blocks, oxwm.bar.block.static({
   text = "│",
   interval = 999999999,
-  color = colors.lavender,
+  color = colors.status.separator,
   underline = false,
 }))
 table.insert(blocks, oxwm.bar.block.datetime({
   format = "{}",
   date_format = "%a, %b %d - %H:%M",
   interval = 60,
-  color = colors.cyan,
-  underline = true,
+  color = colors.status.clock,
+  underline = false,
 }))
 oxwm.bar.set_blocks(blocks)
 

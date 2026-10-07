@@ -10,7 +10,6 @@ let
     (builtins.readFile ../config/firefox/video-opacity/bootstrap.js);
   navbar = [
     "reset-pbm-toolbar-button"
-    "unified-extensions-button"
     "urlbar-container"
     "back-button"
     "forward-button"
@@ -18,6 +17,7 @@ let
     "vertical-spacer"
     "smartwindow-group-tabs-button"
     "ai-window-toggle"
+    "unified-extensions-button"
   ];
   tabstrip = [
     "tabbrowser-tabs"

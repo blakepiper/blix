@@ -15,11 +15,36 @@
   border-radius: 0 !important;
 }
 
-/* Keep the extensions menu and the native + below vertical tabs. */
+/* Keep the native + below vertical tabs and hide the pinned uBlock icon. */
 #new-tab-button,
 #alltabs-button,
 #nav-bar #ublock0_raymondhill_net-browser-action {
   display: none !important;
+}
+
+/* Firefox keeps the menu outside the customizable toolbar. Swap it with the
+ * last extensions button while preserving the native toolbar and overflow. */
+:root:not([customizing]) #nav-bar {
+  --blix-button-inner: var(--toolbarbutton-padding-inner, var(--toolbarbutton-inner-padding, 8px));
+  --blix-button-outer: var(--toolbarbutton-padding-outer, var(--toolbarbutton-outer-padding, 2px));
+  --blix-button-width: calc(16px + 2 * (var(--blix-button-inner) + var(--blix-button-outer)));
+  --blix-menu-width: calc(16px + 2 * var(--blix-button-inner) + var(--blix-button-outer) + var(--toolbar-padding-inline, 6px));
+  --blix-overflow-width: 0px;
+}
+
+:root:not([customizing]) #nav-bar:is([overflowing], [nonemptyoverflow]) {
+  --blix-overflow-width: var(--blix-button-width);
+}
+
+:root:not([customizing]) #nav-bar #unified-extensions-button {
+  order: 1 !important;
+  position: relative;
+  inset-inline-start: calc(var(--blix-menu-width) + var(--blix-overflow-width));
+}
+
+:root:not([customizing]) #nav-bar:has(#unified-extensions-button:not([hidden])) > :is(#nav-bar-overflow-button, #PanelUI-button) {
+  position: relative;
+  inset-inline-start: calc(-1 * var(--blix-button-width));
 }
 
 /* Hide account and Sync entry points and sign-in promotions. */

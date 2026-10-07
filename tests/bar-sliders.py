@@ -35,6 +35,8 @@ else:
 """)
 backend_command = " ".join(shlex.quote(str(arg)) for arg in (sys.executable, backend, state))
 config = Path(config_source).read_text()
+slider_colors = [int(re.search(rf'{name} = "#([0-9a-fA-F]{{6}})"', config)[1], 16)
+                 for name in ("volume", "brightness")]
 for pattern, command in (
     (r'"[^"\n]*/bin/oxwm-volume"', f"{backend_command} volume"),
     (r'"[^"\n]*/bin/oxwm-brightness"', f"{backend_command} brightness"),
@@ -103,7 +105,7 @@ try:
     def blocks():
         capture = x.XGetImage(display, root, 0, 0, 1600, 40, c.c_ulong(-1).value, 2)
         try:
-            regions = {0x9FE3C4: [], 0x9ECE6A: []}
+            regions = {color: [] for color in slider_colors}
             for py in range(40):
                 for px in range(400, 1600):
                     color = x.XGetPixel(capture, px, py)
