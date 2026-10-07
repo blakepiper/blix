@@ -8,6 +8,7 @@
   imports = [
     ../../profiles/laptop.nix
     ./hardware-configuration.nix
+    ../../modules/hardware/graphics/intel.nix
   ];
 
   # Home Manager settings that depend on this machine, merged with the

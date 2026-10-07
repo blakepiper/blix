@@ -1,0 +1,326 @@
+--- a/src/bar/blocks/shell.zig
++++ b/src/bar/blocks/shell.zig
+@@ -1,11 +1,30 @@
+ const std = @import("std");
+ const format_util = @import("format.zig");
++const c = @cImport({
++    // Glibc's fortified vararg wrappers cannot be translated by Zig. Bounds on
++    // the actual read buffers are enforced here, with ReleaseSafe enabled.
++    @cUndef("_FORTIFY_SOURCE");
++    @cDefine("_GNU_SOURCE", "");
++    @cInclude("errno.h");
++    @cInclude("fcntl.h");
++    @cInclude("signal.h");
++    @cInclude("spawn.h");
++    @cInclude("sys/wait.h");
++    @cInclude("unistd.h");
++});
+ 
+ pub const Shell = struct {
+     format: []const u8,
+     command: []const u8,
+     interval_secs: u64,
+     color: c_ulong,
++    pid: ?c.pid_t = null,
++    group: ?c.pid_t = null,
++    fd: ?c_int = null,
++    output: [256]u8 = undefined,
++    output_len: usize = 0,
++    started_at: i64 = 0,
++    timed_out: bool = false,
+ 
+     pub fn init(format: []const u8, command: []const u8, interval_secs: u64, col: c_ulong) Shell {
+         return .{
+@@ -16,22 +35,100 @@
+         };
+     }
+ 
+-    pub fn content(self: *Shell, io: std.Io, gpa: std.mem.Allocator, buffer: []u8) []const u8 {
+-        var cmd_output: [256]u8 = undefined;
+-        const result = std.process.run(gpa, io, .{
+-            .argv = &.{ "/bin/sh", "-c", self.command },
+-        }) catch return buffer[0..0];
+-        defer gpa.free(result.stdout);
+-        defer gpa.free(result.stderr);
+-
+-        var cmd_len = @min(result.stdout.len, cmd_output.len);
+-        @memcpy(cmd_output[0..cmd_len], result.stdout[0..cmd_len]);
+-
+-        while (cmd_len > 0 and (cmd_output[cmd_len - 1] == '\n' or cmd_output[cmd_len - 1] == '\r')) {
+-            cmd_len -= 1;
+-        }
+-
+-        return format_util.substitute(self.format, cmd_output[0..cmd_len], buffer);
++    pub fn running(self: *const Shell) bool {
++        return self.pid != null or self.fd != null;
++    }
++
++    /// Spawn without waiting. Each block owns at most one collector and retains
++    /// its previous display value until the next complete result arrives.
++    pub fn start(self: *Shell, gpa: std.mem.Allocator, now: i64) void {
++        if (self.running()) return;
++        const command = gpa.dupeZ(u8, self.command) catch return;
++        defer gpa.free(command);
++
++        var pipe: [2]c_int = undefined;
++        if (c.pipe2(&pipe, c.O_CLOEXEC) != 0) return;
++        defer _ = c.close(pipe[1]);
++        var keep_read_end = false;
++        defer if (!keep_read_end) {
++            _ = c.close(pipe[0]);
++        };
++        if (c.fcntl(pipe[0], c.F_SETFL, @as(c_int, c.O_NONBLOCK)) != 0) return;
++
++        var actions: c.posix_spawn_file_actions_t = undefined;
++        if (c.posix_spawn_file_actions_init(&actions) != 0) return;
++        defer _ = c.posix_spawn_file_actions_destroy(&actions);
++        if (c.posix_spawn_file_actions_adddup2(&actions, pipe[1], c.STDOUT_FILENO) != 0 or
++            c.posix_spawn_file_actions_addclose(&actions, pipe[0]) != 0 or
++            c.posix_spawn_file_actions_addclose(&actions, pipe[1]) != 0 or
++            c.posix_spawn_file_actions_addopen(&actions, c.STDIN_FILENO, "/dev/null", c.O_RDONLY, 0) != 0 or
++            c.posix_spawn_file_actions_addopen(&actions, c.STDERR_FILENO, "/dev/null", c.O_WRONLY, 0) != 0) return;
++
++        var attributes: c.posix_spawnattr_t = undefined;
++        if (c.posix_spawnattr_init(&attributes) != 0) return;
++        defer _ = c.posix_spawnattr_destroy(&attributes);
++        if (c.posix_spawnattr_setflags(&attributes, c.POSIX_SPAWN_SETPGROUP) != 0 or
++            c.posix_spawnattr_setpgroup(&attributes, 0) != 0) return;
++        var argv = [_][*c]u8{ @constCast("/bin/sh"), @constCast("-c"), command.ptr, null };
++        var pid: c.pid_t = undefined;
++        if (c.posix_spawn(&pid, "/bin/sh", &actions, &attributes, &argv, c.environ) != 0) return;
++
++        keep_read_end = true;
++        self.pid = pid;
++        self.group = pid;
++        self.fd = pipe[0];
++        self.output_len = 0;
++        self.started_at = now;
++        self.timed_out = false;
++    }
++
++    /// Drain a bounded amount of output without blocking the X11 event loop.
++    /// A faulty helper cannot grow memory, overlap launches, or run forever.
++    pub fn collect(self: *Shell, now: i64, buffer: []u8) ?[]const u8 {
++        if (self.running() and !self.timed_out and now - self.started_at >= 30) {
++            if (self.group) |group| _ = c.kill(-group, c.SIGKILL);
++            self.timed_out = true;
++        }
++        var result: ?[]const u8 = null;
++        if (self.fd) |fd| {
++            var chunk: [4096]u8 = undefined;
++            for (0..4) |_| {
++                const count = c.read(fd, &chunk, chunk.len);
++                if (count > 0) {
++                    const length = @min(@as(usize, @intCast(count)), self.output.len - self.output_len);
++                    @memcpy(self.output[self.output_len..][0..length], chunk[0..length]);
++                    self.output_len += length;
++                } else if (count == 0 or (count < 0 and c.__errno_location().* != c.EAGAIN and c.__errno_location().* != c.EINTR)) {
++                    _ = c.close(fd);
++                    self.fd = null;
++                    while (self.output_len > 0 and (self.output[self.output_len - 1] == '\n' or self.output[self.output_len - 1] == '\r')) {
++                        self.output_len -= 1;
++                    }
++                    if (!self.timed_out) result = format_util.substitute(self.format, self.output[0..self.output_len], buffer);
++                    break;
++                } else break;
++            }
++        }
++        if (self.pid) |pid| {
++            var status: c_int = undefined;
++            const reaped = c.waitpid(pid, &status, c.WNOHANG);
++            if (reaped == pid or (reaped < 0 and c.__errno_location().* == c.ECHILD)) self.pid = null;
++        }
++        if (!self.running()) self.group = null;
++        return result;
++    }
++
++    /// Cleanup is used when a bar is removed, the config reloads, or WM exits.
++    pub fn deinit(self: *Shell) void {
++        if (self.group) |group| _ = c.kill(-group, c.SIGKILL);
++        if (self.fd) |fd| _ = c.close(fd);
++        if (self.pid) |pid| {
++            var status: c_int = undefined;
++            while (c.waitpid(pid, &status, 0) < 0 and c.__errno_location().* == c.EINTR) {}
++        }
++        self.pid = null;
++        self.group = null;
++        self.fd = null;
+     }
+ 
+     pub fn interval(self: *Shell) u64 {
+@@ -42,3 +139,71 @@
+         return self.color;
+     }
+ };
++
++test "slow collectors return immediately, do not overlap, and publish complete formatted output" {
++    var shell = Shell.init("Vol {}", "sleep 0.2; printf '37%% (muted)\\r\\n'", 1, 0);
++    defer shell.deinit();
++    var buffer: [256]u8 = undefined;
++    shell.start(std.testing.allocator, 0);
++    try std.testing.expect(shell.running());
++    const pid = shell.pid;
++    shell.start(std.testing.allocator, 0);
++    try std.testing.expectEqual(pid, shell.pid);
++    try std.testing.expectEqual(null, shell.collect(0, &buffer));
++    var result: ?[]const u8 = null;
++    for (0..200) |_| {
++        if (shell.collect(0, &buffer)) |content| {
++            result = content;
++            break;
++        }
++        _ = c.usleep(10000);
++    }
++    try std.testing.expectEqualStrings("Vol 37% (muted)", result orelse return error.NoOutput);
++    try std.testing.expectEqual(null, shell.collect(0, &buffer));
++}
++
++test "large stdout is drained and truncated without retaining stderr or unbounded memory" {
++    var shell = Shell.init("", "i=0; while [ $i -lt 64 ]; do printf '%01024d' 0; printf '%01024d' 0 >&2; i=$((i+1)); done", 1, 0);
++    defer shell.deinit();
++    var buffer: [256]u8 = undefined;
++    shell.start(std.testing.allocator, 0);
++    var result: ?[]const u8 = null;
++    for (0..200) |_| {
++        if (shell.collect(0, &buffer)) |content| {
++            result = content;
++            break;
++        }
++        _ = c.usleep(10000);
++    }
++    const content = result orelse return error.NoOutput;
++    try std.testing.expectEqual(@as(usize, 256), content.len);
++    for (content) |byte| try std.testing.expectEqual(@as(u8, '0'), byte);
++}
++
++test "a timed out helper is killed and reaped while the cached value is retained" {
++    var shell = Shell.init("{}", "sleep 60", 1, 0);
++    defer shell.deinit();
++    var buffer: [256]u8 = undefined;
++    @memcpy(buffer[0..8], "previous");
++    shell.start(std.testing.allocator, 0);
++    for (0..200) |_| {
++        try std.testing.expectEqual(null, shell.collect(30, &buffer));
++        if (!shell.running()) break;
++        _ = c.usleep(10000);
++    }
++    try std.testing.expect(!shell.running());
++    try std.testing.expectEqualStrings("previous", buffer[0..8]);
++}
++
++test "bar teardown closes descriptors and reaps its running helper" {
++    var shell = Shell.init("{}", "sleep 60", 1, 0);
++    shell.start(std.testing.allocator, 0);
++    const pid = shell.pid orelse return error.NoProcess;
++    const fd = shell.fd orelse return error.NoPipe;
++    shell.deinit();
++    try std.testing.expect(!shell.running());
++    try std.testing.expectEqual(@as(c_int, -1), c.fcntl(fd, c.F_GETFD));
++    var status: c_int = undefined;
++    try std.testing.expectEqual(@as(c.pid_t, -1), c.waitpid(pid, &status, c.WNOHANG));
++    try std.testing.expectEqual(c.ECHILD, c.__errno_location().*);
++}
+--- a/src/bar/blocks/blocks.zig
++++ b/src/bar/blocks/blocks.zig
+@@ -110,6 +110,18 @@
+ 
+         // .awake (monotonic) for interval bookkeeping, not .real (wall-clock) — std.Io rework gives us a clock enum now, and a wall-clock backstep would stretch intervals.
+         const now = std.Io.Timestamp.now(io, .awake).toSeconds();
++        switch (self.data) {
++            .shell => |*shell| {
++                const result = shell.collect(now, &self.cached_content);
++                if (result) |content| self.cached_len = content.len;
++                if (!shell.running() and (self.last_update == 0 or now - self.last_update >= @as(i64, @intCast(interval_secs)))) {
++                    self.last_update = now;
++                    shell.start(gpa, now);
++                }
++                return result != null;
++            },
++            else => {},
++        }
+         // last_update == 0 is the never-ran sentinel; force the first refresh since `now - 0` is just uptime under .awake and can be smaller than the interval.
+         if (self.last_update != 0 and now - self.last_update < @as(i64, @intCast(interval_secs))) {
+             return false;
+@@ -121,7 +133,7 @@
+             .static => |*s| s.content(&self.cached_content),
+             .datetime => |*d| d.content(&self.cached_content),
+             .ram => |*r| r.content(io, &self.cached_content),
+-            .shell => |*s| s.content(io, gpa, &self.cached_content),
++            .shell => unreachable,
+             .battery => |*b| b.content(io, &self.cached_content),
+             .cpu_temp => |*c| c.content(io, &self.cached_content),
+         };
+@@ -141,6 +153,13 @@
+         };
+     }
+ 
++    pub fn deinit(self: *Block) void {
++        switch (self.data) {
++            .shell => |*shell| shell.deinit(),
++            else => {},
++        }
++    }
++
+     pub fn color(self: *const Block) c_ulong {
+         return switch (self.data) {
+             .static => |s| s.color,
+--- a/src/bar/bar.zig
++++ b/src/bar/bar.zig
+@@ -176,6 +176,7 @@
+         _ = xlib.XFreeGC(display, self.graphics_context);
+         _ = xlib.XFreePixmap(display, self.pixmap);
+         _ = xlib.c.XDestroyWindow(display, self.window);
++        self.clearBlocks();
+         self.blocks.deinit(self.allocator);
+         self.allocator.destroy(self);
+     }
+@@ -216,6 +217,7 @@
+     }
+ 
+     pub fn clearBlocks(self: *Bar) void {
++        for (self.blocks.items) |*block| block.deinit();
+         self.blocks.clearRetainingCapacity();
+     }
+ 
+--- a/src/wm/wm.zig
++++ b/src/wm/wm.zig
+@@ -719,9 +719,8 @@
+         eventFn: fn (*xlib.XEvent, *WindowManager) void,
+         tickFn: fn (*WindowManager) void,
+     ) void {
+-        var fds = [_]std.posix.pollfd{
+-            .{ .fd = self.x11_fd, .events = std.posix.POLL.IN, .revents = 0 },
+-        };
++        var fds: std.ArrayList(std.posix.pollfd) = .empty;
++        defer fds.deinit(self.allocator);
+ 
+         _ = xlib.XSync(self.display.handle, xlib.False);
+ 
+@@ -733,15 +732,26 @@
+ 
+             tickFn(self);
+ 
++            fds.clearRetainingCapacity();
++            fds.append(self.allocator, .{ .fd = self.x11_fd, .events = std.posix.POLL.IN, .revents = 0 }) catch break;
++
+             var current_bar = self.bars;
+             while (current_bar) |bar| {
+                 bar.updateBlocks(self.io, self.allocator);
+                 bar.draw(self.display.handle, self.config);
++                for (bar.blocks.items) |*block| {
++                    switch (block.data) {
++                        .shell => |*shell| if (shell.fd) |fd| {
++                            fds.append(self.allocator, .{ .fd = fd, .events = std.posix.POLL.IN, .revents = 0 }) catch {};
++                        },
++                        else => {},
++                    }
++                }
+                 current_bar = bar.next;
+             }
+ 
+             const poll_timeout: i32 = if (self.scroll_animation.isActive()) 16 else 1000;
+-            _ = std.posix.poll(&fds, poll_timeout) catch 0;
++            _ = std.posix.poll(fds.items, poll_timeout) catch 0;
+         }
+     }
+ 

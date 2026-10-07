@@ -19,8 +19,15 @@ final: prev:
       ../packaging/oxwm/0003-bar-logo.patch
       ../packaging/oxwm/0004-bar-sliders.patch
       ../packaging/oxwm/0005-even-tiling-split.patch
+      ../packaging/oxwm/0006-async-bar-blocks.patch
     ];
     buildInputs = (old.buildInputs or [ ]) ++ [ final.libxpm ];
+    doCheck = true;
+    checkPhase = ''
+      runHook preCheck
+      zig test src/bar/blocks/shell.zig -lc
+      runHook postCheck
+    '';
   });
 
 }
