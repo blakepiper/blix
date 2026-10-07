@@ -10,9 +10,9 @@ let
     (builtins.readFile ../config/firefox/video-opacity/bootstrap.js);
   navbar = [
     "reset-pbm-toolbar-button"
-    "urlbar-container"
     "back-button"
     "forward-button"
+    "urlbar-container"
     "stop-reload-button"
     "vertical-spacer"
     "smartwindow-group-tabs-button"
