@@ -8,6 +8,8 @@
     # The Dell dock exposes its HDMI monitor through dynamic DP/MST outputs.
     additionalExternalOutputs = [ "DP-*" ];
     mirrorMode = "1920x1080";
+    # 125% application scaling relative to the standard 96 DPI baseline.
+    dpi = 120;
     wallpaper = "/home/przvl/Pictures/forest.jpg";
   };
 }
