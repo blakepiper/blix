@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Blix Video Opacity",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Keep Firefox opaque while its active tab plays a video.",
   "browser_specific_settings": {
     "gecko": {
@@ -17,6 +17,7 @@
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*", "file:///*"],
+      "exclude_matches": ["*://*.x.com/*"],
       "js": ["content.js"],
       "all_frames": true,
       "match_about_blank": true,

@@ -1,9 +1,15 @@
 const marker = "[blix-video] ";
 const pending = new Map();
 
+function isExcluded(url) {
+  const hostname = new URL(url || "about:blank").hostname;
+  return hostname === "x.com" || hostname.endsWith(".x.com");
+}
+
 async function refreshWindow(windowId) {
   const [tab] = await browser.tabs.query({ windowId, active: true });
-  if (!tab || tab.discarded) {
+  // Exclude the whole tab, including videos in cross-origin embedded frames.
+  if (!tab || tab.discarded || isExcluded(tab.url)) {
     await browser.windows.update(windowId, { titlePreface: "" });
     return;
   }
@@ -20,7 +26,7 @@ async function refreshWindow(windowId) {
   if (current?.id !== tab.id) return;
 
   const window = await browser.windows.get(windowId);
-  const playing = states.some(state => state === true);
+  const playing = !isExcluded(current.url) && states.some(state => state === true);
   if (window.title.startsWith(marker) !== playing) {
     await browser.windows.update(windowId, { titlePreface: playing ? marker : "" });
   }

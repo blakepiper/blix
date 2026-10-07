@@ -229,6 +229,8 @@ Firefox's local Blix Video Opacity extension marks a window's title with
 `[blix-video]` while its active tab plays an HTML video, including embedded
 videos and private windows. Picom makes only marked Firefox windows opaque;
 pause, completion, navigation and tab switching restore ordinary transparency.
+Tabs on x.com and its subdomains keep ordinary transparency, including when
+they play videos in embedded frames. The detector also skips x.com documents.
 The extension uses playback events and an idle-unloading background page, with
 no polling or separate service. Shared Home Manager configuration loads its
 immutable Nix package as a trusted built-in through Firefox AutoConfig; normal

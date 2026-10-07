@@ -14,6 +14,7 @@ import tempfile
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 import wave
 
@@ -33,6 +34,12 @@ def wait_for(predicate, message, timeout=10):
 class Handler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *args):
         pass
+
+    def do_GET(self):
+        # Also serve as a local HTTP proxy so hostname exclusions are tested
+        # against real browser URLs without accessing the external sites.
+        self.path = urllib.parse.urlsplit(self.path).path
+        super().do_GET()
 
 
 with tempfile.TemporaryDirectory(prefix="blix-video-opacity-") as directory:
@@ -95,7 +102,7 @@ with tempfile.TemporaryDirectory(prefix="blix-video-opacity-") as directory:
 
     def navigate(path):
         command("POST", "/moz/context", {"context": "content"})
-        command("POST", "/url", {"url": url + path})
+        command("POST", "/url", {"url": urllib.parse.urljoin(url, path)})
 
     try:
         assert select.select([xvfb.stdout], [], [], 10)[0], "Xvfb failed to start"
@@ -117,6 +124,10 @@ with tempfile.TemporaryDirectory(prefix="blix-video-opacity-") as directory:
                 "media.autoplay.default": 0,
                 "browser.shell.checkDefaultBrowser": False,
                 "browser.startup.homepage_override.mstone": "ignore",
+                "network.proxy.type": 1,
+                "network.proxy.http": "127.0.0.1",
+                "network.proxy.http_port": server.server_port,
+                "network.proxy.no_proxies_on": "",
             }}}
         session = api("POST", "/session", {
             "capabilities": {"alwaysMatch": capabilities}})["sessionId"]
@@ -186,6 +197,22 @@ with tempfile.TemporaryDirectory(prefix="blix-video-opacity-") as directory:
         script("document.getElementById('frame').remove();")
         marked(False)
         print("PASS: cross-origin iframe playback, frame navigation/removal", flush=True)
+
+        for host, expected in (("x.com", False), ("www.x.com", False), ("x.com.example.test", True)):
+            navigate(f"http://{host}/index.html")
+            script("document.getElementById('video').play();")
+            wait_for(lambda: script("return document.getElementById('video').currentTime > 0.2;"),
+                     f"Video did not play on {host}")
+            marked(expected)
+            script(f'''const frame = document.createElement('iframe');
+                frame.src={json.dumps(url + '/frame.html')}; document.body.append(frame);''')
+            command("POST", "/frame", {"id": 0})
+            wait_for(lambda: command("POST", "/execute/sync", {
+                "script": "return document.getElementById('video')?.currentTime > 0.2;", "args": []}),
+                f"Embedded video did not play on {host}")
+            command("POST", "/frame", {"id": None})
+            marked(expected)
+        print("PASS: x.com/subdomains excluded with local or embedded videos; unrelated domains still trigger opacity", flush=True)
 
         navigate("/index.html")
         script("document.getElementById('video').play();")
