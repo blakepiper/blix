@@ -49,6 +49,12 @@ in
   home.sessionVariables = displayEnvironment // { MOZ_USE_XINPUT2 = "1"; };
   xresources.properties = lib.mkIf (display.dpi != null) { "Xft.dpi" = display.dpi; };
 
+  # Manual Gammastep commands should use X11 instead of probing Wayland first.
+  xdg.configFile."gammastep/config.ini".text = ''
+    [general]
+    adjustment-method=randr
+  '';
+
   home.file = {
     ".config/mimeapps.list".source = ./config/mimeapps.list;
     ".config/oxwm/config.lua".text = lib.replaceStrings
