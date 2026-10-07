@@ -225,6 +225,18 @@ BLIX_PRIMARY_SCALE_FROM
 BLIX_WALLPAPER
 ```
 
+Firefox's local Blix Video Opacity extension marks a window's title with
+`[blix-video]` while its active tab plays an HTML video, including embedded
+videos and private windows. Picom makes only marked Firefox windows opaque;
+pause, completion, navigation and tab switching restore ordinary transparency.
+The extension uses playback events and an idle-unloading background page, with
+no polling or separate service. Shared Home Manager configuration loads its
+immutable Nix package as a trusted built-in through Firefox AutoConfig; normal
+addon signature checks and the web-content sandbox remain enabled. Its sources
+live in `home/przvl/config/firefox/video-opacity/`; bump `manifest.json`'s version
+when updating it. The isolated `firefox-video-opacity` check exercises playback,
+window/tab/frame lifecycle, browser restarts and Picom's rendered opacity.
+
 To leave the session, exit OXWM or use the configured lock/power controls and
 return to the TTY.
 

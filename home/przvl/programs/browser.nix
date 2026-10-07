@@ -1,6 +1,13 @@
 { config, lib, pkgs, ... }:
 
 let
+  videoOpacity = pkgs.callPackage ../../../packaging/firefox-video-opacity { };
+  videoOpacityManifest = builtins.fromJSON
+    (builtins.readFile ../config/firefox/video-opacity/manifest.json);
+  videoOpacityBootstrap = lib.replaceStrings
+    [ "@video-opacity-source@" "@video-opacity-version@" ]
+    [ "${videoOpacity}/share/firefox-video-opacity" videoOpacityManifest.version ]
+    (builtins.readFile ../config/firefox/video-opacity/bootstrap.js);
   navbar = [
     "reset-pbm-toolbar-button"
     "unified-extensions-button"
@@ -30,7 +37,12 @@ in
 
   programs.firefox = {
     enable = true;
-    package = pkgs.firefox;
+    package = pkgs.firefox.override {
+      # Trusted AutoConfig loads only our immutable Nix-store extension. This
+      # does not disable the web-content sandbox or addon signature checks.
+      extraAutoConfig = ''pref("general.config.sandbox_enabled", false);'';
+      extraPrefs = videoOpacityBootstrap;
+    };
 
     policies = (builtins.fromJSON (builtins.readFile ../config/firefox/policies.json)).policies;
 
