@@ -126,7 +126,6 @@ in
     ])
     (writeScript "oxwm-cpu" [
       pkgs.coreutils
-      pkgs.gawk
     ])
     (writeScript "screenshot-region" [
       pkgs.coreutils

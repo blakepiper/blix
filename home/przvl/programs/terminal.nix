@@ -1,5 +1,11 @@
 { config, lib, pkgs, ... }:
 
+let
+  # OXWM executes TERMINAL as one executable, so keep IPC arguments here.
+  launcher = pkgs.writeShellScriptBin "blix-terminal" ''
+    exec ${lib.getExe config.programs.ghostty.package} +new-window "$@"
+  '';
+in
 {
   programs.ghostty = {
     enable = true;
@@ -23,6 +29,8 @@
       window-decoration = "none";
       window-padding-x = 2;
       window-padding-y = 2;
+      # Retain the initialized app between windows; the X session owns its life.
+      quit-after-last-window-closed = false;
     };
   };
 
@@ -34,5 +42,14 @@
     fi
   '';
 
-  home.sessionVariables.TERMINAL = lib.getExe config.programs.ghostty.package;
+  home.sessionVariables.TERMINAL = lib.getExe launcher;
+
+  # Home Manager already installs Ghostty's D-Bus activation and user unit.
+  # Start it after the manual X session imports DISPLAY, without opening a window.
+  systemd.user.targets.blix-session.Unit.Wants = [ "app-com.mitchellh.ghostty.service" ];
+  xdg.configFile."systemd/user/app-com.mitchellh.ghostty.service.d/blix-session.conf".text = ''
+    [Unit]
+    PartOf=blix-session.target
+    ConditionEnvironment=DISPLAY
+  '';
 }

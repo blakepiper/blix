@@ -1,26 +1,14 @@
-#!/bin/sh
+#!/usr/bin/env bash
 set -eu
 
 # Report total CPU usage since the previous bar update. The state file lives
 # in the per-user runtime directory and is replaced atomically.
 state_root=${XDG_RUNTIME_DIR:-/tmp}
-state_file="$state_root/oxwm-cpu-$(id -u)"
+state_file="$state_root/oxwm-cpu-$EUID"
 
-cpu_line=$(awk '/^cpu / { print; exit }' /proc/stat)
-# Intentionally split the numeric /proc/stat fields into positional arguments.
-# shellcheck disable=SC2086
-set -- $cpu_line
-[ "$#" -ge 5 ] || exit 0
-shift
-
-user=${1:-0}
-nice_time=${2:-0}
-system=${3:-0}
-idle=${4:-0}
-iowait=${5:-0}
-irq=${6:-0}
-softirq=${7:-0}
-steal=${8:-0}
+# Bash can read the first /proc line directly, without awk or an id subprocess.
+# Ignore guest fields, which the kernel already includes in user/nice time.
+read -r _ user nice_time system idle iowait irq softirq steal _ < /proc/stat
 
 total=$((user + nice_time + system + idle + iowait + irq + softirq + steal))
 idle_total=$((idle + iowait))
