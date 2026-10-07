@@ -22,6 +22,7 @@
     unzip
     bash-completion
     codex
+    cmatrix
     bubblewrap
     maim
     slop

@@ -15,9 +15,7 @@
   border-radius: 0 !important;
 }
 
-/* Keep gestures, the extensions menu, and the native + below vertical tabs. */
-#back-button,
-#forward-button,
+/* Keep the extensions menu and the native + below vertical tabs. */
 #new-tab-button,
 #alltabs-button,
 #nav-bar #ublock0_raymondhill_net-browser-action {

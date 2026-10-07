@@ -5,6 +5,8 @@ let
     "reset-pbm-toolbar-button"
     "unified-extensions-button"
     "urlbar-container"
+    "back-button"
+    "forward-button"
     "stop-reload-button"
     "vertical-spacer"
     "smartwindow-group-tabs-button"
