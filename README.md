@@ -45,7 +45,7 @@ place of Mason downloads, and preserves the writable lazy.nvim lockfile.
 
 ```text
 flake.nix                         Inputs, host composition, and checks
-flake.lock                        Pinned nixpkgs and Home Manager revisions
+flake.lock                        Pinned nixpkgs, Home Manager and Codex inputs
 lib/mk-host.nix                   Platform, overlays, and Home Manager wiring
 overlays/desktop.nix              OXWM patches and the Neofetch package
 overlays/codex.nix                Complete Codex runtime packaging
@@ -191,10 +191,10 @@ is needed. New device-specific mappings belong alongside that module.
 
 Display behavior and its dedicated hotplug service live in
 `home/przvl/hardware/display.nix` and `display-hotplug.sh`. Display facts live in
-`hosts/<host>/display.nix`, imported by the host's `home.nix`. Every host supplies
-`blix.display.primaryOutput`: an internal connector such as `eDP-1` on a
-laptop, or a monitor connector such as `DP-1` on a desktop. Extended layouts
-use preferred modes and place other connected monitors to the right of the
+`hosts/<host>/display.nix`, imported by the host's `home.nix`. Each host using the
+X11 environment supplies `blix.display.primaryOutput`: an internal connector such
+as `eDP-1` on a laptop, or a monitor connector such as `DP-1` on a desktop. Extended
+layouts use preferred modes and place other connected monitors to the right of the
 primary monitor. Mirrored layouts use `externalOutput` and
 `additionalExternalOutputs`, with `mirrorMode` defaulting to `1920x1080`.
 For each display, the helper selects the highest advertised refresh rate at the
@@ -336,8 +336,10 @@ focused modules it imports. It can omit shared command-line packages or choose
 different program modules without replacing the workstation's package list.
 For a different session, replace the `modules/desktop` import in the phone system
 profile and the `environments/oxwm.nix` import and desktop-specific application
-and appearance modules in the phone user composition together. The shared
-foundation remains usable without X11, a display connector or Blix user services.
+and appearance modules in the phone user composition together. Replace X11-specific
+display settings such as `blix.display.blankAfterSeconds` as part of that change.
+The shared foundation remains usable without X11, a display connector or Blix
+user services.
 
 The phone profile selects no architecture, kernel, firmware, bootloader,
 partition layout, display connector or rotation. Those decisions belong to the
@@ -399,7 +401,8 @@ integration script while the terminal executable stays cached.
 The wrapper preserves automatic shell integration and supplies `xdg-open` for
 links; Firefox is also exported as the session's browser.
 Neofetch uses its built-in NixOS logo.
-The OXWM overlay pins upstream OXWM 0.13.0 and carries the two Blix patches.
+The OXWM overlay pins upstream OXWM 0.13.0 and applies the Blix keyboard, monitor,
+bar and tiling patches in `packaging/oxwm/`.
 `packaging/neofetch/` retains the original Neofetch package with its NixOS fixes.
 Its settings and ASCII layout are local assets under `home/przvl/config/neofetch/`.
 
@@ -410,6 +413,11 @@ including a phone that replaces the default system and user environment while
 retaining phone power policy and shared identity. It checks generated user
 configuration and overrides, compiles keyboard mappings, and runs display
 hotplug regression checks. The ARM evaluation runs even on an x86 machine.
+
+When intentionally changing the phone environment, update its fixture settings
+and expectations in `tests/`, including `machine-profiles.nix` and
+`session-settings.nix`. Keep the shared-foundation and environment-replacement
+checks in `environment-composition.nix`.
 
 Evaluate every host and run the full closure builds before activation:
 

@@ -54,7 +54,9 @@ evaluation as the minimum acceptance criterion for every configuration change.
 - `home/przvl/base.nix` owns shared user identity, state version and capability
   options. `default.nix` selects the workstation environment for laptops and
   desktops; `phone.nix` independently selects the phone's applications and
-  environment without importing the workstation composition.
+  environment without importing the workstation composition. The phone currently
+  selects the regular OXWM desktop and standard applications through its own
+  imports.
 - `home/przvl/environments/oxwm.nix` composes reusable X11 user services, helpers,
   packages and desktop settings. It does not select the browser or terminal.
 - `home/przvl/config/` owns the Blix-derived OXWM, Picom, Xfe, Neovim,
@@ -64,7 +66,7 @@ evaluation as the minimum acceptance criterion for every configuration change.
   display environment remains in `home/przvl/x11.nix`. `bluetooth.nix` binds the
   Blueman pairing agent to the manual Blix session without a tray dependency.
 - `hosts/<hostname>/home.nix` composes machine-dependent user settings and
-  imports `display.nix` for the host's connector, layout, rotation and DPI facts.
+  imports `display.nix` for connector, layout, rotation and DPI facts when using X11.
 
 ## Scope and ownership
 
@@ -72,6 +74,9 @@ evaluation as the minimum acceptance criterion for every configuration change.
   applications and behavior in `home/przvl/phone.nix` or focused modules it
   imports. Share reusable program configuration without importing the workstation
   composition into the phone. Keep `base.nix` free of session and application policy.
+- Changes to a reusable module affect every composition that imports it. Put
+  behavior intended only for the phone in its user composition or a module only
+  that composition imports.
 - Put system-wide behavior that every Blix machine should have in the focused
   file under `modules/common/`; register new common modules in
   `modules/common/default.nix`.
@@ -79,6 +84,9 @@ evaluation as the minimum acceptance criterion for every configuration change.
   user-session composition in `home/przvl/environments/oxwm.nix`. Select these
   explicitly from profiles and user roots; do not branch on hostnames or machine
   type to choose an environment.
+- When replacing the phone session, change both the system environment selection
+  in `profiles/phone.nix` and the user modules in `home/przvl/phone.nix`. Replace
+  X11-specific application, appearance and `blix.display` settings together.
 - Put only machine-dependent settings in `hosts/<hostname>/default.nix`:
   hostname, `system.stateVersion`, hardware quirks, device-specific power
   workarounds, and host-specific networking tweaks.
@@ -118,6 +126,8 @@ evaluation as the minimum acceptance criterion for every configuration change.
   updating a flake input.
 - Avoid broad formatting or structural rewrites when a focused edit is enough.
   Preserve unrelated user changes already present in the worktree.
+- Keep this guide and `README.md` aligned when module ownership or environment
+  selections change.
 
 ## Working procedure
 
@@ -146,6 +156,12 @@ builder is available, realize that synthetic system with
 `nix build .#checks.aarch64-linux.phone-system --no-link`; this checks userspace
 composition, not OnePlus boot compatibility. Never activate that fixture.
 
+Tests describe the current profile selections. When intentionally changing a
+profile's environment, update its fixture settings and expectations, including
+the phone checks in `tests/machine-profiles.nix` and `tests/session-settings.nix`.
+Preserve the shared-foundation and environment-replacement coverage in
+`tests/environment-composition.nix`.
+
 `nix flake check` evaluates each entry in `nixosConfigurations`, so it covers
 new hosts automatically. To evaluate a single host while iterating:
 
@@ -168,10 +184,11 @@ could not be run and why; do not describe an unrun check as passing.
 
 ## Activation and recovery
 
-Apply a verified configuration on the selected host with:
+Select the flake output that matches the target machine. For `zen`, apply a
+verified configuration with:
 
 ```bash
-sudo nixos-rebuild switch --flake .#t490
+sudo nixos-rebuild switch --flake .#zen
 ```
 
 - Do not attempt to bypass an interactive sudo prompt. If credentials are not
