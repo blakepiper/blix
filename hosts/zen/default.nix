@@ -12,7 +12,7 @@
   ];
 
   # Home Manager settings that depend on this machine, merged with the
-  # shared home/przvl configuration applied in modules/common/.
+  # workstation user configuration selected by the laptop profile.
   home-manager.users.przvl = import ./home.nix;
 
   networking.hostName = "zen";

@@ -1,3 +1,4 @@
+# Manual X11/OXWM session selected by a profile.
 { pkgs, ... }:
 
 {

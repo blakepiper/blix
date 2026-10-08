@@ -10,6 +10,6 @@
     ./neovim.nix
     ./tmux.nix
     ./neofetch.nix
-    ./settings.nix
+    ./audio.nix
   ];
 }

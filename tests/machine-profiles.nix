@@ -1,4 +1,5 @@
-# Evaluate portable profiles, stationary profiles and hardware overrides.
+# Evaluate the current profile selections and hardware overrides. Desktop
+# independence is checked separately in environment-composition.nix.
 { lib, pkgs, fixture }:
 
 let

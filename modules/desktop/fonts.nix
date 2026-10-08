@@ -1,3 +1,4 @@
+# Fonts for the Blix desktop environment.
 { pkgs, ... }:
 
 {

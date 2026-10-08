@@ -1,6 +1,6 @@
 # ASUS Zenbook — przvl Home Manager configuration specific to this machine.
 #
-# Shared user configuration lives in home/przvl/ and is applied to every host.
+# The laptop profile supplies the shared workstation user configuration.
 { pkgs, ... }:
 
 {

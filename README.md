@@ -6,7 +6,8 @@
 
 Declarative NixOS and Home Manager configuration for the `przvl` user. The
 flake currently defines two hosts, `zen` and `t490`, with the same Blix-style
-OXWM desktop session.
+OXWM desktop session. The phone profile has its own user composition so its
+applications and environment can evolve independently.
 
 The desktop uses:
 
@@ -50,19 +51,16 @@ overlays/desktop.nix              OXWM patches and the Neofetch package
 overlays/codex.nix                Complete Codex runtime packaging
 
 profiles/
-├── laptop.nix                    Common environment with laptop defaults
-├── desktop.nix                   Common environment with desktop defaults
-└── phone.nix                     Ordinary Blix desktop with phone capabilities
+├── laptop.nix                    Shared workstation environment and laptop defaults
+├── desktop.nix                   Shared workstation environment and desktop defaults
+└── phone.nix                     Independent phone system and user composition
 
 modules/boot/uefi.nix             Optional UEFI/systemd-boot defaults
 
 modules/common/
-├── default.nix                   Shared module composition
+├── default.nix                   Shared foundation without a desktop environment
 ├── boot.nix                      Bootloader-independent kernel policy
-├── desktop-session.nix           X11, startx, and OXWM
-├── desktop-services.nix          Graphics, PipeWire, polkit, and rtkit
-├── fonts.nix                     Shared fonts
-├── home-manager.nix              Shared Home Manager integration
+├── home-manager.nix              Home Manager wiring and shared user identity
 ├── locale.nix                    Locale and timezone
 ├── machine.nix                   Typed capabilities and Home Manager bridge
 ├── networking.nix                NetworkManager
@@ -70,8 +68,16 @@ modules/common/
 ├── packages.nix                  Shared system utilities
 └── users.nix                     Shared user definitions
 
+modules/desktop/
+├── default.nix                   Optional desktop environment composition
+├── session.nix                   X11, startx, and OXWM
+├── services.nix                  Graphics, PipeWire, polkit, rtkit, and Blueman
+├── fonts.nix                     Desktop fonts
+└── packages.nix                  X11 utilities and graphics diagnostics
+
 modules/hardware/
-├── default.nix                   Peripheral and power module composition
+├── default.nix                   Session-independent Bluetooth and power policy
+├── x11.nix                       Desktop input module composition
 ├── keyboard.nix                  Keyboard layout and repeat defaults
 ├── keyboards/mechanical.nix      Device-specific Cmd/Super mapping
 ├── mouse.nix                     Natural scrolling for ordinary mice
@@ -86,13 +92,16 @@ hosts/<host>/
 └── display.nix                   Host display connectors and scaling
 
 home/przvl/
-├── default.nix                   Home Manager composition root
+├── base.nix                      Shared identity, state version and capabilities
+├── default.nix                   Workstation user composition for zen and t490
+├── phone.nix                     Independent phone application and session choices
+├── environments/oxwm.nix         Reusable OXWM services, helpers and settings
 ├── hardware/
 │   ├── default.nix               Typed user capabilities
 │   ├── bluetooth.nix             Bluetooth manager and session pairing agent
 │   ├── display.nix               Display options, helper package and service
 │   └── display-hotplug.sh        Mirroring, extension and reconnect behavior
-├── packages.nix                  Blix user packages
+├── packages.nix                  Reusable command-line package selection
 ├── programs/                     Bash, Firefox, Git, Neovim, tmux, and tools
 ├── services/blix.nix              Blix session target and user services
 ├── scripts/blix.nix               Wrapped Blix scripts
@@ -108,6 +117,7 @@ tests/
 ├── default.nix                   Checks for x86_64-linux and aarch64-linux
 ├── profile-fixture.nix           Synthetic hardware for evaluation/build checks
 ├── machine-profiles.nix          Profile defaults and hardware overrides
+├── environment-composition.nix   Shared foundation and phone environment replacement
 ├── keyboard-mapping.nix          Compiled built-in and mechanical keymaps
 ├── keyboard-mapping.py           Win/Cmd modifier regression checks
 ├── display-hotplug.py            Monitor, rotation, scaling, and reconnect checks
@@ -119,8 +129,17 @@ tests/
 
 Each host imports a profile from `profiles/`, plus its hardware module. Every
 profile includes `modules/common`; hosts do not need to import it separately.
-`zen` and `t490` inherit the laptop profile. Profiles supply defaults, shared
-modules implement capability-based behavior, and hosts supply facts and exceptions.
+The common foundation selects no desktop, GUI applications, display connector,
+or user-session services. Profiles explicitly choose their system environment
+and Home Manager composition.
+
+`zen` and `t490` inherit the laptop profile and share `home/przvl/default.nix`.
+The desktop profile uses that workstation composition too. The phone profile
+selects `home/przvl/phone.nix`, which chooses reusable application modules
+individually and does not import the workstation composition. All three profiles
+currently opt into `modules/desktop` and `home/przvl/environments/oxwm.nix` to
+preserve the existing environment. Profiles supply defaults, shared modules
+implement capability-based behavior, and hosts supply facts and exceptions.
 
 | Default | Laptop | Desktop | Phone |
 | --- | --- | --- | --- |
@@ -142,7 +161,8 @@ profiles omit battery widgets, Neofetch battery reporting, and battery/brightnes
 helpers; brightness bindings are only registered when a backlight is enabled. Battery
 reporting still checks for actual hardware at session startup. Lid behavior
 uses `hasLid`, independently of the profile's name. Bluetooth support enables
-BlueZ, powers the controller on at boot, and supplies Blueman and `bluetoothctl`.
+BlueZ and powers the controller on at boot. The selected desktop supplies Blueman
+and the user session supplies its pairing agent.
 The Blueman pairing agent starts with the Blix X11 session without requiring a
 system tray. Launch `blueman-manager` from dmenu or a terminal to pair, trust and
 connect devices. Pairing records stay on the machine; hosts can opt out with
@@ -157,9 +177,11 @@ defaults through `services.logind.settings.Login`.
 
 Keyboard, mouse, touchpad, lid and Bluetooth policy live in separate files under
 `modules/hardware/`. Natural scrolling applies to ordinary mice and all touchpads,
-including external touchpads on desktop and phone hosts. Pointing sticks and
-tablets retain their existing behavior. `hasTouchpad` enables the additional tap
-and click defaults; scrolling can be overridden with
+including external touchpads on desktop and phone hosts using the X11 environment.
+The shared foundation includes only power and Bluetooth policy; the desktop
+selects keyboard, mouse and touchpad policy through `modules/hardware/x11.nix`.
+Pointing sticks and tablets retain their existing behavior. `hasTouchpad` enables
+the additional tap and click defaults; scrolling can be overridden with
 `services.libinput.touchpad.naturalScrolling`.
 
 `keyboards/mechanical.nix` matches USB ID `1fc9:e8c7` and swaps Alt/Super for that
@@ -285,8 +307,8 @@ return to the TTY.
 3. Set the hostname, the state version of that machine's installation, hardware
    quirks, capability overrides, and host-specific networking settings there.
    Connect its `home.nix` with `home-manager.users.przvl = import ./home.nix;`.
-4. Set `blix.display.primaryOutput` and any other display values in `display.nix`,
-   and import that file from `home.nix`.
+4. For the X11 environment, set `blix.display.primaryOutput` and any other display
+   values in `display.nix`, and import that file from `home.nix`.
 5. Register the host in `flake.nix`:
 
 ```nix
@@ -301,11 +323,25 @@ Profiles choose capabilities; the host constructor chooses the package platform.
 
 ## Phone preparation
 
-`profiles/phone.nix` prepares a regular native NixOS workstation using the same
-OXWM, Xorg, Ghostty, dmenu, Firefox, Neovim and Home Manager configuration. It selects
-no mobile shell, architecture, kernel, firmware, bootloader, partition layout,
-display connector or rotation. Those decisions belong to the future host and
-its hardware support modules.
+`profiles/phone.nix` owns phone system policy and chooses its system environment.
+`home/przvl/phone.nix` independently selects phone applications, reusable program
+configuration and user-session modules. The initial selection retains OXWM,
+Xorg, Ghostty, dmenu, Firefox and Neovim. Workstation application additions in
+`home/przvl/default.nix` or `home/przvl/programs/default.nix` do not automatically
+reach the phone. Changes to an individual reusable program module still affect
+every composition that imports it.
+
+Put phone-specific applications and user behavior in `home/przvl/phone.nix` or
+focused modules it imports. It can omit shared command-line packages or choose
+different program modules without replacing the workstation's package list.
+For a different session, replace the `modules/desktop` import in the phone system
+profile and the `environments/oxwm.nix` import and desktop-specific application
+and appearance modules in the phone user composition together. The shared
+foundation remains usable without X11, a display connector or Blix user services.
+
+The phone profile selects no architecture, kernel, firmware, bootloader,
+partition layout, display connector or rotation. Those decisions belong to the
+future host and its hardware support modules.
 
 The planned hardware is a OnePlus 6T (fajita) with a Bluetooth keyboard and
 touchpad. Before registering `nixosConfigurations.phone`, verify a boot provider
@@ -370,9 +406,10 @@ Its settings and ASCII layout are local assets under `home/przvl/config/neofetch
 ## Validation
 
 `nix flake check` evaluates laptop, desktop and ARM phone profile fixtures,
-checks generated user configuration and overrides, compiles keyboard mappings,
-and runs display hotplug regression checks. The ARM evaluation runs even on an
-x86 machine.
+including a phone that replaces the default system and user environment while
+retaining phone power policy and shared identity. It checks generated user
+configuration and overrides, compiles keyboard mappings, and runs display
+hotplug regression checks. The ARM evaluation runs even on an x86 machine.
 
 Evaluate every host and run the full closure builds before activation:
 

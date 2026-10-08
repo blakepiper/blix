@@ -1,45 +1,14 @@
-{ config, lib, pkgs, ... }:
+# Workstation user composition, shared by zen, t490 and the desktop profile.
+{ pkgs, ... }:
 
-let
-  blix = import ./scripts/blix.nix {
-    inherit lib pkgs;
-    inherit (config.blix.hardware) hasBattery hasBacklight;
-  };
-in
 {
-  _module.args = {
-    inherit (blix)
-      clipboardTextProbe
-      lockService
-      blixLock
-      oxwmVolume
-      oxwmBrightness
-      scripts
-      xsecurelockWithoutPicom;
-  };
-
   imports = [
-    ./hardware
+    ./base.nix
     ./packages.nix
     ./appearance.nix
     ./programs
-    ./x11.nix
-    ./services
+    ./environments/oxwm.nix
   ];
 
-  home = {
-    username = "przvl";
-    homeDirectory = "/home/przvl";
-    stateVersion = "26.05";
-  };
-
-  programs.wiremix = {
-    enable = true;
-    # Distinguish outputs that share the same sound-card nickname.
-    settings.names.endpoint = [
-      "{node:node.nick}"
-      "{node:node.description}"
-      "{node:node.name}"
-    ];
-  };
+  home.packages = with pkgs; [ xfe mpv ];
 }

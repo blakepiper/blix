@@ -1,21 +1,11 @@
-# Shared Blix-style system configuration.
-#
-# Machine profiles import this common X11/OXWM environment. Hosts
-# compose a profile with their generated hardware settings. No display manager:
-# `startx` from a local TTY is the session entry point.
+# Shared system foundation. Profiles select their desktop environment and
+# user configuration separately; this module makes no session assumptions.
 { ... }:
 
 {
-  # Home Manager uses dconf for GTK cursor settings and other desktop
-  # preferences. Provide the session service it talks to during activation.
-  programs.dconf.enable = true;
-
   imports = [
     ../hardware
     ./boot.nix
-    ./desktop-services.nix
-    ./desktop-session.nix
-    ./fonts.nix
     ./home-manager.nix
     ./locale.nix
     ./machine.nix

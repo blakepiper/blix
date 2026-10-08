@@ -1,9 +1,12 @@
-# An ordinary Blix desktop on portable phone hardware. Architecture, boot,
-# firmware, storage and panel orientation belong to the host's hardware layer.
+# Phone system composition, independent of the workstation profiles. OXWM is
+# an explicit initial choice; a different phone environment can replace it.
+# Architecture, boot, firmware and storage belong to the hardware layer.
 { lib, ... }:
 
 {
-  imports = [ ../modules/common ];
+  imports = [ ../modules/common ../modules/desktop ];
+
+  home-manager.users.przvl.imports = [ ../home/przvl/phone.nix ];
 
   blix.machine = {
     type = lib.mkDefault "phone";
@@ -27,6 +30,4 @@
     max-jobs = lib.mkDefault 1;
     cores = lib.mkDefault 2;
   };
-
-  home-manager.users.przvl.blix.display.blankAfterSeconds = lib.mkDefault 300;
 }

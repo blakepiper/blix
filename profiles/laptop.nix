@@ -1,8 +1,10 @@
-# Portable machines inherit the common OXWM environment and laptop defaults.
+# Portable workstations share one system and Home Manager environment.
 { lib, ... }:
 
 {
-  imports = [ ../modules/common ../modules/boot/uefi.nix ];
+  imports = [ ../modules/common ../modules/desktop ../modules/boot/uefi.nix ];
+
+  home-manager.users.przvl.imports = [ ../home/przvl ];
 
   blix.machine = {
     type = lib.mkDefault "laptop";

@@ -1,13 +1,8 @@
-{ config, lib, pkgs, scripts, ... }:
+{ pkgs, ... }:
 
-# User-facing packages from Blix. Xorg, OXWM, and the audio stack are
-# installed by the NixOS modules; the rest follows the same small X11 set.
+# Reusable command-line tools, selected independently by each user composition.
 {
   home.packages = with pkgs; [
-    xfe
-    dmenu
-    mpv
-    feh
     ripgrep
     fd
     fzf
@@ -24,15 +19,6 @@
     codex
     cmatrix
     bubblewrap
-    maim
-    slop
-    xclip
-    clipmenu
-    xsecurelock
-    xss-lock
-    picom
-    playerctl
-    gammastep
     blesh
-  ] ++ lib.optional config.blix.hardware.hasBacklight brightnessctl ++ scripts;
+  ];
 }

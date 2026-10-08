@@ -2,8 +2,6 @@
 { lib, ... }:
 
 {
-  imports = [ ./bluetooth.nix ./display.nix ];
-
   options.blix.hardware = {
     hasBattery = lib.mkEnableOption "battery reporting, supplied by the machine profile";
     hasBacklight = lib.mkEnableOption "internal-panel brightness controls, supplied by the machine profile";

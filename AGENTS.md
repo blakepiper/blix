@@ -24,30 +24,39 @@ evaluation as the minimum acceptance criterion for every configuration change.
 - `overlays/desktop.nix` owns OXWM and Neofetch packaging; `overlays/codex.nix` owns
   the Codex runtime packaging additions.
 - `flake.lock` pins all flake inputs.
-- `tests/` checks laptop, desktop and ARM phone defaults, overrides and display
-  hotplug behavior. Its synthetic fixtures must never be activated or flashed.
+- `tests/` checks laptop, desktop and ARM phone defaults, environment replacement,
+  overrides and display hotplug behavior. Its synthetic fixtures must never be
+  activated or flashed.
 - `profiles/laptop.nix`, `profiles/desktop.nix` and `profiles/phone.nix` compose
-  the common environment and select inherited defaults. Every host imports one
-  profile. Profiles describe capabilities independently of CPU architecture.
+  the shared foundation, select system and user environments, and supply inherited
+  defaults. Every host imports one profile. Profiles describe capabilities
+  independently of CPU architecture.
 - `modules/boot/uefi.nix` supplies optional PC boot defaults. Shared common
   modules and the phone profile do not select a bootloader or device kernel.
-- `modules/common/default.nix` aggregates shared system modules for the
-  standard Blix environment. Its sibling files separate boot, locale, Nix,
-  networking, users, fonts, packages, the X11/OXWM session and its services,
-  Home Manager integration, and the shared user configuration.
+- `modules/common/default.nix` aggregates the shared system foundation: boot,
+  locale, Nix, networking, users, command-line packages, capabilities and Home
+  Manager integration. It does not select a desktop or user applications.
+- `modules/desktop/` supplies the optional X11/OXWM session, desktop services,
+  fonts and system utilities. Profiles select it explicitly.
 - `modules/common/machine.nix` declares typed machine capabilities and passes
   user capabilities to Home Manager. Behavior must not branch on the machine type.
 - `modules/hardware/` separates keyboard, mouse, touchpad, lid/power and
-  Bluetooth policy. `keyboards/mechanical.nix` owns the USB-specific Cmd/Super
-  mapping; modifier swaps must never be applied to every keyboard.
+  Bluetooth policy. `default.nix` imports session-independent power and Bluetooth
+  policy; `x11.nix` composes input policy for the desktop environment.
+  `keyboards/mechanical.nix` owns the USB-specific Cmd/Super mapping; modifier
+  swaps must never be applied to every keyboard.
 - `hosts/<hostname>/default.nix` owns configuration specific to that machine
   and composes a machine profile, its generated hardware module, and genuinely
   device-specific settings.
 - `hosts/<hostname>/hardware-configuration.nix` contains detected hardware;
   change it only when the machine's hardware or generated configuration
   intentionally changes.
-- `home/przvl/default.nix` owns the `przvl` user's packages, programs, services,
-  and dotfile configuration, shared across hosts.
+- `home/przvl/base.nix` owns shared user identity, state version and capability
+  options. `default.nix` selects the workstation environment for laptops and
+  desktops; `phone.nix` independently selects the phone's applications and
+  environment without importing the workstation composition.
+- `home/przvl/environments/oxwm.nix` composes reusable X11 user services, helpers,
+  packages and desktop settings. It does not select the browser or terminal.
 - `home/przvl/config/` owns the Blix-derived OXWM, Picom, Xfe, Neovim,
   Neofetch, and helper-script configuration.
 - `home/przvl/hardware/` declares typed user capabilities and display options;
@@ -59,11 +68,17 @@ evaluation as the minimum acceptance criterion for every configuration change.
 
 ## Scope and ownership
 
-- Put user applications and per-user desktop behavior in
-  `home/przvl/default.nix`.
+- Select workstation applications in `home/przvl/default.nix` and phone
+  applications and behavior in `home/przvl/phone.nix` or focused modules it
+  imports. Share reusable program configuration without importing the workstation
+  composition into the phone. Keep `base.nix` free of session and application policy.
 - Put system-wide behavior that every Blix machine should have in the focused
   file under `modules/common/`; register new common modules in
   `modules/common/default.nix`.
+- Keep optional desktop system behavior in `modules/desktop/` and reusable OXWM
+  user-session composition in `home/przvl/environments/oxwm.nix`. Select these
+  explicitly from profiles and user roots; do not branch on hostnames or machine
+  type to choose an environment.
 - Put only machine-dependent settings in `hosts/<hostname>/default.nix`:
   hostname, `system.stateVersion`, hardware quirks, device-specific power
   workarounds, and host-specific networking tweaks.

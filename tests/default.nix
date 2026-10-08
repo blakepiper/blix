@@ -5,6 +5,7 @@ let
 in
 {
   machine-profiles = import ./machine-profiles.nix { inherit lib pkgs fixture; };
+  environment-composition = import ./environment-composition.nix { inherit lib pkgs fixture; };
   session-settings = import ./session-settings.nix { inherit pkgs fixture; };
   keyboard-mapping = import ./keyboard-mapping.nix { inherit pkgs fixture; };
   bar-sliders = import ./bar-sliders.nix { inherit pkgs fixture; };
