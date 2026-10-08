@@ -2,8 +2,10 @@
 
 This repository is the declarative NixOS configuration for Blix machines and
 the Home Manager configuration for the `przvl` user. It is structured for
-multiple hosts; `zen` and `t490` are currently defined. Treat a successful Nix
-evaluation as the minimum acceptance criterion for every configuration change.
+multiple hosts; `zen`, `t490` and the prepared OnePlus 6T `phone` are defined.
+The phone has not yet been installed or physically boot-verified. Treat a
+successful Nix evaluation as the minimum acceptance criterion for every
+configuration change.
 
 ## Global rules
 
@@ -51,6 +53,10 @@ evaluation as the minimum acceptance criterion for every configuration change.
 - `hosts/<hostname>/hardware-configuration.nix` contains detected hardware;
   change it only when the machine's hardware or generated configuration
   intentionally changes.
+- `hosts/phone/hardware.nix` imports the pinned Mobile NixOS `oneplus-fajita`
+  hardware/boot layer. `bootstrap.nix` and `bootstrap.pub` isolate temporary
+  USB networking and key-only SSH; `bootstrap-system.nix` replaces the desktop
+  for the small installation image. No generated phone hardware file exists yet.
 - `home/przvl/base.nix` owns shared user identity, state version and capability
   options. `default.nix` selects the workstation environment for laptops and
   desktops; `phone.nix` independently selects the phone's applications and
@@ -106,9 +112,15 @@ evaluation as the minimum acceptance criterion for every configuration change.
   `blix.machine` capabilities in the host's system module for hardware exceptions.
   Use the inherited capabilities in shared user configuration, not hostname checks.
 - Keep phone boot, SoC, firmware and storage details in the hardware layer.
-  Prepare ordinary NixOS userspace without adding an unverified deployment host
-  or guessing device facts. Register the phone host only after hardware support
-  and its boot/update workflow have been verified.
+  Keep the prepared phone host's physical verification status explicit. Verify
+  device facts and the boot/update workflow before deployment; evaluation does
+  not prove bootability. Discover unobserved display connectors at runtime.
+  Phone kernel/initrd updates need separately reviewed Android boot images;
+  `nixos-rebuild switch` updates userspace without writing phone partitions.
+- Never unlock, erase, format, flash, sideload a partition-writing payload, or
+  manipulate phone partitions without first showing the exact operation and
+  obtaining explicit user approval. Never run generated flashing scripts as
+  part of evaluation, builds, tests or an ordinary rebuild.
 - Never move generated hardware facts out of a host's
   `hardware-configuration.nix`.
 - Keep package names inside the existing `with pkgs;` package lists. Do not add
@@ -168,6 +180,7 @@ new hosts automatically. To evaluate a single host while iterating:
 ```bash
   nix eval .#nixosConfigurations.zen.config.system.build.toplevel.drvPath --raw
   nix eval .#nixosConfigurations.t490.config.system.build.toplevel.drvPath --raw
+  nix eval .#nixosConfigurations.phone.config.system.build.toplevel.drvPath --raw
 ```
 
 For changes that affect boot, login, the desktop session, systemd units,
@@ -181,6 +194,11 @@ packages, or generated files, also realize the full system closure:
 Run narrower checks when they add confidence, such as inspecting an evaluated
 option or using an application's configuration validator. Report any check that
 could not be run and why; do not describe an unrun check as passing.
+
+The real phone requires an ARM builder for its full closure. The separate
+`packages.x86_64-linux.phone-bootstrap-images` cross-compiles the small bootstrap
+on an x86 builder. See README.md for build and approval gates; neither image
+building nor the `phone-hardware` integration check proves physical bootability.
 
 ## Activation and recovery
 

@@ -6,7 +6,7 @@ set -u
 runtime_dir="${XDG_RUNTIME_DIR:-/tmp}"
 pid_path="$runtime_dir/blix-display-hotplug-$UID.pid"
 display_layout=${BLIX_DISPLAY_LAYOUT:-extend}
-primary_output=${BLIX_PRIMARY_OUTPUT:?BLIX_PRIMARY_OUTPUT must name the primary monitor}
+configured_primary_output=${BLIX_PRIMARY_OUTPUT:-}
 primary_rotation=${BLIX_PRIMARY_ROTATION:-normal}
 display_dpi=${BLIX_DISPLAY_DPI:-}
 external_output=${BLIX_EXTERNAL_OUTPUT:-}
@@ -115,8 +115,14 @@ configure_external_monitor_unlocked() {
   fi
 
   local outputs output status _rest pattern matched primary_connected=false display_state=''
+  local primary_output=$configured_primary_output
   local -a connected=() disconnected=() mode_args=()
   outputs=$(LC_ALL=C xrandr --query 2>/dev/null) || return 0
+  if [[ -z $primary_output ]]; then
+    # Discover the phone panel without assuming an unobserved connector name.
+    primary_output=$(awk '$2 == "connected" { print $1; exit }' <<< "$outputs")
+    [[ -n $primary_output ]] || { last_display_state=''; return 0; }
+  fi
   while read -r output status _rest; do
     [[ $status == connected || $status == disconnected ]] || continue
     if [[ $output == "$primary_output" ]]; then

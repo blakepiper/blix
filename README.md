@@ -5,9 +5,10 @@
 # blix
 
 Declarative NixOS and Home Manager configuration for the `przvl` user. The
-flake currently defines two hosts, `zen` and `t490`, with the same Blix-style
-OXWM desktop session. The phone profile has its own user composition so its
-applications and environment can evolve independently.
+flake defines `zen`, `t490`, and a prepared OnePlus 6T `phone`, with the same
+Blix-style OXWM desktop session. The phone has not yet been physically boot-tested.
+Its independent user composition lets its applications and environment evolve
+separately from the workstations.
 
 The desktop uses:
 
@@ -45,7 +46,7 @@ place of Mason downloads, and preserves the writable lazy.nvim lockfile.
 
 ```text
 flake.nix                         Inputs, host composition, and checks
-flake.lock                        Pinned nixpkgs, Home Manager and Codex inputs
+flake.lock                        Pinned nixpkgs, Home Manager, Codex and Mobile NixOS
 lib/mk-host.nix                   Platform, overlays, and Home Manager wiring
 overlays/desktop.nix              OXWM patches and the Neofetch package
 overlays/codex.nix                Complete Codex runtime packaging
@@ -91,6 +92,15 @@ hosts/<host>/
 ├── home.nix                      Machine-dependent Home Manager composition
 └── display.nix                   Host display connectors and scaling
 
+hosts/phone/
+├── default.nix                   ARM fajita host selecting the normal phone profile
+├── hardware.nix                  Mobile NixOS hardware, boot, firmware and rootfs
+├── bootstrap.nix                 Temporary USB networking and key-only SSH
+├── bootstrap.pub                 Public key for temporary installation access
+├── bootstrap-system.nix          Small installation userspace, without the desktop
+├── home.nix                      Machine-dependent user composition
+└── display.nix                   Runtime panel discovery until physically verified
+
 home/przvl/
 ├── base.nix                      Shared identity, state version and capabilities
 ├── default.nix                   Workstation user composition for zen and t490
@@ -118,6 +128,7 @@ tests/
 ├── profile-fixture.nix           Synthetic hardware for evaluation/build checks
 ├── machine-profiles.nix          Profile defaults and hardware overrides
 ├── environment-composition.nix   Shared foundation and phone environment replacement
+├── phone-hardware.nix            Real fajita/bootstrap integration assertions
 ├── keyboard-mapping.nix          Compiled built-in and mechanical keymaps
 ├── keyboard-mapping.py           Win/Cmd modifier regression checks
 ├── display-hotplug.py            Monitor, rotation, scaling, and reconnect checks
@@ -214,6 +225,9 @@ Rotation is reapplied on startup and reconnect. `dpi` optionally sets X11,
 Xft and GTK font/UI sizing; it defaults to `null` so existing hosts retain
 their current sizing. Font changes may require restarting applications.
 Rotation and DPI are host facts, rather than assumptions in the phone profile.
+`primaryOutput = null` selects the first connected output at runtime. The
+prepared phone uses this until its XRandR connector has been observed; explicit
+connectors on the existing workstations retain their usual behavior.
 `blankAfterSeconds` controls idle DPMS display power-off; `0` disables it.
 
 A desktop's `display.nix` can be as small as:
@@ -318,7 +332,8 @@ nixosConfigurations = {
 };
 ```
 
-An ARM host uses `mkHost { system = "aarch64-linux"; modules = [ ./hosts/phone ]; }`.
+An ARM host sets `system = "aarch64-linux"` in `mkHost`. The real phone also
+passes `specialArgs = { inherit mobile-nixos; };` to its hardware module.
 Profiles choose capabilities; the host constructor chooses the package platform.
 
 ## Phone preparation
@@ -341,29 +356,228 @@ display settings such as `blix.display.blankAfterSeconds` as part of that change
 The shared foundation remains usable without X11, a display connector or Blix
 user services.
 
-The phone profile selects no architecture, kernel, firmware, bootloader,
-partition layout, display connector or rotation. Those decisions belong to the
-future host and its hardware support modules.
+The profile selects no architecture, kernel, firmware, bootloader, partition
+layout, display connector or rotation. `hosts/phone/hardware.nix` imports the
+locked Mobile NixOS `oneplus-fajita` device layer; `flake.nix` selects
+`aarch64-linux`. This is regular NixOS userspace with a device-specific kernel
+and first-stage boot implementation. No Phoneputer desktop configuration,
+GNOME, Phosh, Plasma Mobile or Ubuntu Touch environment is imported.
 
-The planned hardware is a OnePlus 6T (fajita) with a Bluetooth keyboard and
-touchpad. Before registering `nixosConfigurations.phone`, verify a boot provider
-that supports the intended standard NixOS boot and kernel-update workflow, add
-the actual storage and firmware configuration, and inspect the display and
-input devices. Set the observed connector and chosen landscape rotation in
-`hosts/phone/display.nix`; tune DPI on the physical screen. Set `hasTouchpad = true`
-if the Bluetooth touchpad should use the additional click/tap defaults. Natural
-scrolling already applies regardless of that capability.
+This preparation follows [Phoneputer](https://github.com/mwlaboratories/phoneputer),
+the [6T fork](https://github.com/rinnvxv/phoneputer), and
+[upstream fajita support](https://mobile.nixos.org/devices/oneplus-fajita.html).
+The lock pins Mobile NixOS at `2c132754323fc1915e8d21dcfc0ef68ab084c6fb`,
+which still selects the SDM845 `6.4.0` kernel and declares best-effort support.
+The fork's examples use GNOME/PulseAudio and a default root password; its README
+and `local.nix` disagree on that password. They are references for the hardware
+workflow, not configurations to copy into Blix. Existing Blix inputs retain
+their revisions; Phoneputer itself is not a build dependency.
 
-The flake currently keeps only `zen` and `t490` as deployable hosts. Its ARM
-phone fixture evaluates the entire standard NixOS system and shared desktop
-without borrowing x86 hardware facts. The fixture has synthetic storage and
-UEFI settings solely for checking composition; it is not a 6T installation
-image and must never be activated or flashed.
+| Boundary | Prepared phone configuration |
+| --- | --- |
+| Bootloader | Android A/B boot image; no GRUB, UEFI or systemd-boot. An external loader hook reports that boot partitions are managed separately. |
+| Kernel and initrd | Upstream SDM845 kernel and Mobile stage-1. No PC kernel modules or generated laptop hardware file. No stage-0/kexec support. |
+| Firmware | Upstream OnePlus firmware and Qualcomm support services. Only the OnePlus firmware package and its zstd wrapper are permitted as unfree. |
+| Filesystem | Generated ext4 image labeled `NIXOS_SYSTEM`, intended for existing `userdata`. No invented UUID or `/boot`. Filesystem auto-resize is enabled; GPT/partition growth is disabled. |
+| Audio | Blix PipeWire/Pulse compatibility and upstream SDM845 ALSA UCM data. Hardware routing and volume remain to be tested. |
+| Networking | Ordinary NetworkManager. The temporary USB profile is in `bootstrap.nix`; no competing wireless daemon, stage-2 phone DHCP server or embedded Wi-Fi password. |
+| Bluetooth and input | BlueZ, Blix's Blueman pairing agent, and touchpad defaults for the folding keyboard. Pairing state stays on the phone; mechanical USB key remapping does not apply to Bluetooth. |
+| Graphics | Ordinary Xorg/Mesa/OXWM. Discover the first connected output until on-device XRandR, rotation, DPI and acceleration are verified. |
+| Users | Shared `przvl` identity and Home Manager state `26.05`; new system installation state `26.11`. Local passwords must be set at first boot. |
 
-After delivery, validate Bluetooth reconnect, accelerated Xorg, landscape
-display, brightness, charging, audio routing, locking, suspend/resume and
-updates across reboots. Hardware dependencies remain pinned imports in the
-finished host configuration.
+The synthetic `checks.aarch64-linux.phone-system` still uses fake storage and
+UEFI solely for composition tests. **Never flash or activate that fixture.**
+Use the actual phone outputs below. Evaluation, successful builds, and the
+`phone-hardware` assertions do not establish that this physical 6T will boot.
+
+### Build before device preparation
+
+From this repository on the T490, inspect the connected device with pinned tools:
+
+```sh
+nix shell --inputs-from . nixpkgs#android-tools nixpkgs#usbutils
+lsusb
+adb devices -l
+fastboot devices
+```
+
+On 2026-10-08 the host sees OnePlus USB `2a70:f003`, presenting MTP and mass
+storage, with no ADB interface. Both device listings are empty. Its firmware,
+bootloader lock state, exact variant, A/B slot state and partition sizes have
+not been verified. A powered phone and successful USB enumeration do not imply
+that USB debugging or fastboot is available. This phase does not reboot it.
+
+Evaluate the actual host and build the small cross-compiled installation image:
+
+```sh
+nix eval .#nixosConfigurations.phone.config.system.build.toplevel.drvPath --raw
+nix build .#packages.x86_64-linux.phone-bootstrap-images --out-link result-phone-bootstrap
+ls -lh result-phone-bootstrap/
+sha256sum result-phone-bootstrap/boot.img result-phone-bootstrap/system.img
+sed -n '1,200p' result-phone-bootstrap/flash-critical.sh
+```
+
+The final command **reads** the generated script; do not execute it. The script
+writes both boot slots. The small bootstrap replaces the profile's desktop and
+phone application composition and extra CLI/documentation packages while
+keeping the shared foundation, real device layer, `przvl` user, Git, Nix,
+NetworkManager and temporary SSH. It is not the final
+Blix desktop. Cross-compilation may expose package/build incompatibilities even
+when evaluation succeeds; do not proceed with an incomplete build.
+
+On an ARM machine, or from a machine with a configured ARM builder, build the
+native bootstrap and full phone closure/images with:
+
+```sh
+nix build .#packages.aarch64-linux.phone-bootstrap-images --out-link result-phone-bootstrap-native
+nix build .#nixosConfigurations.phone.config.system.build.toplevel --no-link
+nix build .#packages.aarch64-linux.phone-fastboot-images --out-link result-phone
+```
+
+The T490 currently has no ARM builder or emulation. The x86 bootstrap output
+uses an x86 builder to cross-compile ARM code; the full desktop output requires
+an ARM builder. Both use the same locked nixpkgs and Mobile NixOS inputs.
+
+### Device inspection and approval gate
+
+Before changing anything on the phone, establish an authorized ADB connection
+and record these read-only facts when available:
+
+```sh
+adb -d shell getprop ro.product.device
+adb -d shell getprop ro.product.model
+adb -d shell getprop ro.build.display.id
+adb -d shell getprop ro.build.version.release
+adb -d shell getprop ro.boot.flash.locked
+adb -d shell getprop ro.boot.slot_suffix
+adb -d shell getprop ro.boot.verifiedbootstate
+adb -d shell cat /proc/partitions
+```
+
+When the user has separately placed the phone in its bootloader, read:
+
+```sh
+fastboot getvar product
+fastboot getvar unlocked
+fastboot getvar current-slot
+fastboot getvar slot-unbootable:a
+fastboot getvar slot-unbootable:b
+fastboot getvar partition-size:boot_a
+fastboot getvar partition-size:boot_b
+fastboot getvar partition-size:userdata
+```
+
+Verify the actual fajita variant, backup/restore plan, bootloader eligibility,
+image sizes/checksums, and the OxygenOS 11 and consistent A/B firmware
+prerequisites in upstream's device notes. Do not substitute an enchilada image.
+Unlocking, firmware updates, recovery sideloads and `copy-partitions` payloads
+are separate operations that need their own explicit approval. An installation
+guide or a generated script does not grant that approval.
+
+After those facts and a complete image build are reviewed, the upstream
+mainline-only sequence would include these **proposed, unexecuted** operations:
+
+```sh
+fastboot erase dtbo_a
+fastboot erase dtbo_b
+fastboot --slot=all flash boot result-phone-bootstrap/boot.img
+fastboot flash userdata result-phone-bootstrap/system.img
+```
+
+**Stop before each device-writing step and obtain approval for its exact
+command.** Flashing `userdata` replaces Android user data with the rootfs; the
+image resizes that filesystem within its existing partition on first boot.
+Upstream boot-control also marks successful A/B boots in device metadata.
+Do not run a flashing script, reformat/erase userdata redundantly, modify the
+GPT layout, or sideload a partition-writing ZIP automatically. Rebooting and
+the first boot are a later, explicitly authorized device-preparation phase.
+
+### USB bootstrap and ordinary Blix deployment
+
+`bootstrap.nix` enables USB networking in stage-1 and a NetworkManager manual
+profile on the expected phone interface `usb0` in stage-2. The phone uses
+`172.16.42.1/24`, with the computer at `172.16.42.2` as its temporary gateway.
+Public DNS is queried through the computer's NAT. The route/DNS priorities let
+ordinary Wi-Fi take precedence. Stage-1 SSH remains disabled because upstream
+would otherwise allow unauthenticated root access.
+
+The temporary stage-2 SSH server listens only on `172.16.42.1`, permits keys
+for `root` and `przvl`, disables password/keyboard-interactive authentication,
+and opens port 22 only on `usb0`. `bootstrap.pub` contains the existing local
+ED25519 public key with fingerprint
+`SHA256:Y/8PcF46sChrXneDtAzL7aj44MCOPy13Rlv/Hxi2FsA`; no private key is needed
+on the phone. Confirm that the corresponding private key is available on the
+computer before installing the image. There is no preset login password.
+
+After an approved installation and boot, identify the **new, observed** USB
+network interface on the T490 with `ip -brief link`. Then create a reversible,
+temporary NetworkManager connection; replace the interface placeholder:
+
+```sh
+PHONE_USB_IFACE='<observed USB network interface>'
+nmcli connection add type ethernet ifname "$PHONE_USB_IFACE" con-name blix-phone-bootstrap \
+  ipv4.method shared ipv4.addresses 172.16.42.2/24 ipv4.never-default yes \
+  ipv6.method disabled connection.autoconnect no
+nmcli connection up blix-phone-bootstrap
+ssh root@172.16.42.1
+```
+
+NetworkManager's shared mode supplies NAT to the computer's existing uplink.
+Confirm the USB address and Internet access before a rebuild; if the expected
+phone interface differs, correct `bootstrap.nix` and rebuild the image before
+installation. There is no permanent forwarding/firewall change to the T490 or
+zen configuration. Delete the host connection afterward with
+`nmcli connection delete blix-phone-bootstrap`.
+
+On the phone, set `przvl`'s local password with `passwd przvl`, then pair/trust
+the Bluetooth keyboard and touchpad with
+`bluetoothctl`. Wi-Fi can be configured with NetworkManager's interactive
+`nmcli --ask device wifi connect '<SSID>'`; keep credentials out of the flake.
+From the initial root SSH session, clone the repository as `przvl`:
+
+```sh
+sudo -u przvl git clone https://github.com/blakepiper/blix.git /home/przvl/blix
+```
+
+Blix's normal Git
+configuration rewrites GitHub HTTPS URLs to SSH after the full switch; install
+the user's normal GitHub access or disable that rewrite on the phone before
+subsequent pulls.
+
+After evaluating/building on the phone, the intended ordinary command is:
+
+```sh
+cd /home/przvl/blix
+sudo nixos-rebuild switch --flake .#phone
+```
+
+Log into a **local TTY** as `przvl` using the paired keyboard and run `startx`.
+An SSH shell is not a local seat for Blix's manual session. Record the actual
+`xrandr --query` connector, choose landscape rotation/DPI in
+`hosts/phone/display.nix`, and verify acceleration, Bluetooth reconnect,
+brightness, charging, audio routing/volume, locking, and suspend/resume. A
+successful switch does not verify the next reboot; test it as a separate step.
+
+Before removing the `./bootstrap.nix` import from `hosts/phone/default.nix`, set
+normal local credentials and verify a replacement management connection in a
+second session. Remove the temporary NetworkManager profile from the running
+phone when safe; removing its declarative definition alone does not disconnect
+an already active connection. The bootstrap system/image can then be retired.
+
+### Kernel and boot-image updates
+
+Mobile NixOS's fajita bootloader cannot switch to a generation's kernel through
+kexec. Its flashed stage-1 selects the NixOS userspace generation from the
+rootfs, but ordinary `nixos-rebuild switch` does not install a new `boot.img`.
+Userspace changes can use the normal command above while the installed kernel,
+initrd, device firmware and boot parameters remain compatible.
+
+For a kernel, stage-1, device-tree or boot-parameter change, build
+`packages.aarch64-linux.phone-boot-image`, review its relation to the selected
+system generation and the known working image, then stop for separate approval
+of the exact boot-partition update. Keep a known working boot image and rootfs
+generation for recovery. Do not reflash `system.img` during routine updates:
+that would overwrite the phone's persistent rootfs and user state.
 
 ## Updating inputs and Nix
 

@@ -13,7 +13,7 @@ let
   # One environment feeds shell startup, the X session and the hotplug unit.
   displayEnvironment = {
     BLIX_DISPLAY_LAYOUT = display.layout;
-    BLIX_PRIMARY_OUTPUT = display.primaryOutput;
+    BLIX_PRIMARY_OUTPUT = if display.primaryOutput == null then "" else display.primaryOutput;
     BLIX_PRIMARY_ROTATION = display.primaryRotation;
     BLIX_DISPLAY_DPI = if display.dpi == null then "" else toString display.dpi;
     BLIX_EXTERNAL_OUTPUT = if display.externalOutput == null then "" else display.externalOutput;

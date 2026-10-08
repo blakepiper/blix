@@ -17,8 +17,8 @@ in
       description = "Mirror configured external outputs or extend across all connected monitors.";
     };
     primaryOutput = lib.mkOption {
-      type = lib.types.str;
-      description = "Primary XRandR connector: an internal panel or a desktop monitor.";
+      type = lib.types.nullOr lib.types.str;
+      description = "Primary XRandR connector; null selects the first connected output at runtime.";
     };
     primaryRotation = lib.mkOption {
       type = lib.types.enum [ "normal" "left" "right" "inverted" ];

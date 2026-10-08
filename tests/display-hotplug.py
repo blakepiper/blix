@@ -106,6 +106,16 @@ fi
     run("missing primary leaves displays untouched", "extend", "DP-1",
         "HDMI-1 connected\n", [], rotation="left", dpi="192")
 
+    run("unobserved phone connector is discovered at runtime", "extend", "",
+        "DSI-7 disconnected\nDSI-2 connected\n", [
+            "--output DSI-7 --off",
+            "--output DSI-2 --auto --rotate normal --scale 1x1 --pos 0x0 --primary",
+        ], duplicates=True)
+    run("automatic panel discovery waits for an output and retries on connection", "extend", "",
+        "DSI-2 disconnected\n", [
+            "--output DSI-2 --auto --rotate normal --scale 1x1 --pos 0x0 --primary",
+        ], reconnect="DSI-2 connected\n")
+
     for rotation in ("left", "right", "inverted"):
         run(f"phone {rotation} rotation with font DPI", "extend", "DSI-1",
             "DSI-1 connected 1080x2340+0+0\n", [
