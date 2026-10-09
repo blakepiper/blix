@@ -249,6 +249,9 @@ it also includes a searchable shortcut reference and system information.
   each output's advertised refresh rates, rotation, scaling and brightness.
   Applying a layout starts a 15-second confirmation window. A separate watchdog
   restores the previous layout if it is rejected, times out or the app closes.
+  Window transparency applies immediately: on keeps the usual 85% focused / 80%
+  unfocused opacity and opaque Firefox video windows; off makes every window
+  100% opaque. Picom keeps running, and the choice persists across sessions.
 - Audio controls select speakers and microphones, adjust volume and mute,
   play a test tone, and show an optional microphone level meter without recording.
 - Bluetooth supports discovery, pairing confirmation, connection and forgetting

@@ -3,12 +3,12 @@ import json
 import os
 import sys
 
-from core import SettingsError, apply_saved_display, apply_session_preferences, preview_display, watch_input
+from core import SettingsError, apply_saved_display, apply_session_preferences, prepare_picom_configuration, preview_display, watch_input
 
 
 def main(gui=True):
     parser = argparse.ArgumentParser(description="Blix desktop settings")
-    parser.add_argument("action", nargs="?", choices=["display-hotplug", "apply-session", "watch-input", "display-preview"])
+    parser.add_argument("action", nargs="?", choices=["display-hotplug", "apply-session", "watch-input", "display-preview", "prepare-picom"])
     parser.add_argument("--demo", action="store_true", help="Preview the interface with simulated devices; changes stay in memory")
     args = parser.parse_args()
     try:
@@ -25,6 +25,8 @@ def main(gui=True):
                 watch_input()
         elif args.action == "display-preview":
             preview_display(json.loads(sys.stdin.readline()))
+        elif args.action == "prepare-picom":
+            prepare_picom_configuration()
         else:
             parser.error("a runtime action is required")
     except (SettingsError, ValueError, OSError) as error:

@@ -40,6 +40,7 @@ HDMI-2 connected 1920x1080+1920+0 (normal left inverted right x axis y axis)
         self.devices = [{"id": "12", "name": "Precision touchpad", "key": "touchpad", "touchpad": True,
                          "speed": 0.0, "natural": True, "tapping": True}]
         self.brightness_percent = 70
+        self.transparency = True
         self.dpi = 120
         self.keyboard = {"delay": 200, "rate": 50}
         self.blank_seconds = 0
@@ -78,7 +79,8 @@ HDMI-2 connected 1920x1080+1920+0 (normal left inverted right x axis y axis)
         return ""
 
     def snapshot(self, kind):
-        return copy.deepcopy({"display": {"outputs": self.monitors, "brightness": self.brightness_percent, "dpi": self.dpi},
+        return copy.deepcopy({"display": {"outputs": self.monitors, "brightness": self.brightness_percent, "dpi": self.dpi,
+                                          "transparency": self.transparency},
             "audio": self.audio, "input": {"devices": self.devices, "keyboard": self.keyboard},
             "power": {"batteries": [{"name": "Battery", "capacity": "82", "status": "Discharging", "charge_limit": "80"}],
                       "blank_seconds": self.blank_seconds},

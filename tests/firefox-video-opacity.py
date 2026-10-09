@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import select
+import signal
 import socket
 import subprocess as sp
 import sys
@@ -17,8 +18,11 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import wave
+from unittest.mock import patch
 
-firefox, geckodriver, ffmpeg, xvfb_path, picom, picom_conf, xlib_path = sys.argv[1:]
+firefox, geckodriver, ffmpeg, xvfb_path, picom, settings_source, xlib_path = sys.argv[1:]
+sys.path.insert(0, settings_source)
+import core
 marker = "[blix-video] "
 
 
@@ -68,7 +72,9 @@ with tempfile.TemporaryDirectory(prefix="blix-video-opacity-") as directory:
         "MOZ_ENABLE_WAYLAND": "0",
         "XDG_CACHE_HOME": str(root / "cache"),
         "XDG_CONFIG_HOME": str(root / "config"),
+        "XDG_RUNTIME_DIR": str(root / "runtime"),
     }
+    (root / "runtime").mkdir(mode=0o700)
     log = (root / "process.log").open("w+")
     xvfb = sp.Popen([xvfb_path, "-displayfd", "1", "-screen", "0", "1024x768x24",
                      "-nolisten", "tcp"], stdout=sp.PIPE, stderr=log, text=True, env=env)
@@ -277,8 +283,11 @@ with tempfile.TemporaryDirectory(prefix="blix-video-opacity-") as directory:
         display = x.XOpenDisplay(env["DISPLAY"].encode())
         assert display, "Cannot open isolated display"
         root_window = x.XDefaultRootWindow(display)
-        processes.append(sp.Popen([picom, "--config", picom_conf, "--no-vsync"],
-                                   stdout=log, stderr=log, env=env))
+        with patch.dict(os.environ, env):
+            picom_conf = core.prepare_picom_configuration()
+        compositor_process = sp.Popen([picom, "--config", str(picom_conf), "--no-vsync"],
+                                      stdout=log, stderr=log, env=env)
+        processes.append(compositor_process)
         compositor = x.XInternAtom(display, b"_NET_WM_CM_S0", False)
         wait_for(lambda: x.XGetSelectionOwner(display, compositor), "Picom failed to start")
         window = x.XCreateSimpleWindow(display, root_window, 0, 0, 200, 200, 0, 0, 0xCC6432)
@@ -293,8 +302,8 @@ with tempfile.TemporaryDirectory(prefix="blix-video-opacity-") as directory:
         x.XSetInputFocus(display, window, 1, 0)
         x.XSync(display, False)
 
-        def red():
-            image = x.XGetImage(display, root_window, 50, 50, 1, 1, c.c_ulong(-1), 2)
+        def red(column=50):
+            image = x.XGetImage(display, root_window, column, 50, 1, 1, c.c_ulong(-1), 2)
             assert image
             pixel = x.XGetPixel(image, 0, 0)
             x.XDestroyImage(image)
@@ -307,9 +316,51 @@ with tempfile.TemporaryDirectory(prefix="blix-video-opacity-") as directory:
         x.XStoreName(display, window, b"YouTube - paused")
         x.XSync(display, False)
         wait_for(lambda: 150 < red() < 195, "Old YouTube title still forces opacity")
+        other = x.XCreateSimpleWindow(display, root_window, 220, 0, 200, 200, 0, 0, 0xCC6432)
+        x.XMapRaised(display, other)
+        x.XSetInputFocus(display, other, 1, 0)
+        x.XSync(display, False)
+        wait_for(lambda: 150 < red() < 195 and 150 < red(270) < 195,
+                 "Ordinary windows did not render translucent")
+
+        def reload_picom(name, *args):
+            assert (name, *args) == ("systemctl", "--user", "reload", "blix-picom.service")
+            compositor_process.send_signal(signal.SIGUSR1)
+
+        with patch.dict(os.environ, env), patch.object(core, "command", side_effect=reload_picom):
+            core.set_transparency(False)
+            wait_for(lambda: red() == red(270) == 204, "Transparency off did not make existing windows opaque")
+            assert compositor_process.poll() is None, "Transparency toggle stopped Picom"
+            new_window = x.XCreateSimpleWindow(display, root_window, 440, 0, 200, 200, 0, 0, 0xCC6432)
+            x.XMapRaised(display, new_window)
+            x.XSync(display, False)
+            wait_for(lambda: red() == red(270) == red(490) == 204, "New or unfocused windows stayed translucent")
+            assert core.transparency_enabled() is False
+
+            # A new session must prepare the same opaque configuration.
+            compositor_process.terminate()
+            compositor_process.wait(timeout=10)
+            picom_conf = core.prepare_picom_configuration()
+            compositor_process = sp.Popen([picom, "--config", str(picom_conf), "--no-vsync"],
+                                          stdout=log, stderr=log, env=env)
+            processes.append(compositor_process)
+            wait_for(lambda: x.XGetSelectionOwner(display, compositor) and red() == red(270) == red(490) == 204,
+                     "Saved transparency off did not survive a new compositor session")
+            core.set_transparency(True)
+            # This display has no WM; focus can settle differently after a reload.
+            wait_for(lambda: all(150 < red(column) < 195 for column in (50, 270, 490)),
+                     "Transparency on did not restore the original window opacity")
+            x.XStoreName(display, window, b"[blix-video] Video fixture")
+            x.XSync(display, False)
+            wait_for(lambda: red() == 204 and 150 < red(270) < 195 and 150 < red(490) < 195,
+                     "Transparency on did not restore the Firefox video exception")
+            assert compositor_process.poll() is None, "Restoring transparency stopped Picom"
+            x.XDestroyWindow(display, new_window)
+            x.XDestroyWindow(display, other)
         x.XDestroyWindow(display, window)
         x.XCloseDisplay(display)
         print("PASS: Picom rendered opacity follows video marker; YouTube title alone is translucent", flush=True)
+        print("PASS: Transparency off covers existing/new/focused/unfocused windows and persists; on restores current rules", flush=True)
     except Exception:
         log.flush()
         log.seek(0)

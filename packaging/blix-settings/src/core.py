@@ -99,6 +99,56 @@ def defaults(path=None):
     return read_json(path or os.environ.get("BLIX_SETTINGS_DEFAULTS", config_root() / "defaults.json"))
 
 
+def transparency_enabled(preferences=None):
+    enabled = (preferences or Preferences()).read().get("transparency", True)
+    if not isinstance(enabled, bool):
+        raise SettingsError("The saved window transparency setting is invalid.")
+    return enabled
+
+
+def prepare_picom_configuration(enabled=None):
+    if enabled is None:
+        enabled = transparency_enabled()
+    if not isinstance(enabled, bool):
+        raise SettingsError("Window transparency must be on or off.")
+    text = Path(__file__).with_name("picom.conf").read_text()
+    marker = "# @blix-opacity-override@"
+    if text.count(marker) != 1:
+        raise SettingsError("The compositor configuration has no transparency override slot.")
+    if not enabled:
+        # The last matching rule wins, including over client opacity properties.
+        text = text.replace(marker, ", { opacity = 1.0; opacity-override = true; }")
+    path = runtime_root() / "picom.conf"
+    fd, temporary = tempfile.mkstemp(prefix=".picom.conf.", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w") as stream:
+            stream.write(text)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        Path(temporary).unlink(missing_ok=True)
+    return path
+
+
+def set_transparency(enabled, preferences=None):
+    if not isinstance(enabled, bool):
+        raise SettingsError("Window transparency must be on or off.")
+    preferences = preferences or Preferences()
+    previous = transparency_enabled(preferences)
+    prepare_picom_configuration(enabled)
+    try:
+        command("systemctl", "--user", "reload", "blix-picom.service")
+        preferences.update("transparency", None if enabled else False)
+    except (SettingsError, OSError):
+        prepare_picom_configuration(previous)
+        try:
+            command("systemctl", "--user", "reload", "blix-picom.service")
+        except SettingsError:
+            pass
+        raise
+
+
 def parse_outputs(query):
     """Parse XRandR's mode table and transform, excluding property/EDID text."""
     outputs, current = [], None
@@ -154,7 +204,8 @@ def outputs():
 
 
 def display_state(backlight=True):
-    state = {"outputs": outputs(), "brightness": None, "brightness_error": None}
+    state = {"outputs": outputs(), "brightness": None, "brightness_error": None,
+             "transparency": transparency_enabled()}
     resources = command("xrdb", "-query")
     dpi = re.search(r"^Xft\.dpi:\s*([\d.]+)\s*$", resources, re.M)
     state["dpi"] = float(dpi[1]) if dpi else None

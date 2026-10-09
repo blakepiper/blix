@@ -42,6 +42,45 @@ class RuntimeTests(unittest.TestCase):
         self.environment.stop()
         self.temp.cleanup()
 
+    def test_transparency_reloads_picom_and_survives_the_next_session(self):
+        original = (source / "picom.conf").read_text()
+        self.assertTrue(core.transparency_enabled())
+        self.assertEqual(core.prepare_picom_configuration().read_text(), original)
+        preferences = core.Preferences()
+        preferences.update("blank_seconds", 600)
+        with patch.object(core, "command") as command:
+            core.set_transparency(False)
+            command.assert_called_once_with("systemctl", "--user", "reload", "blix-picom.service")
+        self.assertFalse(core.transparency_enabled())
+        path = core.prepare_picom_configuration()
+        self.assertIn(", { opacity = 1.0; opacity-override = true; }", path.read_text())
+        with patch.object(core, "command"):
+            core.set_transparency(True)
+        self.assertEqual(path.read_text(), original)
+        self.assertNotIn("transparency", preferences.read())
+        self.assertEqual(preferences.read()["blank_seconds"], 600)
+
+    def test_transparency_failure_restores_the_previous_opacity_and_preference(self):
+        for enabled in (False, True):
+            preferences = core.Preferences()
+            preferences.update("transparency", not enabled)
+            original = core.prepare_picom_configuration().read_text()
+            with patch.object(core, "command", side_effect=SettingsError("Compositor reload failed")):
+                with self.assertRaisesRegex(SettingsError, "Compositor reload failed"):
+                    core.set_transparency(enabled)
+            self.assertEqual(core.transparency_enabled(), not enabled)
+            self.assertEqual((core.runtime_root() / "picom.conf").read_text(), original)
+
+    def test_invalid_transparency_is_rejected_before_changing_the_compositor(self):
+        with patch.object(core, "command") as command:
+            for value in (None, 0, "off"):
+                with self.assertRaises(SettingsError):
+                    core.set_transparency(value)
+            core.Preferences().update("transparency", "off")
+            with self.assertRaises(SettingsError):
+                core.prepare_picom_configuration()
+            command.assert_not_called()
+
     def test_rates_are_per_output_and_per_resolution(self):
         plan = copy.deepcopy(self.plan)
         plan["layout"] = "mirror"
@@ -463,6 +502,28 @@ class GuiTests(unittest.TestCase):
         from gi.repository import Gtk
         self.assertFalse(any(widget.get_text() in ("BLIX", "Settings") for widget in self.widgets(self.window)
                              if isinstance(widget, Gtk.Label)))
+
+    def test_transparency_applies_immediately_without_discarding_monitor_edits(self):
+        self.page("display")
+        self.assertTrue(self.window.transparency_switch.get_active())
+        self.window.display_controls["eDP-1"]["x"].set_value(80)
+        self.window.transparency_switch.set_active(False)
+        self.assertFalse(self.window.transparency_switch.get_sensitive())
+        self.pump()
+        self.assertFalse(self.window.demo.transparency)
+        self.assertFalse(self.window.preferences.read()["transparency"])
+        self.window.refresh()
+        self.pump()
+        self.assertEqual(self.window.display_controls["eDP-1"]["x"].get_value(), 80)
+        self.assertTrue(self.window.display_apply.get_sensitive())
+        self.window.transparency_switch.set_active(True)
+        self.pump()
+        self.assertTrue(self.window.demo.transparency)
+        self.assertNotIn("transparency", self.window.preferences.read())
+        self.assertFalse(self.window.demo.calls)
+        self.window.search.set_text("transparency")
+        self.pump()
+        self.assertEqual(self.window.sidebar.get_selected_row().page_name, "display")
 
     def test_brightness_is_live_wide_and_survives_slider_and_layout_edits(self):
         self.page("display")

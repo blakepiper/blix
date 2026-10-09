@@ -19,7 +19,7 @@ from demo import Demo, DemoPreferences, DemoRadio
 
 
 PAGES = [
-    ("display", "Display", "video-display-symbolic", "Monitors, arrangement, resolution, refresh rate and brightness", "screen monitor resolution refresh rotation scale brightness"),
+    ("display", "Display", "video-display-symbolic", "Monitors, arrangement, resolution, refresh rate, brightness and transparency", "screen monitor resolution refresh rotation scale brightness transparency opacity appearance"),
     ("audio", "Audio", "audio-volume-high-symbolic", "Speakers, headphones and microphones", "sound volume microphone mic input output mute"),
     ("bluetooth", "Bluetooth", "bluetooth-symbolic", "Pair and manage nearby devices", "wireless pair headset headphones keyboard device"),
     ("network", "Networking", "network-wireless-symbolic", "Wi-Fi, Ethernet and saved connections", "wifi wi-fi internet ethernet connection password vpn"),
@@ -122,6 +122,7 @@ class Window(Gtk.ApplicationWindow):
         self.dirty_blank = False
         self.saving_keyboard = False
         self.saving_blank = False
+        self.saving_transparency = False
         self.pending_inputs = set()
         self.demo_meter = False
         self.dialogs = []
@@ -480,6 +481,12 @@ class Window(Gtk.ApplicationWindow):
         if hasattr(self, "text_size"):
             dpi = state.get("dpi")
             self.text_size.set_text(f"{dpi / 96 * 100:g}% ({dpi:g} DPI)" if dpi else "Default")
+        if not self.saving_transparency:
+            self.syncing = True
+            try:
+                self.transparency_switch.set_active(state["transparency"])
+            finally:
+                self.syncing = False
 
     def build_devices(self, page, value):
         model = json.dumps(value, sort_keys=True)
@@ -496,6 +503,12 @@ class Window(Gtk.ApplicationWindow):
         for child in self.display_footer.get_children():
             self.display_footer.remove(child)
         self.available_outputs = available
+        appearance = self.card(body, "Appearance")
+        self.transparency_switch = Gtk.Switch(active=core.transparency_enabled(self.preferences))
+        self.transparency_switch.set_sensitive(not self.saving_transparency)
+        self.row(appearance, "Window transparency", self.transparency_switch,
+                 "On uses the usual window opacity. Off makes every window fully opaque.")
+        self.connect_control(self.transparency_switch, "notify::active", lambda *_: self.save_transparency())
         connected = [item for item in available if item["connected"] and item["modes"]]
         if not connected:
             body.pack_start(label("No connected displays were found."), False, False, 0)
@@ -577,6 +590,32 @@ class Window(Gtk.ApplicationWindow):
         self.dirty_display = False
         body.show_all()
         self.display_footer.show_all()
+
+    def save_transparency(self):
+        if self.saving_transparency:
+            return
+        enabled = self.transparency_switch.get_active()
+        self.saving_transparency = True
+        self.transparency_switch.set_sensitive(False)
+        self.invalidate("display", rebuild=False)
+        def apply():
+            if self.demo:
+                self.demo.transparency = enabled
+                self.preferences.update("transparency", None if enabled else False)
+            else:
+                core.set_transparency(enabled, self.preferences)
+        def finished(_, error=False):
+            self.saving_transparency = False
+            self.syncing = True
+            try:
+                self.transparency_switch.set_active(core.transparency_enabled(self.preferences))
+                self.transparency_switch.set_sensitive(True)
+            finally:
+                self.syncing = False
+            self.notify(str(_) if error else f"Window transparency {'on' if enabled else 'off'}.", error)
+            self.invalidate("display", rebuild=False)
+            self.refresh()
+        self.run(apply, finished, lambda error: finished(error, True))
 
     def display_changed(self):
         self.dirty_display = True

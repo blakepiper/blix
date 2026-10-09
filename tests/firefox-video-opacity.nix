@@ -6,6 +6,7 @@ let
     system = pkgs.stdenv.hostPlatform.system;
   };
   firefox = host.config.home-manager.users.przvl.programs.firefox.finalPackage;
+  settings = pkgs.callPackage ../packaging/blix-settings { };
 in
 pkgs.runCommand "firefox-video-opacity-checks" {
   nativeBuildInputs = [ pkgs.python3 ];
@@ -14,6 +15,6 @@ pkgs.runCommand "firefox-video-opacity-checks" {
   python3 ${./firefox-video-opacity.py} ${firefox}/bin/firefox \
     ${pkgs.geckodriver}/bin/geckodriver ${pkgs.ffmpeg-headless}/bin/ffmpeg \
     ${pkgs.xvfb}/bin/Xvfb ${pkgs.picom}/bin/picom \
-    ${../home/przvl/config/picom/picom.conf} ${pkgs.libx11}/lib/libX11.so.6
+    ${settings}/share/blix-settings ${pkgs.libx11}/lib/libX11.so.6
   touch "$out"
 ''

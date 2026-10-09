@@ -33,6 +33,7 @@ stdenvNoCC.mkDerivation {
     mkdir -p "$out/bin" "$out/share/blix-settings" "$out/share/applications"
     cp *.py *.css "$out/share/blix-settings/"
     cp ${../../home/przvl/config/oxwm/config.lua} "$out/share/blix-settings/shortcuts.lua"
+    cp ${../../home/przvl/config/picom/picom.conf} "$out/share/blix-settings/picom.conf"
     cat > "$out/share/blix-settings/tools.json" <<'EOF'
     ${builtins.toJSON tools}
     EOF

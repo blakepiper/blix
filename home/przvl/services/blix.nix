@@ -1,4 +1,4 @@
-{ config, lib, pkgs, clipboardTextProbe, lockService,
+{ config, lib, pkgs, clipboardTextProbe, lockService, blixSettings,
   blixSessionSettings, ... }:
 
 let
@@ -88,7 +88,9 @@ in
       };
       Service = {
         Type = "exec";
-        ExecStart = "${pkgs.picom}/bin/picom --config ${config.home.homeDirectory}/.config/picom/picom.conf";
+        ExecStartPre = "${blixSettings}/bin/blix-settings-apply prepare-picom";
+        ExecStart = "${pkgs.picom}/bin/picom --config %t/blix-settings-%U/picom.conf";
+        ExecReload = "${pkgs.coreutils}/bin/kill -USR1 $MAINPID";
       };
     };
   };
