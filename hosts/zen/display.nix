@@ -12,6 +12,6 @@
     # logical desktop when no external monitor is connected. These rounded
     # logical dimensions preserve the panel's 16:10 aspect ratio.
     primaryScaleFrom = "1646x1029";
-    wallpaper = "/home/przvl/Pictures/vibe.jpg";
+    wallpaper = "/home/przvl/Pictures/forest.jpg";
   };
 }
