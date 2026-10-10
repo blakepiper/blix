@@ -668,6 +668,21 @@ Evaluation does not require an ARM builder. Native ARM builds do; an x86
 machine needs a remote ARM builder or configured emulation. Building this
 fixture checks userspace composition and does not establish fajita boot support.
 
+After reinstalling a host, copy its newly generated hardware configuration into
+`hosts/<hostname>/hardware-configuration.nix` before building or activating the
+flake. For zen, when `/etc/nixos/hardware-configuration.nix` describes the new
+installation:
+
+```sh
+cp /etc/nixos/hardware-configuration.nix hosts/zen/hardware-configuration.nix
+lsblk -f
+```
+
+Confirm that the module's root, EFI and swap UUIDs match the new filesystems.
+The flake imports the repository's hardware module, not the one in `/etc/nixos`.
+Old UUIDs can prevent `/boot` from mounting and the next generation from booting.
+Keep the complete `.#zen` reference; a bare `#zen` starts a shell comment.
+
 Only after the checks appropriate to the change succeed should a host be activated:
 
 ```sh
