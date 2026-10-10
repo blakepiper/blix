@@ -31,7 +31,8 @@ The desktop uses:
   Origin, Dark Reader, and Enhancer for YouTube extensions. Its default profile
   includes the captured privacy preferences, vertical tabs, square corners,
   JetBrains Mono fonts, and dark PDF pages.
-- Neovim uses LazyVim with the minimal theme. `nvimide [project-directory]`
+- Neovim uses LazyVim with the minimal theme and absolute line numbers.
+  `nvimide [project-directory]`
   adds a left explorer and two stacked terminals on the right, with Neofetch
   in the second terminal. Plain `nvim` keeps the normal editor layout.
 - tmux is installed with its upstream defaults, without a Blix configuration
@@ -625,6 +626,14 @@ Its settings and ASCII layout are local assets under `home/przvl/config/neofetch
 
 ## Validation
 
+For very small, isolated, reversible documentation, comment, or presentation-only
+application preference changes (such as Neovim line numbering), review the diff,
+run `git diff --check`, and check the affected application setting when applicable.
+Full flake evaluations, test suites and system builds are not required for these
+edits, including presentation preferences in generated files. Use the full checks
+below for configuration logic, system behavior, or uncertain wider impact; see
+`AGENTS.md` for the scope rules.
+
 `nix flake check` evaluates laptop, desktop and ARM phone profile fixtures,
 including a phone that replaces the default system and user environment while
 retaining phone power policy and shared identity. It checks generated user
@@ -636,7 +645,8 @@ and expectations in `tests/`, including `machine-profiles.nix` and
 `session-settings.nix`. Keep the shared-foundation and environment-replacement
 checks in `environment-composition.nix`.
 
-Evaluate every host and run the full closure builds before activation:
+For changes outside the lightweight exception, evaluate every host and run the
+required full closure builds before activation:
 
 ```sh
 nix flake check
@@ -658,7 +668,7 @@ Evaluation does not require an ARM builder. Native ARM builds do; an x86
 machine needs a remote ARM builder or configured emulation. Building this
 fixture checks userspace composition and does not establish fajita boot support.
 
-Only after those checks succeed should a host be activated:
+Only after the checks appropriate to the change succeed should a host be activated:
 
 ```sh
 sudo nixos-rebuild switch --flake .#zen

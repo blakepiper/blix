@@ -3,9 +3,8 @@
 This repository is the declarative NixOS configuration for Blix machines and
 the Home Manager configuration for the `przvl` user. It is structured for
 multiple hosts; `zen`, `t490` and the prepared OnePlus 6T `phone` are defined.
-The phone has not yet been installed or physically boot-verified. Treat a
-successful Nix evaluation as the minimum acceptance criterion for every
-configuration change.
+The phone has not yet been installed or physically boot-verified. Choose
+validation according to the scope and risk rules in the Validation section.
 
 ## Global rules
 
@@ -155,7 +154,25 @@ configuration change.
 
 ## Validation
 
-Always check the patch and evaluate every host the flake defines:
+Use lightweight validation for very small, isolated, reversible changes limited
+to documentation, comments, or presentation-only application preferences, such
+as Neovim absolute versus relative line numbering:
+
+- Review the scoped diff and run `git diff --check`.
+- For an application preference, run a relevant syntax/configuration check or
+  directly verify the affected behavior.
+- Do not run full flake checks, all-host/all-system evaluations, or full system
+  closure builds for these edits. A presentation preference being in a generated
+  file does not by itself require those checks.
+- Report the focused validation performed and briefly state why it is sufficient.
+
+Use the full validation below for changes to Nix logic or module composition,
+packages, services, boot/login, session startup, networking/security, hardware,
+or application/script logic beyond an isolated presentation preference. Also
+use it when there is concrete uncertainty about wider impact; a small diff in
+these areas does not qualify for the lightweight exception.
+
+For changes outside that exception, check the patch and evaluate every host:
 
 ```bash
 git diff --check
@@ -183,8 +200,9 @@ new hosts automatically. To evaluate a single host while iterating:
   nix eval .#nixosConfigurations.phone.config.system.build.toplevel.drvPath --raw
 ```
 
-For changes that affect boot, login, the desktop session, systemd units,
-packages, or generated files, also realize the full system closure:
+For changes outside the lightweight exception that affect boot, login, the
+desktop session, systemd units, packages, or generated files, also realize the
+full system closure:
 
 ```bash
   nix build .#nixosConfigurations.zen.config.system.build.toplevel --no-link
