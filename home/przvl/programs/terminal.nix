@@ -21,6 +21,13 @@ in
       font-size = 11;
       background = "1a1b26";
       foreground = "bbbbbb";
+      # Match Neovim's terminal palette so ANSI artwork stays vivid.
+      palette = [
+        "0=#000000" "1=#cd0000" "2=#00cd00" "3=#cdcd00"
+        "4=#82b4ff" "5=#cd00cd" "6=#00cdcd" "7=#e5e5e5"
+        "8=#7f7f7f" "9=#ff0000" "10=#00ff00" "11=#ffff00"
+        "12=#a6c8ff" "13=#ff00ff" "14=#00ffff" "15=#ffffff"
+      ];
       cursor-color = "bbbbbb";
       cursor-style = "block";
       cursor-click-to-move = true;
