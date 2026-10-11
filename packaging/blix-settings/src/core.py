@@ -138,12 +138,14 @@ def set_transparency(enabled, preferences=None):
     previous = transparency_enabled(preferences)
     prepare_picom_configuration(enabled)
     try:
-        command("systemctl", "--user", "reload", "blix-picom.service")
+        # ExecStartPre reads the saved preference when restarting Picom.
         preferences.update("transparency", None if enabled else False)
+        command("systemctl", "--user", "restart", "blix-picom.service")
     except (SettingsError, OSError):
+        preferences.update("transparency", None if previous else False)
         prepare_picom_configuration(previous)
         try:
-            command("systemctl", "--user", "reload", "blix-picom.service")
+            command("systemctl", "--user", "restart", "blix-picom.service")
         except SettingsError:
             pass
         raise

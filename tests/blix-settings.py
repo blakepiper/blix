@@ -42,7 +42,7 @@ class RuntimeTests(unittest.TestCase):
         self.environment.stop()
         self.temp.cleanup()
 
-    def test_transparency_reloads_picom_and_survives_the_next_session(self):
+    def test_transparency_restarts_picom_and_survives_the_next_session(self):
         original = (source / "picom.conf").read_text()
         self.assertTrue(core.transparency_enabled())
         self.assertEqual(core.prepare_picom_configuration().read_text(), original)
@@ -50,7 +50,7 @@ class RuntimeTests(unittest.TestCase):
         preferences.update("blank_seconds", 600)
         with patch.object(core, "command") as command:
             core.set_transparency(False)
-            command.assert_called_once_with("systemctl", "--user", "reload", "blix-picom.service")
+            command.assert_called_once_with("systemctl", "--user", "restart", "blix-picom.service")
         self.assertFalse(core.transparency_enabled())
         path = core.prepare_picom_configuration()
         self.assertIn(", { opacity = 1.0; opacity-override = true; }", path.read_text())

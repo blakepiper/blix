@@ -90,7 +90,6 @@ in
         Type = "exec";
         ExecStartPre = "${blixSettings}/bin/blix-settings-apply prepare-picom";
         ExecStart = "${pkgs.picom}/bin/picom --config %t/blix-settings-%U/picom.conf";
-        ExecReload = "${pkgs.coreutils}/bin/kill -USR1 $MAINPID";
       };
     };
   };

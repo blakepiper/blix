@@ -7,7 +7,6 @@ import json
 import os
 from pathlib import Path
 import select
-import signal
 import socket
 import subprocess as sp
 import sys
@@ -323,11 +322,19 @@ with tempfile.TemporaryDirectory(prefix="blix-video-opacity-") as directory:
         wait_for(lambda: 150 < red() < 195 and 150 < red(270) < 195,
                  "Ordinary windows did not render translucent")
 
-        def reload_picom(name, *args):
-            assert (name, *args) == ("systemctl", "--user", "reload", "blix-picom.service")
-            compositor_process.send_signal(signal.SIGUSR1)
+        def restart_picom(name, *args):
+            global compositor_process
+            assert (name, *args) == ("systemctl", "--user", "restart", "blix-picom.service")
+            compositor_process.terminate()
+            compositor_process.wait(timeout=10)
+            # Match ExecStartPre and read the saved preference.
+            configuration = core.prepare_picom_configuration()
+            compositor_process = sp.Popen([picom, "--config", str(configuration), "--no-vsync"],
+                                          stdout=log, stderr=log, env=env)
+            processes.append(compositor_process)
+            wait_for(lambda: x.XGetSelectionOwner(display, compositor), "Picom failed to restart")
 
-        with patch.dict(os.environ, env), patch.object(core, "command", side_effect=reload_picom):
+        with patch.dict(os.environ, env), patch.object(core, "command", side_effect=restart_picom):
             core.set_transparency(False)
             wait_for(lambda: red() == red(270) == 204, "Transparency off did not make existing windows opaque")
             assert compositor_process.poll() is None, "Transparency toggle stopped Picom"
@@ -347,7 +354,7 @@ with tempfile.TemporaryDirectory(prefix="blix-video-opacity-") as directory:
             wait_for(lambda: x.XGetSelectionOwner(display, compositor) and red() == red(270) == red(490) == 204,
                      "Saved transparency off did not survive a new compositor session")
             core.set_transparency(True)
-            # This display has no WM; focus can settle differently after a reload.
+            # This display has no WM; focus can settle differently after a restart.
             wait_for(lambda: all(150 < red(column) < 195 for column in (50, 270, 490)),
                      "Transparency on did not restore the original window opacity")
             x.XStoreName(display, window, b"[blix-video] Video fixture")
