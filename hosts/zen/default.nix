@@ -17,6 +17,11 @@
 
   networking.hostName = "zen";
 
+  # Ignore the built-in ELAN touchscreen in libinput sessions.
+  services.udev.extraRules = ''
+    ACTION!="remove", SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="ELAN9008:00 04F3:436C", ENV{ID_INPUT_TOUCHSCREEN}=="1", ENV{LIBINPUT_IGNORE_DEVICE}="1"
+  '';
+
   zramSwap = {
     enable = true;
     memoryPercent = 25;
