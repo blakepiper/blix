@@ -32,6 +32,8 @@ in
       cursor-style = "block";
       cursor-click-to-move = true;
       link-url = true;
+      copy-on-select = "clipboard";
+      # Keep Shift+drag selection available in mouse-capturing apps like Codex.
       mouse-shift-capture = "never";
       window-decoration = "none";
       window-padding-x = 2;
