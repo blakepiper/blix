@@ -19,7 +19,7 @@ from demo import Demo, DemoPreferences, DemoRadio
 
 
 PAGES = [
-    ("display", "Display", "video-display-symbolic", "Monitors, arrangement, resolution, refresh rate, brightness and transparency", "screen monitor resolution refresh rotation scale brightness transparency opacity appearance"),
+    ("display", "Display", "video-display-symbolic", "Monitors, arrangement, resolution, refresh rate, brightness and transparency", "screen monitor resolution refresh rotation scale brightness transparency opacity appearance night light nightlight warmth temperature gammastep"),
     ("audio", "Audio", "audio-volume-high-symbolic", "Speakers, headphones and microphones", "sound volume microphone mic input output mute"),
     ("bluetooth", "Bluetooth", "bluetooth-symbolic", "Pair and manage nearby devices", "wireless pair headset headphones keyboard device"),
     ("network", "Networking", "network-wireless-symbolic", "Wi-Fi, Ethernet and saved connections", "wifi wi-fi internet ethernet connection password vpn"),
@@ -102,6 +102,7 @@ class Window(Gtk.ApplicationWindow):
         self.refreshing = set()
         self.revisions = {}
         self.page = None
+        self.saving_nightlight = False
         self.dirty_display = False
         self.preview = None
         self.applying_display = False
@@ -465,7 +466,7 @@ class Window(Gtk.ApplicationWindow):
         return True
 
     def update_display(self, state, versions=None):
-        if not self.dirty_display and not self.applying_display and not self.slider_busy("brightness", versions):
+        if not self.dirty_display and not self.applying_display and not self.saving_nightlight and not self.slider_busy("brightness", versions):
             self.build_devices("display", state["outputs"])
         if hasattr(self, "brightness_slider") and not self.slider_busy("brightness", versions):
             self.syncing = True
@@ -509,6 +510,20 @@ class Window(Gtk.ApplicationWindow):
         self.row(appearance, "Window transparency", self.transparency_switch,
                  "On uses the usual window opacity. Off makes every window fully opaque.")
         self.connect_control(self.transparency_switch, "notify::active", lambda *_: self.save_transparency())
+        nightlight = core.nightlight_settings(self.preferences)
+        card = self.card(body, "Night light")
+        self.nightlight_switch = Gtk.Switch(active=nightlight["enabled"])
+        self.nightlight_intensity = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 100, 1)
+        self.nightlight_intensity.set_value(nightlight["intensity"])
+        self.nightlight_intensity.set_size_request(220, -1)
+        self.nightlight_intensity.set_digits(0)
+        self.row(card, "Night light", self.nightlight_switch, "Warm display colors at any time. Off restores normal colors.")
+        self.row(card, "Intensity (%)", self.nightlight_intensity, "0 is neutral; 100 is the warmest setting.")
+        self.nightlight_apply = button("Apply intensity", self.save_nightlight)
+        card.pack_start(self.nightlight_apply, False, False, 0)
+        for control in (self.nightlight_switch, self.nightlight_intensity, self.nightlight_apply):
+            control.set_sensitive(not self.saving_nightlight)
+        self.connect_control(self.nightlight_switch, "notify::active", lambda *_: self.save_nightlight())
         connected = [item for item in available if item["connected"] and item["modes"]]
         if not connected:
             body.pack_start(label("No connected displays were found."), False, False, 0)
@@ -590,6 +605,35 @@ class Window(Gtk.ApplicationWindow):
         self.dirty_display = False
         body.show_all()
         self.display_footer.show_all()
+
+    def save_nightlight(self):
+        if self.saving_nightlight:
+            return
+        enabled = self.nightlight_switch.get_active()
+        intensity = round(self.nightlight_intensity.get_value())
+        self.saving_nightlight = True
+        for control in (self.nightlight_switch, self.nightlight_intensity, self.nightlight_apply):
+            control.set_sensitive(False)
+        def apply():
+            if self.demo:
+                self.preferences.update("nightlight", {"enabled": enabled, "intensity": intensity})
+            else:
+                core.set_nightlight(enabled, intensity, self.preferences)
+        def finished(result, error=False):
+            self.saving_nightlight = False
+            value = core.nightlight_settings(self.preferences)
+            self.syncing = True
+            try:
+                self.nightlight_switch.set_active(value["enabled"])
+                self.nightlight_intensity.set_value(value["intensity"])
+                for control in (self.nightlight_switch, self.nightlight_intensity, self.nightlight_apply):
+                    control.set_sensitive(True)
+            finally:
+                self.syncing = False
+            self.notify(str(result) if error else "Night light settings saved.", error)
+            self.invalidate("display", rebuild=False)
+            self.refresh()
+        self.run(apply, finished, lambda error: finished(error, True))
 
     def save_transparency(self):
         if self.saving_transparency:

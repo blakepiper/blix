@@ -1,6 +1,6 @@
 { lib, stdenvNoCC, python3, gtk3, gobject-introspection, wrapGAppsHook3
 , networkmanager, networkmanagerapplet, pulseaudio, xrandr, xinput, xset, xrdb
-, brightnessctl, systemd, adwaita-icon-theme }:
+, brightnessctl, systemd, gammastep, adwaita-icon-theme }:
 
 let
   python = python3.withPackages (ps: [ ps.pygobject3 ps.pycairo ps.dbus-python ]);
@@ -13,6 +13,7 @@ let
     paplay = "${pulseaudio}/bin/paplay";
     parec = "${pulseaudio}/bin/parec";
     brightnessctl = "${brightnessctl}/bin/brightnessctl";
+    gammastep = "${gammastep}/bin/gammastep";
     systemctl = "${systemd}/bin/systemctl";
     udevadm = "${systemd}/bin/udevadm";
     connectionEditor = "${networkmanagerapplet}/bin/nm-connection-editor";

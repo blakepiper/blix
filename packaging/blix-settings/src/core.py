@@ -99,6 +99,39 @@ def defaults(path=None):
     return read_json(path or os.environ.get("BLIX_SETTINGS_DEFAULTS", config_root() / "defaults.json"))
 
 
+def nightlight_settings(preferences=None):
+    value = (preferences or Preferences()).read().get("nightlight", {"enabled": False, "intensity": 50})
+    if (not isinstance(value, dict) or not isinstance(value.get("enabled"), bool)
+            or type(value.get("intensity")) is not int or not 0 <= value["intensity"] <= 100):
+        raise SettingsError("The saved night light setting is invalid.")
+    return value
+
+
+def run_nightlight():
+    value = nightlight_settings()
+    if value["enabled"]:
+        temperature = 6500 - value["intensity"] * 40
+        os.execv(TOOLS["gammastep"], [TOOLS["gammastep"], "-m", "randr", "-l", "0:0",
+                                    "-t", f"{temperature}:{temperature}", "-P", "-r"])
+
+
+def set_nightlight(enabled, intensity, preferences=None):
+    if not isinstance(enabled, bool) or type(intensity) is not int or not 0 <= intensity <= 100:
+        raise SettingsError("Choose a night light intensity between 0 and 100.")
+    preferences = preferences or Preferences()
+    previous = nightlight_settings(preferences)
+    preferences.update("nightlight", {"enabled": enabled, "intensity": intensity})
+    try:
+        command("systemctl", "--user", "restart", "blix-nightlight.service")
+    except SettingsError:
+        preferences.update("nightlight", previous)
+        try:
+            command("systemctl", "--user", "restart", "blix-nightlight.service")
+        except SettingsError:
+            pass
+        raise
+
+
 def transparency_enabled(preferences=None):
     enabled = (preferences or Preferences()).read().get("transparency", True)
     if not isinstance(enabled, bool):

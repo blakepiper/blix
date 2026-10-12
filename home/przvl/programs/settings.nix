@@ -33,7 +33,21 @@ in
     shortcutsFile = "${config.home.homeDirectory}/.config/oxwm/config.lua";
   };
 
-  systemd.user.targets.blix-session.Unit.Wants = [ "blix-settings-input.service" ];
+  systemd.user.targets.blix-session.Unit.Wants = [ "blix-settings-input.service" "blix-nightlight.service" ];
+  systemd.user.services.blix-nightlight = {
+    Install.WantedBy = [ "blix-session.target" ];
+    Unit = {
+      Description = "Blix night light color adjustment";
+      PartOf = [ "blix-session.target" ];
+      After = [ "blix-session-settings.service" ];
+      ConditionEnvironment = "DISPLAY";
+    };
+    Service = {
+      Type = "exec";
+      ExecStart = "${blixSettings}/bin/blix-settings-apply nightlight";
+      ExecStopPost = "${pkgs.gammastep}/bin/gammastep -m randr -x";
+    };
+  };
   systemd.user.services.blix-settings-input = {
     Install.WantedBy = [ "blix-session.target" ];
     Unit = {

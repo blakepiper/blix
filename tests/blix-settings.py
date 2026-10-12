@@ -42,6 +42,31 @@ class RuntimeTests(unittest.TestCase):
         self.environment.stop()
         self.temp.cleanup()
 
+    def test_nightlight_persistence_and_failure_recovery(self):
+        self.assertEqual(core.nightlight_settings(), {"enabled": False, "intensity": 50})
+        with patch.object(core, "command") as command:
+            core.set_nightlight(True, 75)
+            command.assert_called_once_with("systemctl", "--user", "restart", "blix-nightlight.service")
+        with patch.object(core, "command", side_effect=[SettingsError("failed"), ""]):
+            with self.assertRaises(SettingsError):
+                core.set_nightlight(False, 25)
+        self.assertEqual(core.nightlight_settings(), {"enabled": True, "intensity": 75})
+        with patch.object(core, "command"):
+            core.set_nightlight(False, 75)
+        self.assertEqual(core.nightlight_settings(), {"enabled": False, "intensity": 75})
+
+    def test_nightlight_temperature_and_disabled_start(self):
+        with patch.dict(core.TOOLS, gammastep="/test/gammastep"), patch.object(core.os, "execv") as execute:
+            core.run_nightlight()
+            execute.assert_not_called()
+            for intensity, temperature in ((0, 6500), (50, 4500), (100, 2500)):
+                core.Preferences().update("nightlight", {"enabled": True, "intensity": intensity})
+                core.run_nightlight()
+                self.assertIn(f"{temperature}:{temperature}", execute.call_args.args[1])
+        for intensity in (-1, 101, True, 1.5):
+            with self.assertRaises(SettingsError):
+                core.set_nightlight(True, intensity)
+
     def test_transparency_restarts_picom_and_survives_the_next_session(self):
         original = (source / "picom.conf").read_text()
         self.assertTrue(core.transparency_enabled())
@@ -502,6 +527,25 @@ class GuiTests(unittest.TestCase):
         from gi.repository import Gtk
         self.assertFalse(any(widget.get_text() in ("BLIX", "Settings") for widget in self.widgets(self.window)
                              if isinstance(widget, Gtk.Label)))
+
+    def test_nightlight_controls_preserve_monitor_edits(self):
+        self.page("display")
+        self.assertFalse(self.window.nightlight_switch.get_active())
+        self.window.display_controls["eDP-1"]["x"].set_value(80)
+        self.window.nightlight_intensity.set_value(75)
+        self.window.nightlight_switch.set_active(True)
+        self.pump()
+        self.assertEqual(core.nightlight_settings(self.window.preferences), {"enabled": True, "intensity": 75})
+        self.assertTrue(self.window.nightlight_switch.get_sensitive())
+        self.window.nightlight_intensity.set_value(30)
+        self.window.nightlight_apply.clicked()
+        self.pump()
+        self.assertEqual(core.nightlight_settings(self.window.preferences)["intensity"], 30)
+        self.window.nightlight_switch.set_active(False)
+        self.pump()
+        self.assertFalse(core.nightlight_settings(self.window.preferences)["enabled"])
+        self.assertEqual(self.window.display_controls["eDP-1"]["x"].get_value(), 80)
+        self.assertFalse(self.window.demo.calls)
 
     def test_transparency_applies_immediately_without_discarding_monitor_edits(self):
         self.page("display")
