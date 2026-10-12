@@ -3,10 +3,8 @@ final: prev:
 
 let
   release = releases.${final.stdenv.hostPlatform.system};
-  lock = builtins.fromJSON (builtins.readFile ../flake.lock);
-  inputName = "codex-${final.stdenv.hostPlatform.parsed.cpu.name}";
-  url = lock.nodes.${lock.nodes.${lock.root}.inputs.${inputName}}.locked.url;
-  version = builtins.head (builtins.match ".*/rust-v([0-9]+\\.[0-9]+\\.[0-9]+)/.*" url);
+  manifest = builtins.fromJSON (builtins.readFile "${release}/codex-package.json");
+  version = manifest.version;
 in
 {
   # Keep the complete official layout: the daemon copies this tree at startup.
@@ -19,7 +17,7 @@ in
     installPhase = ''
       runHook preInstall
       mkdir -p "$out"
-      tar -xzf "$src" -C "$out"
+      cp -a "$src"/. "$out"/
       test -x "$out/bin/codex"
       test -f "$out/codex-package.json"
       test -x "$out/codex-path/rg"

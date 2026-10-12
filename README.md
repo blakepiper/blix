@@ -51,7 +51,6 @@ flake.lock                        Pinned nixpkgs, Home Manager, official Codex b
 lib/mk-host.nix                   Platform, overlays, and Home Manager wiring
 overlays/desktop.nix              OXWM patches and the Neofetch package
 overlays/codex.nix                Install complete official Codex release bundles
-scripts/update-codex.sh           Resolve and pin OpenAI's latest stable Codex release
 
 profiles/
 ├── laptop.nix                    Shared workstation environment and laptop defaults
@@ -601,25 +600,22 @@ nix eval .#nixosConfigurations.zen.config.nix.package.version --raw
 
 Codex comes directly from [OpenAI's GitHub releases](https://github.com/openai/codex/releases).
 The flake pins complete official Linux musl bundles for x86_64 and aarch64 as
-non-flake file inputs. There is no third-party Codex packaging input or separate
+non-flake tarball inputs using GitHub's latest stable release asset URLs.
+There is no third-party Codex packaging input or separate
 installer. Nix still manages the package and Home Manager installs it.
 
-From this repository root, select the latest stable release with:
-
-```sh
-nix run .#update-codex
-```
-
-The updater resolves GitHub's latest release once, rejects drafts and prereleases,
-checks that both platform bundles exist, updates their URLs in `flake.nix`, and
-refreshes only their entries in `flake.lock`. No manual version or hash edits are
-needed. Review and validate the changes before rebuilding. Plain `nix flake update`
-retains the selected Codex release tag; run the updater whenever you want the
-newest stable release. An installed generation remains pinned until rebuilt.
+`nix flake update` refreshes Codex alongside every other input. No separate
+updater or manual version edits are needed. Review and validate the lock changes
+before rebuilding. An installed generation remains pinned until rebuilt.
 
 `overlays/codex.nix` installs the complete official bundle, preserving its
 manifest and bundled helpers for background-server installation. It derives
-the version from the locked release URL. To build and inspect Codex independently:
+the version from the locked bundle's manifest. The lock records content hashes;
+fetching an old lock from the moving URL after upstream advances can fail with a
+hash mismatch if the old bundle is no longer cached. Keep store closures or a
+binary cache for generations you need to rebuild later.
+
+To build and inspect Codex independently:
 
 ```sh
 nix build .#codex --no-link

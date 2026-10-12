@@ -3,25 +3,27 @@
     "codex-aarch64": {
       "flake": false,
       "locked": {
-        "narHash": "sha256-aOHF7dM/br2m9U+inq5DiOPjusfzckHeaPhtXCBtNBM=",
-        "type": "file",
-        "url": "https://github.com/openai/codex/releases/download/rust-v0.162.1/codex-package-aarch64-unknown-linux-musl.tar.gz"
+        "lastModified": 1791568919,
+        "narHash": "sha256-WegLXg/TprF77e6fRfapQLXsTKtZlQLgORVytpco1as=",
+        "type": "tarball",
+        "url": "https://github.com/openai/codex/releases/latest/download/codex-package-aarch64-unknown-linux-musl.tar.gz"
       },
       "original": {
-        "type": "file",
-        "url": "https://github.com/openai/codex/releases/download/rust-v0.162.1/codex-package-aarch64-unknown-linux-musl.tar.gz"
+        "type": "tarball",
+        "url": "https://github.com/openai/codex/releases/latest/download/codex-package-aarch64-unknown-linux-musl.tar.gz"
       }
     },
     "codex-x86_64": {
       "flake": false,
       "locked": {
-        "narHash": "sha256-Popa/EG51+5XOezpQhSxf3RrWOe7BpvjbZZkTFgQZoM=",
-        "type": "file",
-        "url": "https://github.com/openai/codex/releases/download/rust-v0.162.1/codex-package-x86_64-unknown-linux-musl.tar.gz"
+        "lastModified": 1791568736,
+        "narHash": "sha256-/oJx1K4O5dScMF4meLAqM2wsuOZEIHRX72MdsbTqNoI=",
+        "type": "tarball",
+        "url": "https://github.com/openai/codex/releases/latest/download/codex-package-x86_64-unknown-linux-musl.tar.gz"
       },
       "original": {
-        "type": "file",
-        "url": "https://github.com/openai/codex/releases/download/rust-v0.162.1/codex-package-x86_64-unknown-linux-musl.tar.gz"
+        "type": "tarball",
+        "url": "https://github.com/openai/codex/releases/latest/download/codex-package-x86_64-unknown-linux-musl.tar.gz"
       }
     },
     "home-manager": {

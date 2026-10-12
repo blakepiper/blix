@@ -3,15 +3,15 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    # Official stable release bundles; refresh with nix run .#update-codex.
+    # Official stable release bundles; refreshed by nix flake update.
     codex-x86_64 = {
-      type = "file";
-      url = "https://github.com/openai/codex/releases/download/rust-v0.162.1/codex-package-x86_64-unknown-linux-musl.tar.gz";
+      type = "tarball";
+      url = "https://github.com/openai/codex/releases/latest/download/codex-package-x86_64-unknown-linux-musl.tar.gz";
       flake = false;
     };
     codex-aarch64 = {
-      type = "file";
-      url = "https://github.com/openai/codex/releases/download/rust-v0.162.1/codex-package-aarch64-unknown-linux-musl.tar.gz";
+      type = "tarball";
+      url = "https://github.com/openai/codex/releases/latest/download/codex-package-aarch64-unknown-linux-musl.tar.gz";
       flake = false;
     };
     home-manager = {
@@ -60,11 +60,6 @@
 
       packages = nixpkgs.lib.genAttrs [ "x86_64-linux" "aarch64-linux" ] (system: {
         codex = (import nixpkgs { inherit system overlays; }).codex;
-        update-codex = nixpkgs.legacyPackages.${system}.writeShellApplication {
-          name = "update-codex";
-          runtimeInputs = with nixpkgs.legacyPackages.${system}; [ curl jq gnused nix coreutils ];
-          text = builtins.readFile ./scripts/update-codex.sh;
-        };
         # On x86 this cross-compiles only the small bootstrap, not the desktop.
         phone-bootstrap-images = (phoneBootstrap system).config.mobile.outputs.android.android-fastboot-images;
       } // nixpkgs.lib.optionalAttrs (system == "aarch64-linux") {
