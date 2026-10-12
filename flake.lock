@@ -1,42 +1,27 @@
 {
   "nodes": {
-    "codex": {
-      "inputs": {
-        "flake-parts": "flake-parts",
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
+    "codex-aarch64": {
+      "flake": false,
       "locked": {
-        "lastModified": 1791397842,
-        "narHash": "sha256-23G+h/2xAGcHSNcjq+VJGMzmbEO7R5drP+Sn+HLWkqM=",
-        "owner": "SecBear",
-        "repo": "codex-nix",
-        "rev": "0fa16a61d395d9593e1ed97b6d5c449702fd22d4",
-        "type": "github"
+        "narHash": "sha256-aOHF7dM/br2m9U+inq5DiOPjusfzckHeaPhtXCBtNBM=",
+        "type": "file",
+        "url": "https://github.com/openai/codex/releases/download/rust-v0.162.1/codex-package-aarch64-unknown-linux-musl.tar.gz"
       },
       "original": {
-        "owner": "SecBear",
-        "repo": "codex-nix",
-        "type": "github"
+        "type": "file",
+        "url": "https://github.com/openai/codex/releases/download/rust-v0.162.1/codex-package-aarch64-unknown-linux-musl.tar.gz"
       }
     },
-    "flake-parts": {
-      "inputs": {
-        "nixpkgs-lib": "nixpkgs-lib"
-      },
+    "codex-x86_64": {
+      "flake": false,
       "locked": {
-        "lastModified": 1785627969,
-        "narHash": "sha256-4dtXQk/NMePegK/nWp5NSeuZKLATItOq61lpEvmXqGw=",
-        "owner": "hercules-ci",
-        "repo": "flake-parts",
-        "rev": "427bf4bd9435fdf21321c8cc628c24efc14c0f7a",
-        "type": "github"
+        "narHash": "sha256-Popa/EG51+5XOezpQhSxf3RrWOe7BpvjbZZkTFgQZoM=",
+        "type": "file",
+        "url": "https://github.com/openai/codex/releases/download/rust-v0.162.1/codex-package-x86_64-unknown-linux-musl.tar.gz"
       },
       "original": {
-        "owner": "hercules-ci",
-        "repo": "flake-parts",
-        "type": "github"
+        "type": "file",
+        "url": "https://github.com/openai/codex/releases/download/rust-v0.162.1/codex-package-x86_64-unknown-linux-musl.tar.gz"
       }
     },
     "home-manager": {
@@ -91,24 +76,10 @@
         "type": "github"
       }
     },
-    "nixpkgs-lib": {
-      "locked": {
-        "lastModified": 1785031560,
-        "narHash": "sha256-OmshNvn2vupOFpYinLUu+1Dnpu4n7Q5N3ggGVNHpkUI=",
-        "owner": "nix-community",
-        "repo": "nixpkgs.lib",
-        "rev": "0e79af5e3d4dcfcd676ab5ba3f95d2e3352e078c",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-community",
-        "repo": "nixpkgs.lib",
-        "type": "github"
-      }
-    },
     "root": {
       "inputs": {
-        "codex": "codex",
+        "codex-aarch64": "codex-aarch64",
+        "codex-x86_64": "codex-x86_64",
         "home-manager": "home-manager",
         "mobile-nixos": "mobile-nixos",
         "nixpkgs": "nixpkgs"

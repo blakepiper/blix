@@ -47,10 +47,11 @@ place of Mason downloads, and preserves the writable lazy.nvim lockfile.
 
 ```text
 flake.nix                         Inputs, host composition, and checks
-flake.lock                        Pinned nixpkgs, Home Manager, Codex and Mobile NixOS
+flake.lock                        Pinned nixpkgs, Home Manager, official Codex bundles and Mobile NixOS
 lib/mk-host.nix                   Platform, overlays, and Home Manager wiring
 overlays/desktop.nix              OXWM patches and the Neofetch package
-overlays/codex.nix                Complete Codex runtime packaging
+overlays/codex.nix                Install complete official Codex release bundles
+scripts/update-codex.sh           Resolve and pin OpenAI's latest stable Codex release
 
 profiles/
 ├── laptop.nix                    Shared workstation environment and laptop defaults
@@ -598,21 +599,35 @@ nix flake update
 nix eval .#nixosConfigurations.zen.config.nix.package.version --raw
 ```
 
-Codex comes from the [SecBear/codex-nix](https://github.com/SecBear/codex-nix)
-overlay, which packages official upstream binaries and checks for stable
-releases hourly. The same `nix flake update` refreshes this input; no manual
-Codex version or hash edits are needed. Availability depends on the upstream
-update workflow completing. The lockfile pins the resulting revision, and a
-rebuild installs it. This adds a third-party packaging source, without adding
-a binary cache or running a standalone installer.
+Codex comes directly from [OpenAI's GitHub releases](https://github.com/openai/codex/releases).
+The flake pins complete official Linux musl bundles for x86_64 and aarch64 as
+non-flake file inputs. There is no third-party Codex packaging input or separate
+installer. Nix still manages the package and Home Manager installs it.
 
-`overlays/codex.nix` completes the binary package with the manifest, ripgrep,
-and bubblewrap needed by Codex's background server. The helper binaries are
-static and copied into the package because the daemon copies its installation
-and rejects links outside the package. Codex still takes its version and
-binary hashes from the locked `codex-nix` input. When checking an update, test
-ordinary `codex` startup: `codex --version` and `codex --no-daemon` do not
-exercise background-server installation.
+From this repository root, select the latest stable release with:
+
+```sh
+nix run .#update-codex
+```
+
+The updater resolves GitHub's latest release once, rejects drafts and prereleases,
+checks that both platform bundles exist, updates their URLs in `flake.nix`, and
+refreshes only their entries in `flake.lock`. No manual version or hash edits are
+needed. Review and validate the changes before rebuilding. Plain `nix flake update`
+retains the selected Codex release tag; run the updater whenever you want the
+newest stable release. An installed generation remains pinned until rebuilt.
+
+`overlays/codex.nix` installs the complete official bundle, preserving its
+manifest and bundled helpers for background-server installation. It derives
+the version from the locked release URL. To build and inspect Codex independently:
+
+```sh
+nix build .#codex --no-link
+nix run .#codex -- --version
+```
+
+When checking an update, also test ordinary `codex` startup: `codex --version`
+and `codex --no-daemon` do not exercise background-server installation.
 
 Ghostty comes from nixpkgs; the current lock supplies 1.3.1, the
 [latest stable release](https://ghostty.org/download) checked on 2026-10-06.
