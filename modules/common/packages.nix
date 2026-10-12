@@ -4,6 +4,7 @@
   environment.systemPackages = with pkgs; [
     git
     openssh
+    python315
     tree-sitter
     gnutar
     gzip
