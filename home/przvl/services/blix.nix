@@ -1,16 +1,10 @@
-{ config, lib, pkgs, clipboardTextProbe, lockService, blixSettings,
+{ pkgs, clipboardTextProbe, lockService, blixSettings,
   blixSessionSettings, ... }:
 
 let
-  clipPath = lib.concatStringsSep ":" [
-    "${clipboardTextProbe}/bin"
-    "${config.home.path}/bin"
-    "${pkgs.dmenu}/bin"
-    "${pkgs.clipmenu}/bin"
-    "${pkgs.xclip}/bin"
-    "${pkgs.xsel}/bin"
-    "${pkgs.coreutils}/bin"
-  ];
+  # clipmenud's package wrapper replaces PATH, so a service PATH cannot
+  # interpose the image-safe probe. Override its actual xsel dependency.
+  clipboardHistory = pkgs.clipmenu.override { xsel = clipboardTextProbe; };
 in
 {
   systemd.user.targets.blix-session = {
@@ -52,13 +46,12 @@ in
       };
       Service = {
         Type = "exec";
-        ExecStart = "${pkgs.clipmenu}/bin/clipmenud";
+        ExecStart = "${clipboardHistory}/bin/clipmenud";
         Environment = [
           "CM_SELECTIONS=clipboard"
           "CM_MAX_CLIPS=100"
           "CM_OWN_CLIPBOARD=0"
           "CM_LAUNCHER=dmenu"
-          "PATH=${clipPath}"
         ];
         UMask = "0077";
       };
