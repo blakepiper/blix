@@ -8,10 +8,8 @@
     # USB-C dock HDMI adapters appear as dynamically numbered DP/MST outputs.
     additionalExternalOutputs = [ "DP-*" ];
     mirrorMode = "1920x1080";
-    # Keep the native 2880x1800 panel sharp while presenting a 1.75x larger
-    # logical desktop when no external monitor is connected. These rounded
-    # logical dimensions preserve the panel's 16:10 aspect ratio.
-    primaryScaleFrom = "1646x1029";
+    # Match the T490's 125% application scaling without extra monitor zoom.
+    dpi = 120;
     wallpaper = "/home/przvl/Pictures/tukeesunset.png";
   };
 }
