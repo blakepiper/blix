@@ -32,7 +32,8 @@
   # SSH, other VTs and terminal windows keep their ordinary shells.
   programs.bash.profileExtra = lib.mkAfter ''
     if [[ -z ''${DISPLAY:-} && "$(${pkgs.coreutils}/bin/tty)" == /dev/tty1 ]]; then
-      exec ${pkgs.xinit}/bin/startx -- :0 vt1 -keeptty
+      # Explicit server arguments skip NixOS's xserverrc and its custom XKB path.
+      exec ${pkgs.xinit}/bin/startx -- :0 vt1 -keeptty -xkbdir /etc/X11/xkb
     fi
   '';
   blix.display.blankAfterSeconds = lib.mkDefault 300;

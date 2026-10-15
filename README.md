@@ -749,6 +749,8 @@ The keyboard's left Alt/Option therefore operates the usual Blix Super bindings.
 Its upper-left backtick/tilde key sends Escape without Fn; Shift still sends
 tilde. The custom `blix_phone` XKB layout is selected only for this Bluetooth
 keyboard, leaving the default layout and other hosts unchanged.
+The phone's automatic `startx` command passes `-xkbdir /etc/X11/xkb` explicitly:
+its server arguments bypass NixOS's `xserverrc`, including that layout path.
 Its touch surface identifies as a wheel mouse rather than a multitouch
 touchpad. The phone's Firefox profile maps horizontal wheel events to browser
 back/forward navigation; two-finger vertical scrolling keeps scrolling pages.

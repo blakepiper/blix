@@ -70,7 +70,7 @@ pkgs.runCommand "session-settings-checks" {
   export BLIX_TEST_STARTX_LOG="$TMPDIR/startx.log"
   unset DISPLAY
   HOME="$TMPDIR/phone-home" BLIX_TEST_TTY=/dev/tty1 bash "${phone.bashProfile}"
-  grep -qx -- '-- :0 vt1 -keeptty' "$BLIX_TEST_STARTX_LOG"
+  grep -qx -- '-- :0 vt1 -keeptty -xkbdir /etc/X11/xkb' "$BLIX_TEST_STARTX_LOG"
   : > "$BLIX_TEST_STARTX_LOG"
   for login_tty in /dev/tty2 /dev/pts/0; do
     HOME="$TMPDIR/phone-home" BLIX_TEST_TTY="$login_tty" bash "${phone.bashProfile}"
