@@ -15,8 +15,10 @@ automatic OXWM startup on tty1, with landscape, 192 DPI, forest wallpaper and
 22 pt Ghostty text. The user confirmed the desktop and readable terminal.
 A preceding warm reboot entered Qualcomm 05c6:900e crash mode; physical reset
 restored normal boot, but no saved panic established the cause.
-USB receive errors and the missing O6T HiFi audio profile are unresolved;
-suspend still needs physical validation. Choose validation according to the
+The phone-local O6T HiFi speaker profile now exposes the speaker sink and starts
+the TFA9894 amplifier during playback; audible confirmation is pending. USB
+receive errors, microphone/headset/call routing and physical suspend validation
+remain unresolved. Choose validation according to the
 scope and risk rules in the Validation section.
 
 ## Global rules
@@ -76,6 +78,8 @@ scope and risk rules in the Validation section.
 - `hosts/phone/input.nix` owns the observed Bluetooth keyboard's left Alt/Super
   mapping and the Synaptics touchscreen matrix. `hosts/phone/display.nix` selects
   the verified landscape panel; other hosts do not import these settings.
+- `hosts/phone/audio.nix` and `ucm2/` supply the O6T speaker route missing from
+  the pinned upstream UCM data and exclude Loopback from WirePlumber on this host.
 - `home/przvl/base.nix` owns shared user identity, state version and capability
   options. `default.nix` selects the workstation environment for laptops and
   desktops; `phone.nix` independently selects the phone's applications and

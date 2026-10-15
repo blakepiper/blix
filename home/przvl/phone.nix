@@ -23,6 +23,10 @@
   # First-install pulls must work before this device has GitHub SSH credentials.
   programs.git.settings.url."git@github.com:".insteadOf = lib.mkForce [ ];
   programs.ghostty.settings.font-size = lib.mkForce 22;
+  # The folding keyboard reports its touch surface as a wheel mouse, so it
+  # cannot produce native touchpad swipe gestures. Use horizontal wheel events
+  # for Firefox history navigation; vertical wheel events still scroll pages.
+  programs.firefox.profiles.default.settings."mousewheel.default.action.override_x" = 2;
   # Home Manager's generated .bash_profile sources .profile. Its source takes
   # precedence over home.file text, so use the supported login-shell hook.
   # SSH, other VTs and terminal windows keep their ordinary shells.

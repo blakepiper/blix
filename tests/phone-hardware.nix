@@ -76,5 +76,12 @@ assert !(bootstrap.home-manager.users.przvl.home.file ? ".xinitrc");
 assert !lib.any (package: builtins.elem (lib.getName package) [ "codex" "xfe" "picom" ])
   bootstrap.home-manager.users.przvl.home.packages;
 pkgs.runCommand "phone-hardware-checks" { } ''
+  ${lib.optionalString (pkgs.stdenv.hostPlatform.system == "aarch64-linux") ''
+  # Check the built, melded UCM tree, including the exact ALSA card-name lookup.
+  # Keep x86 integration checks evaluation-only for the real ARM host.
+  test -r '${cfg.system.path}/share/alsa/ucm2/conf.d/sdm845/OnePlus 6T.conf'
+  test -r '${cfg.system.path}/share/alsa/ucm2/OnePlus/fajita/HiFi.conf'
+  test -r '${cfg.system.path}/share/alsa/ucm2/OnePlus/enchilada/HiFi.conf'
+  ''}
   touch "$out"
 ''

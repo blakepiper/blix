@@ -7,6 +7,7 @@
     ./hardware.nix
     ./bootstrap.nix
     ./input.nix
+    ./audio.nix
   ];
 
   networking.hostName = "phone";

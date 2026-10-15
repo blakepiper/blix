@@ -395,7 +395,7 @@ their revisions; Phoneputer itself is not a build dependency.
 | Kernel and initrd | Upstream SDM845 kernel and Mobile stage-1. No PC kernel modules or generated laptop hardware file. No stage-0/kexec support. |
 | Firmware | Upstream OnePlus firmware plus the 6T's pinned TFA9894 speaker container, and Qualcomm support services. Only the OnePlus firmware package and its zstd wrapper are permitted as unfree. |
 | Filesystem | Generated ext4 image labeled `NIXOS_SYSTEM`, intended for existing `userdata`. No invented UUID or `/boot`. Filesystem auto-resize is enabled; GPT/partition growth is disabled. |
-| Audio | PipeWire and upstream SDM845 ALSA UCM data. The real O6T card currently lacks a HiFi profile and PipeWire exposes Loopback; speaker/microphone routing remains unresolved. |
+| Audio | PipeWire with a phone-local O6T HiFi speaker profile. MultiMedia3 feeds the TFA9894 amplifier; WirePlumber excludes the kernel Loopback card. Microphone, headset and call routing remain unverified. |
 | Networking | Ordinary NetworkManager. The temporary USB profile is in `bootstrap.nix`; no competing wireless daemon, stage-2 phone DHCP server or embedded Wi-Fi password. |
 | Bluetooth and input | BlueZ, Blix's Blueman pairing agent, and touchpad defaults for the folding keyboard. Pairing state stays on the phone; mechanical USB key remapping does not apply to Bluetooth. |
 | Graphics | Xorg/Mesa/OXWM on verified DSI-1, 2340×1080 landscape at 60 Hz, with FD630 hardware acceleration. Touchscreen coordinates follow the selected rotation. |
@@ -407,9 +407,18 @@ module adds the [OnePlus 6T vendor container](https://github.com/TheMuppets/prop
 with a fixed checksum to the device firmware used by both stages. The built-in
 codec requests it in stage-1, so installing this fix requires the corresponding
 boot image as well as userspace. The installed image contains this blob and the
-missing-firmware error is gone. The current upstream UCM data still lacks a
-matching 6T profile; firmware loading alone does not verify audible output or
-safe volume.
+missing-firmware error is gone. The pinned upstream UCM package also lacks a
+matching 6T profile. `hosts/phone/audio.nix` melds the local `ucm2/` speaker
+profile into that tree and excludes the kernel Loopback card from WirePlumber.
+The speaker uses `hw:O6T,2` (MultiMedia3) through QUAT_MI2S_RX, following the
+[SDM845 fajita profile](https://gitlab.com/sdm845-mainline/alsa-ucm-conf/-/blob/9ed12836b269764c4a853411d38ccb6abb70b383/ucm2/OnePlus/fajita/HiFi.conf).
+The running phone exposes this HiFi speaker sink and the amplifier starts
+successfully during a low-volume test; audible confirmation is pending.
+The local profile deliberately covers speaker playback only. It does not
+claim microphone, headset, or call support. This is a userspace-only change;
+it requires no new boot image. Use the staged update workflow below for
+persistence; a targeted WirePlumber restart can test the audio configuration
+without restarting the Qualcomm networking services.
 
 The synthetic `checks.aarch64-linux.phone-system` still uses fake storage and
 UEFI solely for composition tests. **Never flash or activate that fixture.**
@@ -728,6 +737,10 @@ phone; personal pictures are not embedded in the flake. Ghostty uses a phone-onl
 `hosts/phone/input.nix` matches the Bluetooth keyboard to swap only its left
 Alt/Option and Super keys, and aligns the Synaptics touchscreen with the panel.
 The keyboard's left Alt/Option therefore operates the usual Blix Super bindings.
+Its touch surface identifies as a wheel mouse rather than a multitouch
+touchpad. The phone's Firefox profile maps horizontal wheel events to browser
+back/forward navigation; two-finger vertical scrolling keeps scrolling pages.
+Relaunch Firefox after applying a changed profile preference.
 These choices are phone-specific; Zen and T490 retain their manual login/session,
 modifier mappings and display settings. Verify Bluetooth reconnect, brightness,
 charging, audio routing/volume, locking and suspend/resume after the reboot.
