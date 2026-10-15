@@ -1,0 +1,93 @@
+Allow individual bar blocks to center their visible glyph bounds vertically.
+Existing blocks retain their text baseline unless explicitly enabled.
+
+--- a/src/config/config.zig
++++ b/src/config/config.zig
+@@ -181,6 +181,7 @@
+     interval: u32,
+     color: u32,
+     underline: bool = true,
++    center_vertically: bool = false,
+     datetime_format: ?[]const u8 = null,
+     format_charging: ?[]const u8 = null,
+     format_discharging: ?[]const u8 = null,
+--- a/src/config/lua.zig
++++ b/src/config/lua.zig
+@@ -869,6 +869,10 @@
+     const underline = c.lua_toboolean(state, -1) != 0;
+     c.lua_settop(state, -2);
+ 
++    _ = c.lua_getfield(state, idx, "center_vertically");
++    const center_vertically = c.lua_toboolean(state, -1) != 0;
++    c.lua_settop(state, -2);
++
+     _ = c.lua_getfield(state, idx, "click");
+     const click = parseClickAction(state, -1);
+     c.lua_settop(state, -2);
+@@ -879,6 +883,7 @@
+         .interval = interval,
+         .color = color,
+         .underline = underline,
++        .center_vertically = center_vertically,
+         .click = click,
+     };
+ 
+@@ -1059,6 +1064,9 @@
+ 
+     _ = c.lua_getfield(state, 1, "underline");
+     c.lua_setfield(state, -2, "underline");
++
++    _ = c.lua_getfield(state, 1, "center_vertically");
++    c.lua_setfield(state, -2, "center_vertically");
+ 
+     _ = c.lua_getfield(state, 1, "click");
+     c.lua_setfield(state, -2, "click");
+--- a/src/bar/blocks/blocks.zig
++++ b/src/bar/blocks/blocks.zig
+@@ -14,6 +14,7 @@
+     cached_content: [256]u8,
+     cached_len: usize,
+     underline: bool,
++    center_vertically: bool = false,
+     click: ?config_mod.ClickAction = null,
+     x_start: i32 = 0,
+     x_end: i32 = 0,
+--- a/src/wm/wm.zig
++++ b/src/wm/wm.zig
+@@ -843,5 +843,6 @@
+         .systray => blocks_mod.Block.initStatic("", 0, false),
+     };
+     block.click = cfg.click;
++    block.center_vertically = cfg.center_vertically;
+     return block;
+ }
+--- a/src/bar/bar.zig
++++ b/src/bar/bar.zig
+@@ -290,7 +290,14 @@
+             block_x -= content_width;
+             block.x_start = block_x;
+             block.x_end = block_x + content_width;
+-            self.drawText(display, block_x, @divTrunc(self.height + self.font_height, 2) - 4, content, block.color());
++            var text_y = @divTrunc(self.height + self.font_height, 2) - 4;
++            if (block.center_vertically) {
++                // Center visible ink, including its bearing, rather than the font box.
++                var extents: xlib.XGlyphInfo = undefined;
++                xlib.XftTextExtentsUtf8(display, self.font, content.ptr, @intCast(content.len), &extents);
++                text_y = @divTrunc(self.height - @as(i32, extents.height), 2) + @as(i32, extents.y);
++            }
++            self.drawText(display, block_x, text_y, content, block.color());
+             if (block.underline) {
+                 self.fillRect(display, block_x, self.height - 2, content_width, 2, block.color());
+             }
+--- a/templates/oxwm.lua
++++ b/templates/oxwm.lua
+@@ -333,7 +333,8 @@
+ function oxwm.bar.block.shell(config) end
+ 
+ ---Create a static text block
+----@param config {format: string, text: string, interval: integer, color: string|integer, underline: boolean, click: string|{command: string, floating: boolean?, bypass_rules: boolean?}?} Block configuration
++---center_vertically centers the visible glyph bounds in the bar (default false).
++---@param config {format: string, text: string, interval: integer, color: string|integer, underline: boolean, center_vertically: boolean?, click: string|{command: string, floating: boolean?, bypass_rules: boolean?}?} Block configuration
+ ---@return table Block configuration
+ function oxwm.bar.block.static(config) end
+ 

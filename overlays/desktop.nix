@@ -20,6 +20,7 @@ final: prev:
       ../packaging/oxwm/0004-bar-sliders.patch
       ../packaging/oxwm/0005-even-tiling-split.patch
       ../packaging/oxwm/0006-async-bar-blocks.patch
+      ../packaging/oxwm/0007-center-bar-blocks.patch
     ];
     buildInputs = (old.buildInputs or [ ]) ++ [ final.libxpm ];
     doCheck = true;

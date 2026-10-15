@@ -8,6 +8,8 @@
       text = "  󰒓  ",
       color = colors.accent,
       underline = false,
+      -- Center the visible glyph rather than following the text baseline.
+      center_vertically = true,
       click = { command = "${blixSettings}/bin/blix-settings" },
     }))
     table.insert(blocks, oxwm.bar.block.static({
