@@ -63,7 +63,12 @@ in
       (builtins.readFile ./config/oxwm/config.lua);
     ".config/picom/picom.conf" = {
       source = ./config/picom/picom.conf;
-      onChange = "${pkgs.systemd}/bin/systemctl --user try-restart blix-picom.service";
+      onChange = ''
+        # First activation can run before a user bus or desktop session exists.
+        if ${pkgs.systemd}/bin/systemctl --user is-active --quiet blix-picom.service 2>/dev/null; then
+          ${pkgs.systemd}/bin/systemctl --user try-restart blix-picom.service
+        fi
+      '';
     };
     "Pictures/Screenshots/.keep".text = "";
   };

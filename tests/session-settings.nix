@@ -1,5 +1,5 @@
-# Exercise the generated script, including its Xresources input, with harmless
-# substitutes for the X11 commands. No live desktop settings are changed.
+# Exercise session settings with harmless X11 substitutes, and activation without
+# a user bus. No live desktop settings or compositor services are changed.
 { pkgs, fixture }:
 
 let
@@ -7,8 +7,13 @@ let
     let host = fixture {
       inherit profile modules;
       system = pkgs.stdenv.hostPlatform.system;
-    }; in
-    builtins.head host.config.home-manager.users.przvl.systemd.user.services.blix-session-settings.Service.ExecStart;
+    };
+    home = host.config.home-manager.users.przvl;
+    in {
+      session = builtins.head home.systemd.user.services.blix-session-settings.Service.ExecStart;
+      picomOnChange = pkgs.writeShellScript "picom-on-change"
+        home.home.file.".config/picom/picom.conf".onChange;
+    };
   laptop = settings ../profiles/laptop.nix [ ];
   phone = settings ../profiles/phone.nix [
     { home-manager.users.przvl.blix.display.dpi = 192; }
@@ -26,14 +31,20 @@ pkgs.runCommand "session-settings-checks" {
   }
   export -f xset xrdb
 
-  "${laptop}"
+  "${laptop.session}"
   grep -qx 'r rate 200 50' "$BLIX_TEST_COMMANDS"
   grep -qx 'dpms 0 0 0' "$BLIX_TEST_COMMANDS"
   if grep -q 'xrdb merged' "$BLIX_TEST_COMMANDS"; then exit 1; fi
 
   : > "$BLIX_TEST_COMMANDS"
-  "${phone}"
+  "${phone.session}"
   grep -qx 'dpms 0 0 300' "$BLIX_TEST_COMMANDS"
   grep -qx 'xrdb merged' "$BLIX_TEST_COMMANDS"
+
+  # A first install has no user bus. The reload hook must still succeed.
+  export XDG_RUNTIME_DIR="$TMPDIR/no-user-session"
+  mkdir -m 700 "$XDG_RUNTIME_DIR"
+  export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/absent-bus"
+  bash -e "${phone.picomOnChange}"
   touch "$out"
 ''
