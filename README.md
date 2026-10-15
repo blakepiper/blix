@@ -385,13 +385,21 @@ their revisions; Phoneputer itself is not a build dependency.
 | --- | --- |
 | Bootloader | Android A/B boot image; no GRUB, UEFI or systemd-boot. An external loader hook reports that boot partitions are managed separately. |
 | Kernel and initrd | Upstream SDM845 kernel and Mobile stage-1. No PC kernel modules or generated laptop hardware file. No stage-0/kexec support. |
-| Firmware | Upstream OnePlus firmware and Qualcomm support services. Only the OnePlus firmware package and its zstd wrapper are permitted as unfree. |
+| Firmware | Upstream OnePlus firmware plus the 6T's pinned TFA9894 speaker container, and Qualcomm support services. Only the OnePlus firmware package and its zstd wrapper are permitted as unfree. |
 | Filesystem | Generated ext4 image labeled `NIXOS_SYSTEM`, intended for existing `userdata`. No invented UUID or `/boot`. Filesystem auto-resize is enabled; GPT/partition growth is disabled. |
 | Audio | Blix PipeWire/Pulse compatibility and upstream SDM845 ALSA UCM data. Hardware routing and volume remain to be tested. |
 | Networking | Ordinary NetworkManager. The temporary USB profile is in `bootstrap.nix`; no competing wireless daemon, stage-2 phone DHCP server or embedded Wi-Fi password. |
 | Bluetooth and input | BlueZ, Blix's Blueman pairing agent, and touchpad defaults for the folding keyboard. Pairing state stays on the phone; mechanical USB key remapping does not apply to Bluetooth. |
 | Graphics | Ordinary Xorg/Mesa/OXWM. Discover the first connected output until on-device XRandR, rotation, DPI and acceleration are verified. |
 | Users | Shared `przvl` identity and Home Manager state `26.05`; new system installation state `26.11`. Local passwords must be set at first boot. |
+
+The pinned upstream firmware package lacks `tfa98xx.cnt`; the initial boot
+confirmed the speaker driver's load failed with `ENOENT`. The phone hardware
+module adds the [OnePlus 6T vendor container](https://github.com/TheMuppets/proprietary_vendor_oneplus_fajita/blob/91bb0ea54fb0870c0b3ec2bc1c584ee456206cdf/proprietary/vendor/etc/firmware/tfa98xx.cnt)
+with a fixed checksum to the device firmware used by both stages. The built-in
+codec requests it in stage-1, so installing this fix requires the corresponding
+boot image as well as userspace. Audible output and safe volume still require
+physical testing.
 
 The synthetic `checks.aarch64-linux.phone-system` still uses fake storage and
 UEFI solely for composition tests. **Never flash or activate that fixture.**
