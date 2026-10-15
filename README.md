@@ -268,6 +268,12 @@ touch target and is selected only by `home/przvl/phone/topbar.nix`.
   Night light controls Gammastep with an on/off switch and a 0–100% intensity
   slider (6500K neutral to 2500K warm). Apply intensity saves the slider choice;
   switching off fully resets color adjustment. Choices persist across sessions.
+  This requires display-driver gamma support. On the phone's pinned 6.4.0 kernel,
+  the active display controller has no hardware gamma ramp or `GAMMA_LUT`
+  property: the settings save and Gammastep runs, but the panel does not change.
+  The [upstream SDM845 gamma driver work](https://gitlab.com/sdm845-mainline/linux/-/merge_requests/137)
+  addresses this missing capability; using it requires a separately validated
+  phone kernel and the staged boot-image update workflow below.
 - Audio controls select speakers and microphones, adjust volume and mute,
   play a test tone, and show an optional microphone level meter without recording.
 - Bluetooth supports discovery, pairing confirmation, connection and forgetting

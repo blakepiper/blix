@@ -18,7 +18,9 @@ restored normal boot, but no saved panic established the cause.
 The phone-local O6T HiFi speaker profile now exposes the speaker sink and starts
 the TFA9894 amplifier during playback; audible confirmation is pending. USB
 receive errors, microphone/headset/call routing and physical suspend validation
-remain unresolved. Choose validation according to the
+remain unresolved. The phone's pinned 6.4.0 display driver exposes no hardware
+gamma ramp, so Gammastep night light has no visible effect despite saving
+successfully in Blix Settings. Choose validation according to the
 scope and risk rules in the Validation section.
 
 ## Global rules
