@@ -17,12 +17,12 @@
     ./programs/neofetch.nix
     ./programs/audio.nix
     ./environments/oxwm.nix
+    ./phone/terminal-editor.nix
   ];
 
   home.packages = with pkgs; [ xfe mpv ];
   # First-install pulls must work before this device has GitHub SSH credentials.
   programs.git.settings.url."git@github.com:".insteadOf = lib.mkForce [ ];
-  programs.ghostty.settings.font-size = lib.mkForce 22;
   # The folding keyboard reports its touch surface as a wheel mouse, so it
   # cannot produce native touchpad swipe gestures. Use horizontal wheel events
   # for Firefox history navigation; vertical wheel events still scroll pages.

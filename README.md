@@ -733,7 +733,16 @@ SSH shells, other virtual terminals and terminal windows do not start X.
 it uses 192 DPI (twice the initial 96 DPI) and the same local
 `~/Pictures/forest.jpg` wallpaper as T490. Supply that image separately on the
 phone; personal pictures are not embedded in the flake. Ghostty uses a phone-only
-22 pt font.
+12 pt font. At 192 DPI the previous 22 pt setting left only a 66×12 terminal
+grid, which squeezed the desktop IDE layout. The phone-only module
+`home/przvl/phone/terminal-editor.nix` derives a separate Neovim configuration
+from the shared source: a 22-column explorer, one bottom terminal, wrapped
+text, compact status/picker UI and a bottom command line. The startup panes
+are omitted when the terminal has fewer than 100 columns or 22 rows,
+respectively, and hidden if the window shrinks below those sizes. Space e and
+Ctrl-/ still toggle the explorer and terminal.
+Neovim continues to use the terminal's actual dimensions. Shared Neovim files,
+the workstation IDE layout and Zen/T490 font sizes stay unchanged.
 `hosts/phone/input.nix` matches the Bluetooth keyboard to swap only its left
 Alt/Option and Super keys, and aligns the Synaptics touchscreen with the panel.
 The keyboard's left Alt/Option therefore operates the usual Blix Super bindings.

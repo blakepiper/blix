@@ -80,6 +80,9 @@ scope and risk rules in the Validation section.
   the verified landscape panel; other hosts do not import these settings.
 - `hosts/phone/audio.nix` and `ucm2/` supply the O6T speaker route missing from
   the pinned upstream UCM data and exclude Loopback from WirePlumber on this host.
+- `home/przvl/phone/terminal-editor.nix` owns the phone's 12 pt Ghostty font
+  and derives its compact Neovim/IDE variant from the shared configuration.
+  Keep those small-screen layouts and UI overrides out of the shared files.
 - `home/przvl/base.nix` owns shared user identity, state version and capability
   options. `default.nix` selects the workstation environment for laptops and
   desktops; `phone.nix` independently selects the phone's applications and
