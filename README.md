@@ -764,7 +764,8 @@ The phone's automatic `startx` command passes `-xkbdir /etc/X11/xkb` explicitly:
 its server arguments bypass NixOS's `xserverrc`, including that layout path.
 Its touch surface identifies as a wheel mouse rather than a multitouch
 touchpad. The phone's Firefox profile maps horizontal wheel events to browser
-back/forward navigation; two-finger vertical scrolling keeps scrolling pages.
+back/forward navigation, with the horizontal direction reversed for this keyboard;
+two-finger vertical scrolling keeps scrolling pages.
 Relaunch Firefox after applying a changed profile preference.
 These choices are phone-specific; Zen and T490 retain their manual login/session,
 modifier mappings and display settings. Verify Bluetooth reconnect, brightness,
