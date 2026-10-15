@@ -101,6 +101,7 @@ hosts/phone/
 ├── default.nix                   ARM fajita host selecting the normal phone profile
 ├── hardware.nix                  Mobile NixOS hardware, boot, firmware and rootfs
 ├── input.nix                     Phone Bluetooth modifier and touchscreen rotation
+├── bluetooth.nix                 Phone-only silent Blueman reconnect patch
 ├── bootstrap.nix                 Temporary USB networking and key-only USB/Wi-Fi SSH
 ├── bootstrap.pub                 Public key for temporary installation access
 ├── bootstrap-system.nix          Small installation userspace, without the desktop
@@ -418,6 +419,26 @@ their revisions; Phoneputer itself is not a build dependency.
 The Wi-Fi workaround may increase battery use; its effect on the intermittent
 failures and battery life still needs longer observation.
 
+The phone selects NetworkManager INFO logging to retain connection-state and
+DHCP events for intermittent activation failures. To enable the same logging
+in an existing session without restarting NetworkManager or reconnecting Wi-Fi:
+
+```sh
+sudo nmcli general logging level INFO domains DEFAULT
+nmcli general logging
+journalctl -b -u NetworkManager -u wpa_supplicant --no-pager
+journalctl -b -k --no-pager
+```
+
+The live logging command lasts until NetworkManager restarts; the declarative
+default persists after the normal validated phone deployment. The folding
+keyboard's Blueman auto-connect selection is saved locally on the phone, rather
+than storing its pairing identity in the flake. Blueman retries the selected
+device at startup and every 60 seconds while the applet runs. The phone-only
+package patch in `hosts/phone/bluetooth.nix` makes automatic reconnects honor
+the existing disabled ConnectionNotifier preference, preserving silent
+reconnection. A successful physical reconnect still needs observation.
+
 The pinned upstream firmware package lacks `tfa98xx.cnt`; the initial boot
 confirmed the speaker driver's load failed with `ENOENT`. The phone hardware
 module adds the [OnePlus 6T vendor container](https://github.com/TheMuppets/proprietary_vendor_oneplus_fajita/blob/91bb0ea54fb0870c0b3ec2bc1c584ee456206cdf/proprietary/vendor/etc/firmware/tfa98xx.cnt)
@@ -482,20 +503,23 @@ force restart. The journal records completed resumes at 18:15:53 and
 still reached logind. Display restoration is therefore suspect, rather than a
 proven failure of the whole system to wake. Bluetooth UART wake is disabled in
 the observed runtime, although the power key is enabled. The keyboard remains
-paired and trusted, but Blueman's explicit automatic-connect service list is
-empty; pairing alone does not configure its periodic reconnect attempts. Keep
-device pairing and reconnect selections on the phone.
+paired and trusted. Blueman's explicit automatic-connect service list was empty
+during the incident; the keyboard is now selected locally for reconnects.
+Pairing alone does not configure those periodic attempts. Keep device pairing
+and reconnect selections on the phone.
 
 Wi-Fi firmware also crashed and recovered at 16:58 and 17:29, before those
 suspends. Subsequent boots repeatedly completed WPA authentication, then failed
 NetworkManager activation roughly 45 seconds later, with ath10k key-removal
 timeouts during disconnect. Wi-Fi was connected when the investigation began.
-WARN-level NetworkManager logs do not establish whether DHCP or another
-activation stage caused those retries. The saved
-network already disables Wi-Fi power saving, so that workaround has not
+The incident's WARN-level NetworkManager logs do not establish whether DHCP or
+another activation stage caused those retries; INFO logging is now configured
+for the next validated deployment. The saved network already disables Wi-Fi
+power saving, so that workaround has not
 resolved all reliability problems. Suspend/display recovery, keyboard wake and
-automatic reconnection, and Wi-Fi reliability remain unresolved; use Lock in
-place of Suspend pending further validation. Evidence is recorded locally in
+physical automatic reconnection verification, and Wi-Fi reliability remain
+unresolved; use Lock in place of Suspend pending further validation. Evidence
+is recorded locally in
 `/home/przvl/systemdebugging.md`.
 
 The initial live userspace switch stopped the Qualcomm modem/network services;

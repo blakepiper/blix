@@ -20,10 +20,14 @@ the TFA9894 amplifier during playback; audible confirmation is pending. USB
 receive errors and microphone/headset/call routing remain unresolved. Physical
 suspend testing left the screen unresponsive: journals show completed resumes
 followed by DPU encoder errors and continued power-key handling. Bluetooth UART
-wake is disabled, Blueman's automatic-connect list is empty, and Wi-Fi firmware
-crashes and post-boot activation failures were observed despite the saved
-power-save-off preference. See README.md and the local debugging log; these
-reliability issues remain unresolved. The phone's pinned 6.4.0 display driver
+wake is disabled, and Wi-Fi firmware crashes and post-boot activation failures
+were observed despite the saved power-save-off preference. The paired keyboard
+now has a phone-local Blueman reconnect selection; the phone-only package patch
+preserves silent reconnects. Physical reconnect verification is pending.
+NetworkManager INFO logging is declared for the next validated deployment;
+live logging can be enabled with local sudo. See README.md and the local
+debugging log; these reliability issues remain unresolved. The phone's pinned
+6.4.0 display driver
 exposes no hardware gamma ramp, so Gammastep night light has no visible effect despite saving
 successfully in Blix Settings. Choose validation according to the
 scope and risk rules in the Validation section.
@@ -88,6 +92,9 @@ scope and risk rules in the Validation section.
   the verified landscape panel; other hosts do not import these settings.
 - `hosts/phone/audio.nix` and `ucm2/` supply the O6T speaker route missing from
   the pinned upstream UCM data and exclude Loopback from WirePlumber on this host.
+- `hosts/phone/bluetooth.nix` patches Blueman only on the phone so its automatic
+  reconnects honor the disabled ConnectionNotifier preference; reconnect device
+  selections and pairing state stay local to the phone.
 - `home/przvl/phone/terminal-editor.nix` owns the phone's 12 pt Ghostty font
   and derives its compact Neovim/IDE variant from the shared configuration.
   Keep those small-screen layouts and UI overrides out of the shared files.
