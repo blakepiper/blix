@@ -7,7 +7,9 @@
 Declarative NixOS and Home Manager configuration for the `przvl` user. The
 flake defines `zen`, `t490`, and a OnePlus 6T `phone`, with the same
 Blix-style OXWM desktop session. The phone's small NixOS bootstrap physically
-booted on 2026-10-14; full desktop validation is still pending.
+booted on 2026-10-14. Its full native build passed on 2026-10-15, but the first
+remote activation lost Wi-Fi access and remains unverified; local desktop
+validation is still pending.
 Its independent user composition lets its applications and environment evolve
 separately from the workstations.
 
@@ -427,6 +429,16 @@ observations verify device preparation. The NixOS bootstrap then booted kernel
 filesystem within userdata to 108.2 GiB. Full desktop and peripheral validation
 remain separate checks. A charging indicator alone does not establish a working
 USB data connection.
+
+On 2026-10-15, revision `b74fa13` built the real native phone system, its Android
+boot image, the ARM composition fixture, and the ARM session-settings check.
+The first full userspace switch then lost Wi-Fi access. The faulty USB link
+also prevented recovery, so neither the active generation nor the activation
+guard's rollback could be confirmed. The new boot image has not been flashed.
+Recover local access and inspect `/var/log/blix-phone-native-activation.log`,
+`/run/current-system`, and the NetworkManager journal before another remote
+switch. The running desktop, graphics acceleration, local input, audio and
+suspend/resume remain unverified.
 
 Evaluate the actual host and build the small cross-compiled installation image:
 

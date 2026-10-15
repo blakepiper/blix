@@ -3,9 +3,11 @@
 This repository is the declarative NixOS configuration for Blix machines and
 the Home Manager configuration for the `przvl` user. It is structured for
 multiple hosts; `zen`, `t490` and the OnePlus 6T `phone` are defined.
-The small phone bootstrap was installed and physically booted on 2026-10-14;
-the full OXWM host and peripherals still need physical validation. Choose
-validation according to the scope and risk rules in the Validation section.
+The small phone bootstrap was installed and physically booted on 2026-10-14.
+The full native build and ARM checks passed on 2026-10-15, but the first remote
+activation lost Wi-Fi and could not be verified. The full OXWM host and
+peripherals still need physical validation. Choose validation according to the
+scope and risk rules in the Validation section.
 
 ## Global rules
 
