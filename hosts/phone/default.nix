@@ -11,6 +11,8 @@
   ];
 
   networking.hostName = "phone";
+  # Keep Wi-Fi awake while investigating intermittent ath10k link stalls.
+  networking.networkmanager.wifi.powersave = false;
   # The paired Bluetooth folding keyboard includes a touchpad.
   blix.machine.hasTouchpad = true;
   services.getty = {

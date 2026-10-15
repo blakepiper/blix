@@ -401,10 +401,13 @@ their revisions; Phoneputer itself is not a build dependency.
 | Firmware | Upstream OnePlus firmware plus the 6T's pinned TFA9894 speaker container, and Qualcomm support services. Only the OnePlus firmware package and its zstd wrapper are permitted as unfree. |
 | Filesystem | Generated ext4 image labeled `NIXOS_SYSTEM`, intended for existing `userdata`. No invented UUID or `/boot`. Filesystem auto-resize is enabled; GPT/partition growth is disabled. |
 | Audio | PipeWire with a phone-local O6T HiFi speaker profile. MultiMedia3 feeds the TFA9894 amplifier; WirePlumber excludes the kernel Loopback card. Microphone, headset and call routing remain unverified. |
-| Networking | Ordinary NetworkManager. The temporary USB profile is in `bootstrap.nix`; no competing wireless daemon, stage-2 phone DHCP server or embedded Wi-Fi password. |
+| Networking | Ordinary NetworkManager with Wi-Fi power saving disabled on this device as a provisional workaround for intermittent link stalls. The temporary USB profile is in `bootstrap.nix`; no competing wireless daemon, stage-2 phone DHCP server or embedded Wi-Fi password. |
 | Bluetooth and input | BlueZ, Blix's Blueman pairing agent, and touchpad defaults for the folding keyboard. Pairing state stays on the phone; mechanical USB key remapping does not apply to Bluetooth. |
 | Graphics | Xorg/Mesa/OXWM on verified DSI-1, 2340×1080 landscape at 60 Hz, with FD630 hardware acceleration. Touchscreen coordinates follow the selected rotation. |
 | Users | Shared `przvl` identity and Home Manager state `26.05`; system state `26.11`. The full phone automatically logs in as `przvl` and starts X on tty1. A local password is still used for locking and administrative commands. |
+
+The Wi-Fi workaround may increase battery use; its effect on the intermittent
+failures and battery life still needs longer observation.
 
 The pinned upstream firmware package lacks `tfa98xx.cnt`; the initial boot
 confirmed the speaker driver's load failed with `ENOENT`. The phone hardware
