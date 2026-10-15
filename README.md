@@ -6,10 +6,10 @@
 
 Declarative NixOS and Home Manager configuration for the `przvl` user. The
 flake defines `zen`, `t490`, and a OnePlus 6T `phone`, with the same
-Blix-style OXWM desktop session. The phone's small NixOS bootstrap physically
-booted on 2026-10-14. Its full native build passed on 2026-10-15, but the first
-remote activation lost Wi-Fi access and remains unverified; local desktop
-validation is still pending.
+Blix-style OXWM desktop session. The phone's bootstrap physically booted on
+2026-10-14; its installed native boot and accelerated OXWM/Ghostty desktop were
+verified on 2026-10-15. See the phone section for the latest startup verification
+status and remaining hardware issues.
 Its independent user composition lets its applications and environment evolve
 separately from the workstations.
 
@@ -231,9 +231,8 @@ Rotation is reapplied on startup and reconnect. `dpi` optionally sets X11,
 Xft and GTK font/UI sizing; it defaults to `null` so existing hosts retain
 their current sizing. Font changes may require restarting applications.
 Rotation and DPI are host facts, rather than assumptions in the phone profile.
-`primaryOutput = null` selects the first connected output at runtime. The
-prepared phone uses this until its XRandR connector has been observed; explicit
-connectors on the existing workstations retain their usual behavior.
+`primaryOutput = null` selects the first connected output at runtime. The phone
+uses the observed `DSI-1` connector with left rotation and 192 DPI.
 `blankAfterSeconds` controls idle DPMS display power-off; `0` disables it.
 
 A desktop's `display.nix` can be as small as:
@@ -283,11 +282,16 @@ preferences. It does not change hardware or saved settings.
 
 ## Starting the session
 
-After logging into a TTY as `przvl`, run:
+On Zen and T490, log into a local TTY as `przvl`, then run:
 
 ```sh
 startx
 ```
+
+The full phone host enables getty autologin as `przvl` and invokes `startx`
+automatically on tty1. Its login-file guard leaves SSH, other TTYs and terminal
+windows as ordinary shells. The small installation bootstrap retains manual
+login and does not include Xorg.
 
 The generated `~/.xinitrc` starts the user session target, initializes the
 configured displays, starts Picom and the Blix helper services, and finally
@@ -385,13 +389,13 @@ and `local.nix` disagree on that password. They are references for the hardware
 workflow, not configurations to copy into Blix. Existing Blix inputs retain
 their revisions; Phoneputer itself is not a build dependency.
 
-| Boundary | Prepared phone configuration |
+| Boundary | Phone configuration and verification |
 | --- | --- |
 | Bootloader | Android A/B boot image; no GRUB, UEFI or systemd-boot. An external loader hook reports that boot partitions are managed separately. |
 | Kernel and initrd | Upstream SDM845 kernel and Mobile stage-1. No PC kernel modules or generated laptop hardware file. No stage-0/kexec support. |
 | Firmware | Upstream OnePlus firmware plus the 6T's pinned TFA9894 speaker container, and Qualcomm support services. Only the OnePlus firmware package and its zstd wrapper are permitted as unfree. |
 | Filesystem | Generated ext4 image labeled `NIXOS_SYSTEM`, intended for existing `userdata`. No invented UUID or `/boot`. Filesystem auto-resize is enabled; GPT/partition growth is disabled. |
-| Audio | Blix PipeWire/Pulse compatibility and upstream SDM845 ALSA UCM data. Hardware routing and volume remain to be tested. |
+| Audio | PipeWire and upstream SDM845 ALSA UCM data. The real O6T card currently lacks a HiFi profile and PipeWire exposes Loopback; speaker/microphone routing remains unresolved. |
 | Networking | Ordinary NetworkManager. The temporary USB profile is in `bootstrap.nix`; no competing wireless daemon, stage-2 phone DHCP server or embedded Wi-Fi password. |
 | Bluetooth and input | BlueZ, Blix's Blueman pairing agent, and touchpad defaults for the folding keyboard. Pairing state stays on the phone; mechanical USB key remapping does not apply to Bluetooth. |
 | Graphics | Xorg/Mesa/OXWM on verified DSI-1, 2340×1080 landscape at 60 Hz, with FD630 hardware acceleration. Touchscreen coordinates follow the selected rotation. |
@@ -402,8 +406,10 @@ confirmed the speaker driver's load failed with `ENOENT`. The phone hardware
 module adds the [OnePlus 6T vendor container](https://github.com/TheMuppets/proprietary_vendor_oneplus_fajita/blob/91bb0ea54fb0870c0b3ec2bc1c584ee456206cdf/proprietary/vendor/etc/firmware/tfa98xx.cnt)
 with a fixed checksum to the device firmware used by both stages. The built-in
 codec requests it in stage-1, so installing this fix requires the corresponding
-boot image as well as userspace. Audible output and safe volume still require
-physical testing.
+boot image as well as userspace. The installed image contains this blob and the
+missing-firmware error is gone. The current upstream UCM data still lacks a
+matching 6T profile; firmware loading alone does not verify audible output or
+safe volume.
 
 The synthetic `checks.aarch64-linux.phone-system` still uses fake storage and
 UEFI solely for composition tests. **Never flash or activate that fixture.**
@@ -450,6 +456,28 @@ restart. Saved journals confirmed that the installation guard rolled back.
 A cold boot restored Wi-Fi. Use the staged boot/reboot workflow below on this
 kernel; preserve `/var/log/blix-phone-native-activation.log` and the kernel and
 NetworkManager journals when investigating a failed activation.
+
+The phone-only startup and display configuration was physically verified on
+2026-10-15. The running system and default profile select the corrected
+generation; getty logs in `przvl` and starts OXWM automatically on tty1.
+The desktop uses 2340×1080 landscape, 192 DPI, the forest wallpaper and a 22 pt
+Ghostty font. The user confirmed automatic desktop startup and readable terminal
+text. Home Manager activated successfully, temporary preview units were absent,
+and no system or user services were failed.
+
+Home Manager's explicit Bash login-file source had ignored the first text
+override. The corrected `programs.bash.profileExtra` hook passed checks that
+execute the generated login files on x86 and ARM, along with full flake,
+all-system and native ARM checks. Zen/T490's system derivations remain identical.
+
+One warm reboot after staging entered Qualcomm USB `05c6:900e` crash mode.
+A physical force restart restored normal boot into the corrected generation.
+The previous journal ends at the reboot request and `/sys/fs/pstore` is empty,
+so the cause remains unresolved. The kernel, initrd and boot partitions were
+unchanged by these preference updates; the earlier full native generation
+remains available for recovery. Linux SSH is unavailable in crash mode. Recover
+with a physical force restart, then inspect the previous journal and pstore
+before changing firmware; the USB mode alone does not identify the cause.
 
 Evaluate the actual host and build the small cross-compiled installation image:
 
@@ -605,8 +633,10 @@ The first NixOS boot and key-only SSH access succeeded after this installation.
 `bootstrap.nix` enables USB networking in stage-1 and a NetworkManager manual
 profile on the observed phone interface `usb0` in stage-2. It explicitly marks
 `usb0` as managed, overriding NetworkManager's default udev rule that ignores
-USB gadget interfaces. Without this setting, the stage-1 address survives but
-the stage-2 gateway and DNS profile never activates. The phone uses
+USB gadget interfaces. Verify the active profile: NetworkManager has also been
+observed retaining the stage-1 `/16` address as an external connection. If that
+happens, activate the existing `blix-phone-usb-bootstrap` profile with
+`nmcli connection up blix-phone-usb-bootstrap`. The intended stage-2 address is
 `172.16.42.1/24`, with the computer at `172.16.42.2` as its temporary gateway.
 Public DNS is queried through the computer's NAT. The route/DNS priorities let
 ordinary Wi-Fi take precedence. Stage-1 SSH remains disabled because upstream
@@ -616,8 +646,9 @@ The initial physical tests still found severe USB receive errors with the
 pinned 6.4.0 kernel, including after temporary CDC Ethernet and full-speed
 trials. Wi-Fi connected successfully and provides an independent installation
 path. The folding Bluetooth keyboard and its pointer were paired, trusted and
-registered by the kernel. USB reliability and full desktop behavior remain to
-be validated.
+registered by the kernel. The accelerated OXWM desktop has since been observed,
+but the USB packet errors remain unresolved. Prefer a freshly verified Wi-Fi
+connection for bulk transfers.
 
 The temporary stage-2 SSH server listens on IPv4 port 22,
 permits keys for `root` and `przvl`, and disables password/keyboard-interactive
@@ -636,7 +667,7 @@ temporary NetworkManager connection; replace the interface placeholder:
 
 ```sh
 PHONE_USB_IFACE='<observed USB network interface>'
-nmcli connection add type ethernet ifname "$PHONE_USB_IFACE" con-name blix-phone-bootstrap \
+nmcli connection add save no type ethernet ifname "$PHONE_USB_IFACE" con-name blix-phone-bootstrap \
   ipv4.method shared ipv4.addresses 172.16.42.2/24 ipv4.never-default yes \
   ipv6.method disabled connection.autoconnect no
 nmcli connection up blix-phone-bootstrap
@@ -644,6 +675,7 @@ ssh root@172.16.42.1
 ```
 
 NetworkManager's shared mode supplies NAT to the computer's existing uplink.
+`save no` keeps this task connection in memory.
 Confirm the USB address and Internet access before a rebuild; if the expected
 phone interface differs, correct `bootstrap.nix` and rebuild the image before
 installation. There is no permanent forwarding/firewall change to the T490 or
@@ -657,6 +689,11 @@ the Bluetooth keyboard and touchpad with
 Observe the phone's assigned address with `ip -brief address show wlan0`, then
 verify a second connection from the computer with
 `ssh root@<observed-phone-Wi-Fi-address>` before relying on Wi-Fi access.
+Recheck the address after each reboot; it has changed between observed boots.
+Verify the established SSH host key when reconnecting at a new address.
+On a network that publishes DHCP hostnames, `getent ahostsv4 phone` can help
+discover the new address. Router DNS can lag a DHCP change; confirm the current
+address and established SSH host key rather than relying on an old DNS answer.
 From the initial root SSH session, clone the repository as `przvl`:
 
 ```sh

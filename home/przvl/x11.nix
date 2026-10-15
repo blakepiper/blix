@@ -73,7 +73,7 @@ in
     "Pictures/Screenshots/.keep".text = "";
   };
 
-  # This is intentionally a manual startx session. Auxiliary services are
+  # This startx session has no display manager. Auxiliary services are
   # started before OXWM, but none of them may prevent the window manager from
   # appearing if a lock/compositor helper is temporarily unavailable.
   home.file.".xinitrc" = {

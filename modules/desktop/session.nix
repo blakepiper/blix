@@ -1,13 +1,13 @@
-# Manual X11/OXWM session selected by a profile.
+# X11/OXWM startx session selected by a profile.
 { pkgs, ... }:
 
 {
   services.xserver = {
     enable = true;
 
-    # Blix starts one X11 session manually from a TTY. The Home Manager
-    # configuration supplies ~/.xinitrc, so NixOS only needs to install xinit
-    # and expose OXWM as the available window manager.
+    # Blix starts one X11 session from a local TTY. Host login policy chooses
+    # when to invoke startx. Home Manager supplies ~/.xinitrc; NixOS installs
+    # xinit and exposes OXWM as the available window manager.
     displayManager.startx = {
       enable = true;
       generateScript = false;

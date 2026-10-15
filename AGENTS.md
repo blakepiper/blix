@@ -8,9 +8,16 @@ The full native build, ARM checks, temporary native-image boot and installed
 native boot passed on 2026-10-15. Both boot slots and the full default/runtime
 generation were verified. OXWM/Ghostty, accelerated FD630 rendering and landscape
 rotation were observed. An initial live switch wedged Wi-Fi and rolled back;
-use the phone's staged boot/reboot workflow in README.md. Audio and suspend still
-need physical validation. Choose validation according to the scope and risk
-rules in the Validation section.
+use the phone's staged boot/reboot workflow in README.md. The corrected
+automatic-X hook passed generated-login checks on x86 and ARM. A physical
+restart then verified the new runtime/default generation, getty autologin and
+automatic OXWM startup on tty1, with landscape, 192 DPI, forest wallpaper and
+22 pt Ghostty text. The user confirmed the desktop and readable terminal.
+A preceding warm reboot entered Qualcomm 05c6:900e crash mode; physical reset
+restored normal boot, but no saved panic established the cause.
+USB receive errors and the missing O6T HiFi audio profile are unresolved;
+suspend still needs physical validation. Choose validation according to the
+scope and risk rules in the Validation section.
 
 ## Global rules
 
@@ -76,8 +83,10 @@ rules in the Validation section.
   selects the regular OXWM desktop and standard applications through its own
   imports.
 - The full phone host enables `przvl` getty autologin; its user composition adds
-  a tty1-only automatic `startx` guard to the shared login file. Workstations and
-  the small phone bootstrap retain their existing login behavior.
+  a tty1-only automatic `startx` guard through `programs.bash.profileExtra`.
+  Home Manager's generated `.bash_profile` sources that `.profile`; a
+  `home.file.".bash_profile".text` override alone loses to its explicit source.
+  Workstations and the small phone bootstrap retain their existing login behavior.
 - `home/przvl/environments/oxwm.nix` composes reusable X11 user services, helpers,
   packages and desktop settings. It does not select the browser or terminal.
 - `home/przvl/config/` owns the Blix-derived OXWM, Picom, Xfe, Neovim,
@@ -85,7 +94,7 @@ rules in the Validation section.
 - `home/przvl/hardware/` declares typed user capabilities and display options;
   `display.nix` owns the display helper package and hotplug service. The X11
   display environment remains in `home/przvl/x11.nix`. `bluetooth.nix` binds the
-  Blueman pairing agent to the manual Blix session without a tray dependency.
+  Blueman pairing agent to the startx Blix session without a tray dependency.
 - `hosts/<hostname>/home.nix` composes machine-dependent user settings and
   imports `display.nix` for connector, layout, rotation and DPI facts when using X11.
 
