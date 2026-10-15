@@ -188,9 +188,12 @@ connect devices. Pairing records stay on the machine; hosts can opt out with
 Charge thresholds, Wi-Fi power quirks, and panel-driver workarounds remain
 host-specific. The profiles share manual suspend and locking before suspend.
 The phone profile also enables zram and UPower, requests orderly shutdown at 3%
-battery, and makes a short power-button press lock the session. Automatic
-suspend is left to verified host policy. Hosts can override individual logind
-defaults through `services.logind.settings.Login`.
+battery, and makes a short power-button press lock the session. The phone has
+no automatic idle lock, suspend or display power-off; use the software controls
+or power button explicitly. Its display timeout defaults to zero, and logind
+ignores idle sessions. Other profiles leave automatic suspend to verified host
+policy. Hosts can override individual logind defaults through
+`services.logind.settings.Login`.
 
 Keyboard, mouse, touchpad, lid and Bluetooth policy live in separate files under
 `modules/hardware/`. Natural scrolling applies to ordinary mice and all touchpads,

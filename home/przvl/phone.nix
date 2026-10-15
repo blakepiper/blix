@@ -36,5 +36,6 @@
       exec ${pkgs.xinit}/bin/startx -- :0 vt1 -keeptty -xkbdir /etc/X11/xkb
     fi
   '';
-  blix.display.blankAfterSeconds = lib.mkDefault 300;
+  # Keep the display awake; manual lock/suspend and monitor-off still work.
+  blix.display.blankAfterSeconds = lib.mkDefault 0;
 }

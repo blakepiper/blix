@@ -40,7 +40,8 @@ pkgs.runCommand "session-settings-checks" {
 
   : > "$BLIX_TEST_COMMANDS"
   "${phone.session}"
-  grep -qx 'dpms 0 0 300' "$BLIX_TEST_COMMANDS"
+  grep -qx 's off' "$BLIX_TEST_COMMANDS"
+  grep -qx 'dpms 0 0 0' "$BLIX_TEST_COMMANDS"
   grep -qx 'xrdb merged' "$BLIX_TEST_COMMANDS"
 
   # A first install has no user bus. The reload hook must still succeed.

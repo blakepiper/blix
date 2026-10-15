@@ -15,9 +15,12 @@
     hasBluetooth = lib.mkDefault true;
   };
 
-  # Keep sleep manual until suspend and Bluetooth wake have been verified.
+  # Keep sleep and locking manual, including when the session is idle.
   # A short power-button press locks; the control menu still offers shutdown.
-  services.logind.settings.Login.HandlePowerKey = lib.mkDefault "lock";
+  services.logind.settings.Login = {
+    HandlePowerKey = lib.mkDefault "lock";
+    IdleAction = lib.mkDefault "ignore";
+  };
   services.upower = {
     enable = lib.mkDefault true;
     ignoreLid = lib.mkDefault true;

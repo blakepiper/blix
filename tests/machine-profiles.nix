@@ -86,7 +86,7 @@ let
       home-manager.users.przvl.blix.display = {
         primaryRotation = "left";
         dpi = 192;
-        blankAfterSeconds = 0;
+        blankAfterSeconds = 120;
       };
     } ];
   });
@@ -122,15 +122,16 @@ assert phone.type == "phone" && phone.architecture == "aarch64-linux";
 assert phone.hasBattery && phone.hasBacklight && phone.hasBluetooth && phone.bluetooth;
 assert !phone.hasLid && !phone.hasTouchpad && phone.lid.HandleLidSwitch == "ignore";
 assert phone.lid.HandlePowerKey == "lock" && phone.layout == "extend";
+assert phone.lid.IdleAction == "ignore";
 assert phone.batteryHelper && phone.brightnessHelper && phone.batteryProbe && phone.batteryReporting;
-assert phone.blankAfterSeconds == 300 && phone.primaryRotation == "normal" && phone.dpi == null;
+assert phone.blankAfterSeconds == 0 && phone.primaryRotation == "normal" && phone.dpi == null;
 assert phoneHost.config.services.upower.criticalPowerAction == "PowerOff";
 assert phoneHost.config.zramSwap.enable && phoneHost.config.nix.settings.max-jobs == 1;
 assert !phoneWithoutBoot.boot.loader.systemd-boot.enable;
 assert !phoneWithoutBoot.boot.loader.efi.canTouchEfiVariables;
 assert !phoneOverrides.bluetooth && phoneOverrides.touchpadScrolling;
 assert !phoneOverrides.bluetoothManager && !phoneOverrides.bluetoothApplet;
-assert phoneOverrides.primaryRotation == "left" && phoneOverrides.blankAfterSeconds == 0;
+assert phoneOverrides.primaryRotation == "left" && phoneOverrides.blankAfterSeconds == 120;
 assert phoneOverrides.xresources."Xft.dpi" == 192 && phoneOverrides.gtkDpi == 192 * 1024;
 assert lib.all (profile: profile.oxwm && !profile.hyprland && profile.consistentEnvironment && profile.xinitShebang)
   [ laptop desktop phone overrides laptopOverrides phoneOverrides ];
