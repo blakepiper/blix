@@ -4,10 +4,13 @@ This repository is the declarative NixOS configuration for Blix machines and
 the Home Manager configuration for the `przvl` user. It is structured for
 multiple hosts; `zen`, `t490` and the OnePlus 6T `phone` are defined.
 The small phone bootstrap was installed and physically booted on 2026-10-14.
-The full native build and ARM checks passed on 2026-10-15, but the first remote
-activation lost Wi-Fi and could not be verified. The full OXWM host and
-peripherals still need physical validation. Choose validation according to the
-scope and risk rules in the Validation section.
+The full native build, ARM checks, temporary native-image boot and installed
+native boot passed on 2026-10-15. Both boot slots and the full default/runtime
+generation were verified. OXWM/Ghostty, accelerated FD630 rendering and landscape
+rotation were observed. An initial live switch wedged Wi-Fi and rolled back;
+use the phone's staged boot/reboot workflow in README.md. Audio and suspend still
+need physical validation. Choose validation according to the scope and risk
+rules in the Validation section.
 
 ## Global rules
 
@@ -63,12 +66,18 @@ scope and risk rules in the Validation section.
 - `hosts/phone/usb-keepawake.py` is a temporary, serial-specific fastboot USB
   power helper for installation hosts affected by runtime autosuspend. It uses
   existing USB permissions and makes no persistent policy or partition changes.
+- `hosts/phone/input.nix` owns the observed Bluetooth keyboard's left Alt/Super
+  mapping and the Synaptics touchscreen matrix. `hosts/phone/display.nix` selects
+  the verified landscape panel; other hosts do not import these settings.
 - `home/przvl/base.nix` owns shared user identity, state version and capability
   options. `default.nix` selects the workstation environment for laptops and
   desktops; `phone.nix` independently selects the phone's applications and
   environment without importing the workstation composition. The phone currently
   selects the regular OXWM desktop and standard applications through its own
   imports.
+- The full phone host enables `przvl` getty autologin; its user composition adds
+  a tty1-only automatic `startx` guard to the shared login file. Workstations and
+  the small phone bootstrap retain their existing login behavior.
 - `home/przvl/environments/oxwm.nix` composes reusable X11 user services, helpers,
   packages and desktop settings. It does not select the browser or terminal.
 - `home/przvl/config/` owns the Blix-derived OXWM, Picom, Xfe, Neovim,

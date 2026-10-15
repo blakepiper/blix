@@ -15,7 +15,8 @@ separately from the workstations.
 
 The desktop uses:
 
-- Xorg is started manually with `startx`; there is no display manager.
+- Zen and T490 start Xorg manually with `startx`. The phone logs in as `przvl`
+  and starts Xorg automatically on tty1; none uses a display manager.
 - OXWM is the window manager, with the Blix configuration and local patches.
 - Ghostty, `dmenu`, `picom`, `xsecurelock`, `xss-lock`, `clipmenu`, and Xfe provide
   the terminal, launcher, compositor, locking, clipboard, and file-manager
@@ -99,11 +100,12 @@ hosts/<host>/
 hosts/phone/
 ├── default.nix                   ARM fajita host selecting the normal phone profile
 ├── hardware.nix                  Mobile NixOS hardware, boot, firmware and rootfs
+├── input.nix                     Phone Bluetooth modifier and touchscreen rotation
 ├── bootstrap.nix                 Temporary USB networking and key-only USB/Wi-Fi SSH
 ├── bootstrap.pub                 Public key for temporary installation access
 ├── bootstrap-system.nix          Small installation userspace, without the desktop
 ├── home.nix                      Machine-dependent user composition
-└── display.nix                   Runtime panel discovery until physically verified
+└── display.nix                   Verified DSI-1 panel in landscape orientation
 
 home/przvl/
 ├── base.nix                      Shared identity, state version and capabilities
@@ -392,8 +394,8 @@ their revisions; Phoneputer itself is not a build dependency.
 | Audio | Blix PipeWire/Pulse compatibility and upstream SDM845 ALSA UCM data. Hardware routing and volume remain to be tested. |
 | Networking | Ordinary NetworkManager. The temporary USB profile is in `bootstrap.nix`; no competing wireless daemon, stage-2 phone DHCP server or embedded Wi-Fi password. |
 | Bluetooth and input | BlueZ, Blix's Blueman pairing agent, and touchpad defaults for the folding keyboard. Pairing state stays on the phone; mechanical USB key remapping does not apply to Bluetooth. |
-| Graphics | Ordinary Xorg/Mesa/OXWM. Discover the first connected output until on-device XRandR, rotation, DPI and acceleration are verified. |
-| Users | Shared `przvl` identity and Home Manager state `26.05`; new system installation state `26.11`. Local passwords must be set at first boot. |
+| Graphics | Xorg/Mesa/OXWM on verified DSI-1, 2340×1080 landscape at 60 Hz, with FD630 hardware acceleration. Touchscreen coordinates follow the selected rotation. |
+| Users | Shared `przvl` identity and Home Manager state `26.05`; system state `26.11`. The full phone automatically logs in as `przvl` and starts X on tty1. A local password is still used for locking and administrative commands. |
 
 The pinned upstream firmware package lacks `tfa98xx.cnt`; the initial boot
 confirmed the speaker driver's load failed with `ENOENT`. The phone hardware
@@ -430,15 +432,24 @@ filesystem within userdata to 108.2 GiB. Full desktop and peripheral validation
 remain separate checks. A charging indicator alone does not establish a working
 USB data connection.
 
-On 2026-10-15, revision `b74fa13` built the real native phone system, its Android
-boot image, the ARM composition fixture, and the ARM session-settings check.
-The first full userspace switch then lost Wi-Fi access. The faulty USB link
-also prevented recovery, so neither the active generation nor the activation
-guard's rollback could be confirmed. The new boot image has not been flashed.
-Recover local access and inspect `/var/log/blix-phone-native-activation.log`,
-`/run/current-system`, and the NetworkManager journal before another remote
-switch. The running desktop, graphics acceleration, local input, audio and
-suspend/resume remain unverified.
+On 2026-10-15, the real native phone system and Android boot image from revision
+`b74fa13` passed a temporary RAM boot and a normal installed boot. Both boot
+slots read back the image's SHA-256, and the default profile and running system
+select the full phone generation. Home Manager activation, fresh key-only
+Wi-Fi SSH and zero failed system services were verified. The ARM composition
+fixture and ARM session-settings check also built successfully. The image is
+37,625,856 bytes with SHA-256
+`cf32916e374903eb4f837890ece7d20084d930920b6518402f891090d332d902`.
+OXWM and Ghostty were observed on the physical panel, with direct rendering on
+the Adreno 630. The Bluetooth keyboard reconnects, and landscape rotation was
+tested. Audible output and suspend/resume still require physical validation.
+
+The initial live userspace switch stopped the Qualcomm modem/network services;
+the kernel then reported ath10k timeouts and unavailable Wi-Fi hardware during
+restart. Saved journals confirmed that the installation guard rolled back.
+A cold boot restored Wi-Fi. Use the staged boot/reboot workflow below on this
+kernel; preserve `/var/log/blix-phone-native-activation.log` and the kernel and
+NetworkManager journals when investigating a failed activation.
 
 Evaluate the actual host and build the small cross-compiled installation image:
 
@@ -657,19 +668,32 @@ private SSH key to the device. Workstations retain their usual GitHub SSH
 rewrite. Configure credentials on the phone separately if authenticated pushes
 are needed.
 
-After evaluating/building on the phone, the intended ordinary command is:
+After evaluating/building on the phone, stage the system for the next boot:
 
 ```sh
 cd /home/przvl/blix
-sudo nixos-rebuild switch --flake .#phone
+sudo nixos-rebuild boot --flake .#phone
+sudo reboot
 ```
 
-Log into a **local TTY** as `przvl` using the paired keyboard and run `startx`.
-An SSH shell is not a local seat for Blix's manual session. Record the actual
-`xrandr --query` connector, choose landscape rotation/DPI in
-`hosts/phone/display.nix`, and verify acceleration, Bluetooth reconnect,
-brightness, charging, audio routing/volume, locking, and suspend/resume. A
-successful switch does not verify the next reboot; test it as a separate step.
+If the update also changes the kernel, initrd, device firmware or boot
+parameters, install the reviewed matching boot image **before that reboot** as
+described below. Staging and rebooting avoids the live Qualcomm service restart
+that left the pinned kernel's Wi-Fi unavailable during the first activation.
+
+The full phone host always logs into `przvl` and runs `startx` on local tty1.
+SSH shells, other virtual terminals and terminal windows do not start X.
+`hosts/phone/display.nix` selects the observed DSI-1 panel in landscape mode;
+it uses 192 DPI (twice the initial 96 DPI) and the same local
+`~/Pictures/forest.jpg` wallpaper as T490. Supply that image separately on the
+phone; personal pictures are not embedded in the flake. Ghostty uses a phone-only
+22 pt font.
+`hosts/phone/input.nix` matches the Bluetooth keyboard to swap only its left
+Alt/Option and Super keys, and aligns the Synaptics touchscreen with the panel.
+The keyboard's left Alt/Option therefore operates the usual Blix Super bindings.
+These choices are phone-specific; Zen and T490 retain their manual login/session,
+modifier mappings and display settings. Verify Bluetooth reconnect, brightness,
+charging, audio routing/volume, locking and suspend/resume after the reboot.
 
 Before removing the `./bootstrap.nix` import from `hosts/phone/default.nix`, set
 normal local credentials and verify a replacement management connection in a
@@ -681,9 +705,9 @@ an already active connection. The bootstrap system/image can then be retired.
 
 Mobile NixOS's fajita bootloader cannot switch to a generation's kernel through
 kexec. Its flashed stage-1 selects the NixOS userspace generation from the
-rootfs, but ordinary `nixos-rebuild switch` does not install a new `boot.img`.
-Userspace changes can use the normal command above while the installed kernel,
-initrd, device firmware and boot parameters remain compatible.
+rootfs, but `nixos-rebuild boot` does not install a new `boot.img`. Userspace
+changes can use the staged boot/reboot commands above while the installed
+kernel, initrd, device firmware and boot parameters remain compatible.
 
 For a kernel, stage-1, device-tree or boot-parameter change, build
 `packages.aarch64-linux.phone-boot-image`, review its relation to the selected

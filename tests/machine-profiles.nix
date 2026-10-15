@@ -20,6 +20,7 @@ let
       inherit (cfg.blix.machine) type hasBattery hasBacklight hasTouchpad hasLid hasBluetooth;
       inherit (home.blix.display) layout primaryRotation dpi blankAfterSeconds mirrorRate;
       architecture = cfg.nixpkgs.hostPlatform.system;
+      autologinUser = cfg.services.getty.autologinUser;
       touchpadScrolling = cfg.services.libinput.touchpad.naturalScrolling;
       lid = cfg.services.logind.settings.Login;
       bluetooth = cfg.hardware.bluetooth.enable && cfg.hardware.bluetooth.powerOnBoot;
@@ -116,6 +117,7 @@ assert !laptopOverrides.batteryReporting && !laptopOverrides.touchpadScrolling;
 assert laptopOverrides.lid.HandleLidSwitch == "ignore";
 assert !laptopOverrides.bluetooth && !laptopOverrides.bluetoothManager && !laptopOverrides.bluetoothApplet;
 assert laptop.systemdBoot && desktop.systemdBoot && laptop.efiVariables && desktop.efiVariables;
+assert laptop.autologinUser == null && desktop.autologinUser == null;
 assert phone.type == "phone" && phone.architecture == "aarch64-linux";
 assert phone.hasBattery && phone.hasBacklight && phone.hasBluetooth && phone.bluetooth;
 assert !phone.hasLid && !phone.hasTouchpad && phone.lid.HandleLidSwitch == "ignore";

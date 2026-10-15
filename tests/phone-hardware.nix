@@ -54,6 +54,7 @@ assert bootstrap.nixpkgs.buildPlatform.system == pkgs.stdenv.hostPlatform.system
 assert cfg.nixpkgs.buildPlatform.system == "aarch64-linux";
 assert cfg.services.xserver.enable && cfg.services.xserver.windowManager.oxwm.enable;
 assert cfg.services.xserver.displayManager.startx.enable;
+assert cfg.services.getty.autologinUser == "przvl" && !cfg.services.getty.autologinOnce;
 assert !cfg.services.displayManager.gdm.enable && !cfg.services.desktopManager.gnome.enable;
 assert cfg.services.pipewire.enable && cfg.services.pipewire.pulse.enable;
 assert !cfg.services.pulseaudio.enable;
@@ -62,12 +63,13 @@ assert cfg.environment.variables.ALSA_CONFIG_UCM2 == "/run/current-system/sw/sha
 assert cfg.hardware.graphics.enable && cfg.hardware.bluetooth.enable && cfg.services.blueman.enable;
 assert cfg.blix.machine.hasTouchpad && !cfg.blix.machine.hasLid;
 assert home.services.blueman-applet.enable;
-assert home.blix.display.primaryOutput == null;
+assert home.blix.display.primaryOutput == "DSI-1" && home.blix.display.primaryRotation == "left";
 assert home.programs.firefox.enable && home.programs.ghostty.enable;
 assert home.programs.git.settings.url."git@github.com:".insteadOf == [ ];
 assert home.home.stateVersion == "26.05" && cfg.system.stateVersion == "26.11";
 assert cfg.mobile.system.android.appendDTB == [ "dtbs/qcom/sdm845-oneplus-fajita.dtb" ];
 assert !bootstrap.services.xserver.enable && !bootstrap.services.xserver.windowManager.oxwm.enable;
+assert bootstrap.services.getty.autologinUser == null;
 assert !bootstrap.home-manager.users.przvl.programs.firefox.enable;
 assert !bootstrap.home-manager.users.przvl.programs.ghostty.enable;
 assert !(bootstrap.home-manager.users.przvl.home.file ? ".xinitrc");

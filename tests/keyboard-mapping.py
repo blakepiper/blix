@@ -1,4 +1,4 @@
-"""Verify the built-in Win and external Cmd keys compile to Super."""
+"""Compile workstation and phone maps and check their actual modifier symbols."""
 import json
 from pathlib import Path
 import re
@@ -15,11 +15,11 @@ assert re.search(r'MatchIsKeyboard\s+"on"', rule), "Rule must target keyboard in
 assert "altwin:swap_alt_win" not in settings["options"], "Global layout would remap laptop Win"
 
 
-def compile_keymap(layout, options):
+def compile_keymap(layout, options, configuration=settings):
     return subprocess.check_output([
         "xkbcli", "compile-keymap", "--rules", "evdev",
-        "--model", settings["model"], "--layout", layout,
-        "--variant", settings["variant"], "--options", options,
+        "--model", configuration["model"], "--layout", layout,
+        "--variant", configuration["variant"], "--options", options,
     ], text=True)
 
 
@@ -42,3 +42,19 @@ for suffix in ("L", "R"):
     check_key(external, suffix + "ALT", "Super_" + suffix)
     check_key(external, suffix + "WIN", "Alt_" + suffix)
 print("PASS built-in Win stays Super; mechanical Cmd maps to Super")
+
+phone = json.loads(Path(sys.argv[2]).read_text())
+phone_rules = [rule for rule in phone["inputClassSections"] if "altwin:swap_lalt_lwin" in rule]
+assert len(phone_rules) == 1, "Phone swap must belong to one device rule"
+phone_rule = phone_rules[0]
+assert re.search(r'MatchProduct\s+"Bluetooth Keyboard"', phone_rule)
+assert re.search(r'MatchIsKeyboard\s+"on"', phone_rule)
+assert "altwin:swap_lalt_lwin" not in phone["options"]
+phone_layout = re.search(r'Option\s+"XkbLayout"\s+"([^"]+)"', phone_rule).group(1)
+phone_options = re.search(r'Option\s+"XkbOptions"\s+"([^"]+)"', phone_rule).group(1)
+phone_keys = compile_keymap(phone_layout, phone_options, phone)
+check_key(phone_keys, "LALT", "Super_L")
+check_key(phone_keys, "LWIN", "Alt_L")
+check_key(phone_keys, "RALT", "Alt_R")
+check_key(phone_keys, "RWIN", "Super_R")
+print("PASS phone Bluetooth left Alt is Super; right modifiers stay unchanged")
