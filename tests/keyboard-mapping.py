@@ -4,6 +4,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import tempfile
 
 
 settings = json.loads(Path(sys.argv[1]).read_text())
@@ -15,9 +16,10 @@ assert re.search(r'MatchIsKeyboard\s+"on"', rule), "Rule must target keyboard in
 assert "altwin:swap_alt_win" not in settings["options"], "Global layout would remap laptop Win"
 
 
-def compile_keymap(layout, options, configuration=settings):
+def compile_keymap(layout, options, configuration=settings, include=None):
     return subprocess.check_output([
         "xkbcli", "compile-keymap", "--rules", "evdev",
+        *(["--include", str(include), "--include-defaults"] if include else []),
         "--model", configuration["model"], "--layout", layout,
         "--variant", configuration["variant"], "--options", options,
     ], text=True)
@@ -52,9 +54,21 @@ assert re.search(r'MatchIsKeyboard\s+"on"', phone_rule)
 assert "altwin:swap_lalt_lwin" not in phone["options"]
 phone_layout = re.search(r'Option\s+"XkbLayout"\s+"([^"]+)"', phone_rule).group(1)
 phone_options = re.search(r'Option\s+"XkbOptions"\s+"([^"]+)"', phone_rule).group(1)
-phone_keys = compile_keymap(phone_layout, phone_options, phone)
+with tempfile.TemporaryDirectory() as directory:
+    symbols = Path(directory) / "symbols"
+    symbols.mkdir()
+    for name, text in phone["symbols"].items():
+        (symbols / name).write_text(text)
+    phone_keys = compile_keymap(phone_layout, phone_options, phone, directory)
+phone_default = compile_keymap(phone["layout"], phone["options"], phone)
+for keymap in (builtin, external, phone_default):
+    check_key(keymap, "TLDE", "grave")
+check_key(phone_keys, "TLDE", "Escape")
+check_key(phone_keys, "ESC", "Escape")
+check_key(phone_keys, "AD01", "q")
 check_key(phone_keys, "LALT", "Super_L")
 check_key(phone_keys, "LWIN", "Alt_L")
 check_key(phone_keys, "RALT", "Alt_R")
 check_key(phone_keys, "RWIN", "Super_R")
 print("PASS phone Bluetooth left Alt is Super; right modifiers stay unchanged")
+print("PASS phone Bluetooth grave is Escape; other keyboards retain grave")

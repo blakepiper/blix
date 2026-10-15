@@ -1,0 +1,6 @@
+default partial alphanumeric_keys
+xkb_symbols "basic" {
+    include "us(basic)"
+    // This keyboard's upper-left key prints grave without its blue Fn key.
+    replace key <TLDE> { [ Escape, asciitilde ] };
+};

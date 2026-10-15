@@ -746,6 +746,9 @@ the workstation IDE layout and Zen/T490 font sizes stay unchanged.
 `hosts/phone/input.nix` matches the Bluetooth keyboard to swap only its left
 Alt/Option and Super keys, and aligns the Synaptics touchscreen with the panel.
 The keyboard's left Alt/Option therefore operates the usual Blix Super bindings.
+Its upper-left backtick/tilde key sends Escape without Fn; Shift still sends
+tilde. The custom `blix_phone` XKB layout is selected only for this Bluetooth
+keyboard, leaving the default layout and other hosts unchanged.
 Its touch surface identifies as a wheel mouse rather than a multitouch
 touchpad. The phone's Firefox profile maps horizontal wheel events to browser
 back/forward navigation; two-finger vertical scrolling keeps scrolling pages.

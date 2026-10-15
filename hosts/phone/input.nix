@@ -11,12 +11,18 @@ let
   }.${rotation};
 in
 {
+  services.xserver.xkb.extraLayouts.blix_phone = {
+    description = "Blix phone Bluetooth keyboard";
+    languages = [ "eng" ];
+    symbolsFile = ./keyboard.xkb;
+  };
+
   services.xserver.inputClassSections = lib.mkAfter [
     ''
       Identifier "Blix phone Bluetooth keyboard"
       MatchIsKeyboard "on"
       MatchProduct "Bluetooth Keyboard"
-      Option "XkbLayout" "${config.services.xserver.xkb.layout}"
+      Option "XkbLayout" "blix_phone"
       Option "XkbOptions" "terminate:ctrl_alt_bksp,altwin:swap_lalt_lwin"
     ''
     ''

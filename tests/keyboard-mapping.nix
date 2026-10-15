@@ -15,6 +15,9 @@ let
   phoneSettings = pkgs.writeText "blix-phone-keyboard-settings.json" (builtins.toJSON {
     inherit (phoneCfg) inputClassSections;
     inherit (phoneCfg.xkb) layout model variant options;
+    # Read the declared symbols as data so x86 checks need no ARM builder.
+    symbols = builtins.mapAttrs (_: layout: builtins.readFile layout.symbolsFile)
+      phoneCfg.xkb.extraLayouts;
   });
 in
 pkgs.runCommand "keyboard-mapping-checks" {

@@ -76,7 +76,8 @@ scope and risk rules in the Validation section.
   power helper for installation hosts affected by runtime autosuspend. It uses
   existing USB permissions and makes no persistent policy or partition changes.
 - `hosts/phone/input.nix` owns the observed Bluetooth keyboard's left Alt/Super
-  mapping and the Synaptics touchscreen matrix. `hosts/phone/display.nix` selects
+  mapping, its `keyboard.xkb` grave-to-Escape layout, and the Synaptics
+  touchscreen matrix. `hosts/phone/display.nix` selects
   the verified landscape panel; other hosts do not import these settings.
 - `hosts/phone/audio.nix` and `ucm2/` supply the O6T speaker route missing from
   the pinned upstream UCM data and exclude Loopback from WirePlumber on this host.
