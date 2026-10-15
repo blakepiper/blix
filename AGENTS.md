@@ -56,8 +56,8 @@ validation according to the scope and risk rules in the Validation section.
   intentionally changes.
 - `hosts/phone/hardware.nix` imports the pinned Mobile NixOS `oneplus-fajita`
   hardware/boot layer. `bootstrap.nix` and `bootstrap.pub` isolate temporary
-  USB networking and key-only SSH; `bootstrap-system.nix` replaces the desktop
-  for the small installation image. No generated phone hardware file exists yet.
+  USB networking and key-only SSH over USB/Wi-Fi; `bootstrap-system.nix` replaces
+  the desktop for the small installation image. No generated phone hardware file exists yet.
 - `hosts/phone/usb-keepawake.py` is a temporary, serial-specific fastboot USB
   power helper for installation hosts affected by runtime autosuspend. It uses
   existing USB permissions and makes no persistent policy or partition changes.

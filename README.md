@@ -97,7 +97,7 @@ hosts/<host>/
 hosts/phone/
 ├── default.nix                   ARM fajita host selecting the normal phone profile
 ├── hardware.nix                  Mobile NixOS hardware, boot, firmware and rootfs
-├── bootstrap.nix                 Temporary USB networking and key-only SSH
+├── bootstrap.nix                 Temporary USB networking and key-only USB/Wi-Fi SSH
 ├── bootstrap.pub                 Public key for temporary installation access
 ├── bootstrap-system.nix          Small installation userspace, without the desktop
 ├── home.nix                      Machine-dependent user composition
@@ -582,13 +582,18 @@ ordinary Wi-Fi take precedence. Stage-1 SSH remains disabled because upstream
 would otherwise allow unauthenticated root access.
 
 The initial physical tests still found severe USB receive errors with the
-pinned 6.4.0 kernel, including after a temporary CDC Ethernet trial. Wi-Fi
-connected successfully and provides an independent installation path. USB
-reliability and the full desktop/peripheral behavior remain to be validated.
+pinned 6.4.0 kernel, including after temporary CDC Ethernet and full-speed
+trials. Wi-Fi connected successfully and provides an independent installation
+path. The folding Bluetooth keyboard and its pointer were paired, trusted and
+registered by the kernel. USB reliability and full desktop behavior remain to
+be validated.
 
-The temporary stage-2 SSH server listens only on `172.16.42.1`, permits keys
-for `root` and `przvl`, disables password/keyboard-interactive authentication,
-and opens port 22 only on `usb0`. `bootstrap.pub` contains the existing local
+The temporary stage-2 SSH server listens on IPv4 port 22,
+permits keys for `root` and `przvl`, and disables password/keyboard-interactive
+authentication. The firewall opens port 22 only on `usb0` and `wlan0`, without
+opening it globally. The Wi-Fi listener does not depend on
+a particular DHCP address, and the flake stores no Wi-Fi credentials.
+`bootstrap.pub` contains the existing local
 ED25519 public key with fingerprint
 `SHA256:Y/8PcF46sChrXneDtAzL7aj44MCOPy13Rlv/Hxi2FsA`; no private key is needed
 on the phone. Confirm that the corresponding private key is available on the
@@ -618,16 +623,19 @@ On the phone, set `przvl`'s local password with `passwd przvl`, then pair/trust
 the Bluetooth keyboard and touchpad with
 `bluetoothctl`. Wi-Fi can be configured with NetworkManager's interactive
 `nmcli --ask device wifi connect '<SSID>'`; keep credentials out of the flake.
+Observe the phone's assigned address with `ip -brief address show wlan0`, then
+verify a second connection from the computer with
+`ssh root@<observed-phone-Wi-Fi-address>` before relying on Wi-Fi access.
 From the initial root SSH session, clone the repository as `przvl`:
 
 ```sh
 sudo -u przvl git clone https://github.com/blakepiper/blix.git /home/przvl/blix
 ```
 
-Blix's normal Git
-configuration rewrites GitHub HTTPS URLs to SSH after the full switch; install
-the user's normal GitHub access or disable that rewrite on the phone before
-subsequent pulls.
+The phone keeps GitHub HTTPS URLs unchanged, so pulls work without copying a
+private SSH key to the device. Workstations retain their usual GitHub SSH
+rewrite. Configure credentials on the phone separately if authenticated pushes
+are needed.
 
 After evaluating/building on the phone, the intended ordinary command is:
 

@@ -1,5 +1,5 @@
-# Temporary first-install access. Remove this import after establishing normal
-# login credentials and a replacement management connection. No Wi-Fi secrets.
+# Temporary first-install access over USB or Wi-Fi. Remove this import after
+# establishing normal credentials and replacement management. No Wi-Fi secrets.
 { config, ... }:
 
 let
@@ -40,7 +40,9 @@ in
   services.openssh = {
     enable = true;
     openFirewall = false;
-    listenAddresses = [ { addr = phoneAddress; port = 22; } ];
+    # Wi-Fi is the reliable fallback on the pinned kernel. Bind independently
+    # of DHCP; the interface firewall below limits which ingress can use it.
+    listenAddresses = [ { addr = "0.0.0.0"; port = 22; } ];
     settings = {
       PermitRootLogin = "prohibit-password";
       PasswordAuthentication = false;
@@ -49,6 +51,9 @@ in
     };
   };
   networking.firewall.interfaces.usb0 = {
+    allowedTCPPorts = [ 22 ];
+  };
+  networking.firewall.interfaces.wlan0 = {
     allowedTCPPorts = [ 22 ];
   };
   systemd.services.sshd = {

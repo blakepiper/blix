@@ -35,8 +35,9 @@ let
     && ssh.settings.PermitRootLogin == "prohibit-password"
     && !ssh.settings.PasswordAuthentication
     && !ssh.settings.KbdInteractiveAuthentication
-    && ssh.listenAddresses == [ { addr = "172.16.42.1"; port = 22; } ]
+    && ssh.listenAddresses == [ { addr = "0.0.0.0"; port = 22; } ]
     && system.networking.firewall.interfaces.usb0.allowedTCPPorts == [ 22 ]
+    && system.networking.firewall.interfaces.wlan0.allowedTCPPorts == [ 22 ]
     && !(builtins.elem 22 system.networking.firewall.allowedTCPPorts)
     && system.users.users.root.password == null
     && system.users.users.przvl.password == null
@@ -63,6 +64,7 @@ assert cfg.blix.machine.hasTouchpad && !cfg.blix.machine.hasLid;
 assert home.services.blueman-applet.enable;
 assert home.blix.display.primaryOutput == null;
 assert home.programs.firefox.enable && home.programs.ghostty.enable;
+assert home.programs.git.settings.url."git@github.com:".insteadOf == [ ];
 assert home.home.stateVersion == "26.05" && cfg.system.stateVersion == "26.11";
 assert cfg.mobile.system.android.appendDTB == [ "dtbs/qcom/sdm845-oneplus-fajita.dtb" ];
 assert !bootstrap.services.xserver.enable && !bootstrap.services.xserver.windowManager.oxwm.enable;

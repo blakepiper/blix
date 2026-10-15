@@ -20,5 +20,7 @@
   ];
 
   home.packages = with pkgs; [ xfe mpv ];
+  # First-install pulls must work before this device has GitHub SSH credentials.
+  programs.git.settings.url."git@github.com:".insteadOf = lib.mkForce [ ];
   blix.display.blankAfterSeconds = lib.mkDefault 300;
 }
