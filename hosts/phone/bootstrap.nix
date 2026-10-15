@@ -13,6 +13,12 @@ in
 
   # The computer uses a temporary NetworkManager "shared" connection at
   # hostAddress. Keep all stage-2 networking under the ordinary Blix NM service.
+  # NetworkManager's udev rules leave DEVTYPE=gadget unmanaged by default.
+  # A per-device setting takes precedence, so the profile below actually runs.
+  networking.networkmanager.settings.device-blix-phone-usb-bootstrap = {
+    match-device = "interface-name:usb0";
+    managed = true;
+  };
   networking.networkmanager.ensureProfiles.profiles.blix-phone-usb-bootstrap = {
     connection = {
       id = "blix-phone-usb-bootstrap";

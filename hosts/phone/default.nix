@@ -1,4 +1,4 @@
-# OnePlus 6T (fajita): prepared for evaluation, not yet installed or boot-tested.
+# OnePlus 6T (fajita): bootstrap boot verified 2026-10-14; full desktop pending.
 { ... }:
 
 {

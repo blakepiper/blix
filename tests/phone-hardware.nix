@@ -41,6 +41,9 @@ let
     && system.users.users.root.password == null
     && system.users.users.przvl.password == null
     && system.users.users.root.openssh.authorizedKeys.keyFiles != [ ]
+    && system.networking.networkmanager.settings.device-blix-phone-usb-bootstrap.match-device
+      == "interface-name:usb0"
+    && system.networking.networkmanager.settings.device-blix-phone-usb-bootstrap.managed
     && system.networking.networkmanager.ensureProfiles.profiles.blix-phone-usb-bootstrap.ipv4.address1
       == "172.16.42.1/24,172.16.42.2";
 in

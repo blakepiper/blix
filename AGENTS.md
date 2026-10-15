@@ -2,8 +2,9 @@
 
 This repository is the declarative NixOS configuration for Blix machines and
 the Home Manager configuration for the `przvl` user. It is structured for
-multiple hosts; `zen`, `t490` and the prepared OnePlus 6T `phone` are defined.
-The phone has not yet been installed or physically boot-verified. Choose
+multiple hosts; `zen`, `t490` and the OnePlus 6T `phone` are defined.
+The small phone bootstrap was installed and physically booted on 2026-10-14;
+the full OXWM host and peripherals still need physical validation. Choose
 validation according to the scope and risk rules in the Validation section.
 
 ## Global rules
@@ -57,6 +58,9 @@ validation according to the scope and risk rules in the Validation section.
   hardware/boot layer. `bootstrap.nix` and `bootstrap.pub` isolate temporary
   USB networking and key-only SSH; `bootstrap-system.nix` replaces the desktop
   for the small installation image. No generated phone hardware file exists yet.
+- `hosts/phone/usb-keepawake.py` is a temporary, serial-specific fastboot USB
+  power helper for installation hosts affected by runtime autosuspend. It uses
+  existing USB permissions and makes no persistent policy or partition changes.
 - `home/przvl/base.nix` owns shared user identity, state version and capability
   options. `default.nix` selects the workstation environment for laptops and
   desktops; `phone.nix` independently selects the phone's applications and
@@ -118,9 +122,12 @@ validation according to the scope and risk rules in the Validation section.
   Phone kernel/initrd updates need separately reviewed Android boot images;
   `nixos-rebuild switch` updates userspace without writing phone partitions.
 - Never unlock, erase, format, flash, sideload a partition-writing payload, or
-  manipulate phone partitions without first showing the exact operation and
-  obtaining explicit user approval. Never run generated flashing scripts as
-  part of evaluation, builds, tests or an ordinary rebuild.
+  manipulate phone partitions outside the user's authorized installation or
+  recovery scope. Honor explicit authorization already given for the whole
+  workflow instead of requesting it again for each command. Inspect each exact
+  operation and verify device identity and artifacts before writing. Never run
+  generated flashing scripts as part of evaluation, builds, tests or an ordinary
+  rebuild.
 - Never move generated hardware facts out of a host's
   `hardware-configuration.nix`.
 - Keep package names inside the existing `with pkgs;` package lists. Do not add

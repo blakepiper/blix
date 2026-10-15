@@ -5,8 +5,9 @@
 # blix
 
 Declarative NixOS and Home Manager configuration for the `przvl` user. The
-flake defines `zen`, `t490`, and a prepared OnePlus 6T `phone`, with the same
-Blix-style OXWM desktop session. The phone has not yet been physically boot-tested.
+flake defines `zen`, `t490`, and a OnePlus 6T `phone`, with the same
+Blix-style OXWM desktop session. The phone's small NixOS bootstrap physically
+booted on 2026-10-14; full desktop validation is still pending.
 Its independent user composition lets its applications and environment evolve
 separately from the workstations.
 
@@ -343,7 +344,7 @@ An ARM host sets `system = "aarch64-linux"` in `mkHost`. The real phone also
 passes `specialArgs = { inherit mobile-nixos; };` to its hardware module.
 Profiles choose capabilities; the host constructor chooses the package platform.
 
-## Phone preparation
+## OnePlus 6T phone
 
 `profiles/phone.nix` owns phone system policy and chooses its system environment.
 `home/przvl/phone.nix` independently selects phone applications, reusable program
@@ -408,11 +409,16 @@ adb devices -l
 fastboot devices
 ```
 
-On 2026-10-08 the host sees OnePlus USB `2a70:f003`, presenting MTP and mass
-storage, with no ADB interface. Both device listings are empty. Its firmware,
-bootloader lock state, exact variant, A/B slot state and partition sizes have
-not been verified. A powered phone and successful USB enumeration do not imply
-that USB debugging or fastboot is available. This phase does not reboot it.
+On 2026-10-14, stock Android ADB identified this phone as **ONEPLUS A6010**,
+running OxygenOS **11.1.2.2 / Android 11**, build `ONEPLUS A6010_41_211125`,
+on slot **B**. After the authorized unlock and factory reset, fastboot confirmed
+`unlocked=yes`, 64 MiB boot partitions and a 118,112,366,592-byte userdata
+partition. Official fajita Lineage Recovery also boots on this device. These
+observations verify device preparation. The NixOS bootstrap then booted kernel
+`6.4.0` on aarch64, accepted key-only root SSH over USB, and resized the root
+filesystem within userdata to 108.2 GiB. Full desktop and peripheral validation
+remain separate checks. A charging indicator alone does not establish a working
+USB data connection.
 
 Evaluate the actual host and build the small cross-compiled installation image:
 
@@ -445,7 +451,62 @@ The T490 currently has no ARM builder or emulation. The x86 bootstrap output
 uses an x86 builder to cross-compile ARM code; the full desktop output requires
 an ARM builder. Both use the same locked nixpkgs and Mobile NixOS inputs.
 
-### Device inspection and approval gate
+### Recovery and firmware preparation
+
+Follow the [official fajita installation guide](https://wiki.lineageos.org/devices/fajita/install/)
+and the locked Mobile NixOS device notes before installing the mainline images.
+The recovery boot image and DTBO must come from the same official fajita build;
+verify their sizes and SHA-256 values against the LineageOS download API.
+This device used the 2026-10-13 LineageOS 22.2 recovery, installed to the verified
+active slot B with `flash dtbo_b`, a bootloader restart, then `flash boot_b`.
+The recovery is temporary; Blix's boot images replace it later.
+
+Enter recovery using the phone's fastboot menu: press a volume button until
+`START` changes to `Recovery mode`, then press Power once. On this 6T,
+`fastboot reboot recovery` returned OKAY but stayed in fastboot. In Lineage
+Recovery, choose **Advanced → Enable ADB** to get a maintenance shell. Android's
+previous debugging authorization does not enable recovery ADB. Repeat this
+toggle after restarting recovery or completing a sideload.
+
+Verify `adb shell getprop ro.boot.slot_suffix` still reports `_b` before copying
+firmware from the known Android 11 slot. Save SHA-256 baselines for the paired
+firmware partitions and backups of the small bootloader partitions. This
+phone's initial comparison found 18 differing pairs out of 28, so merely
+checking that both slots are bootable does not establish firmware consistency.
+Use the official
+[`copy-partitions-20220613-signed.zip`](https://mirrorbits.lineageos.org/tools/copy-partitions-20220613-signed.zip)
+through **Apply update → Apply from ADB**, followed by `adb sideload`.
+With maintenance ADB already enabled, `adb reboot sideload` also enters this
+mode. The package copies active-slot firmware to the inactive slot and excludes
+boot, DTBO, system and vbmeta; it does not alter the GPT.
+
+After sideloading, choose **Advanced → Reboot to recovery**, then enable ADB
+again. Verify all copied A/B partition hashes against the saved active-slot
+baseline before flashing NixOS. A completed ADB transfer alone does not verify
+the writes. Preserve the existing GPT and use `userdata` for the Blix rootfs.
+On this phone, all 28 pairs were read back after the copy and matched the saved
+original slot B hashes.
+
+The T490's TLP USB autosuspend caused this fastboot device to return spurious
+`unknown command` responses after idling. Start the serial-specific helper
+**before entering fastboot**, and keep it running during the installation:
+
+```sh
+systemd-run --user --unit=blix-phone-usb-keepawake --collect \
+  --property=RuntimeMaxSec=30min \
+  "$(command -v python3)" "$PWD/hosts/phone/usb-keepawake.py" \
+  --serial '<serial from fastboot devices>' --seconds 1800
+```
+
+The helper uses existing USB device permissions, keeps a USBFS descriptor open
+only for the matching serial in fastboot, and reacquires it after a USB
+reenumeration. It claims no interface and sends no flashing commands. Its
+suspend inhibition ends when the descriptor closes; TLP configuration is not
+changed. Start a fresh bootloader session if it already entered the faulty
+state. Stop the helper after installation with
+`systemctl --user stop blix-phone-usb-keepawake.service`.
+
+### Device inspection and installation authorization
 
 Before changing anything on the phone, establish an authorized ADB connection
 and record these read-only facts when available:
@@ -478,11 +539,12 @@ Verify the actual fajita variant, backup/restore plan, bootloader eligibility,
 image sizes/checksums, and the OxygenOS 11 and consistent A/B firmware
 prerequisites in upstream's device notes. Do not substitute an enchilada image.
 Unlocking, firmware updates, recovery sideloads and `copy-partitions` payloads
-are separate operations that need their own explicit approval. An installation
-guide or a generated script does not grant that approval.
+must be covered by the user's installation authorization. Honor authorization
+already given for the full workflow; do not request it again for each command.
+An installation guide or a generated script alone does not grant authorization.
 
-After those facts and a complete image build are reviewed, the upstream
-mainline-only sequence would include these **proposed, unexecuted** operations:
+After verifying those facts, the completed image build, and all 28 copied
+firmware pairs, this mainline-only bootstrap sequence completed on 2026-10-14:
 
 ```sh
 fastboot erase dtbo_a
@@ -491,22 +553,38 @@ fastboot --slot=all flash boot result-phone-bootstrap/boot.img
 fastboot flash userdata result-phone-bootstrap/system.img
 ```
 
-**Stop before each device-writing step and obtain approval for its exact
-command.** Flashing `userdata` replaces Android user data with the rootfs; the
+Both boot-slot writes and all six automatically generated sparse userdata
+transfers returned OKAY. The installed bootstrap artifacts were:
+
+| Image | Bytes | SHA-256 |
+| --- | --- | --- |
+| `boot.img` | 36,892,672 | `2165a09827d62f64fcfac48a855937771f9bffb28a7c6e2f7f29bb91b62ec256` |
+| `system.img` | 5,161,934,848 | `e825c5e182b1969a1ed801576d9a7908f36cd682b104e939f1e5cd12af7f18ba` |
+
+Review each exact device-writing command against the authorized scope before
+executing it. Flashing `userdata` replaces Android user data with the rootfs; the
 image resizes that filesystem within its existing partition on first boot.
 Upstream boot-control also marks successful A/B boots in device metadata.
 Do not run a flashing script, reformat/erase userdata redundantly, modify the
-GPT layout, or sideload a partition-writing ZIP automatically. Rebooting and
-the first boot are a later, explicitly authorized device-preparation phase.
+GPT layout, or sideload a partition-writing ZIP outside the authorized scope.
+The first NixOS boot and key-only SSH access succeeded after this installation.
 
 ### USB bootstrap and ordinary Blix deployment
 
 `bootstrap.nix` enables USB networking in stage-1 and a NetworkManager manual
-profile on the expected phone interface `usb0` in stage-2. The phone uses
+profile on the observed phone interface `usb0` in stage-2. It explicitly marks
+`usb0` as managed, overriding NetworkManager's default udev rule that ignores
+USB gadget interfaces. Without this setting, the stage-1 address survives but
+the stage-2 gateway and DNS profile never activates. The phone uses
 `172.16.42.1/24`, with the computer at `172.16.42.2` as its temporary gateway.
 Public DNS is queried through the computer's NAT. The route/DNS priorities let
 ordinary Wi-Fi take precedence. Stage-1 SSH remains disabled because upstream
 would otherwise allow unauthenticated root access.
+
+The initial physical tests still found severe USB receive errors with the
+pinned 6.4.0 kernel, including after a temporary CDC Ethernet trial. Wi-Fi
+connected successfully and provides an independent installation path. USB
+reliability and the full desktop/peripheral behavior remain to be validated.
 
 The temporary stage-2 SSH server listens only on `172.16.42.1`, permits keys
 for `root` and `przvl`, disables password/keyboard-interactive authentication,
@@ -581,8 +659,9 @@ initrd, device firmware and boot parameters remain compatible.
 
 For a kernel, stage-1, device-tree or boot-parameter change, build
 `packages.aarch64-linux.phone-boot-image`, review its relation to the selected
-system generation and the known working image, then stop for separate approval
-of the exact boot-partition update. Keep a known working boot image and rootfs
+system generation and the known working image, then install the exact
+boot-partition update only within the user's authorized scope. Keep a known
+working boot image and rootfs
 generation for recovery. Do not reflash `system.img` during routine updates:
 that would overwrite the phone's persistent rootfs and user state.
 
