@@ -254,6 +254,9 @@ A desktop's `display.nix` can be as small as:
 Open `blix-settings` from a terminal or launcher, or press `Super+S`. The app
 uses the existing NetworkManager, BlueZ, PipeWire/PulseAudio and X11 services;
 it also includes a searchable shortcut reference and system information.
+On the phone, tap the gear icon between the CPU and date sections of the
+topbar to open settings without a Bluetooth keyboard. The icon has a padded
+touch target and is selected only by `home/przvl/phone/topbar.nix`.
 
 - Display controls cover mirror/extend layouts, monitor positions, resolutions,
   each output's advertised refresh rates, rotation, scaling and brightness.

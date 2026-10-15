@@ -138,6 +138,7 @@ table.insert(blocks, oxwm.bar.block.static({
   color = colors.status.separator,
   underline = false,
 }))
+-- @oxwm-extra-bar-blocks@
 table.insert(blocks, oxwm.bar.block.datetime({
   format = "{}",
   date_format = "%a, %b %d - %H:%M",

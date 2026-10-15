@@ -36,6 +36,8 @@ let
       efiVariables = cfg.boot.loader.efi.canTouchEfiVariables;
       systemdBoot = cfg.boot.loader.systemd-boot.enable;
       oxwm = cfg.services.xserver.windowManager.oxwm.enable;
+      settingsLauncher = lib.hasInfix ''text = "  󰒓  "''
+        home.home.file.".config/oxwm/config.lua".text;
       batteryHelper = builtins.elem "oxwm-battery" packages;
       brightnessHelper = builtins.elem "blix-brightness" packages;
       batteryProbe = lib.hasInfix "for battery in" init;
@@ -118,6 +120,8 @@ assert laptopOverrides.lid.HandleLidSwitch == "ignore";
 assert !laptopOverrides.bluetooth && !laptopOverrides.bluetoothManager && !laptopOverrides.bluetoothApplet;
 assert laptop.systemdBoot && desktop.systemdBoot && laptop.efiVariables && desktop.efiVariables;
 assert laptop.autologinUser == null && desktop.autologinUser == null;
+assert lib.all (profile: !profile.settingsLauncher) [ laptop desktop overrides laptopOverrides ];
+assert phone.settingsLauncher && phoneOverrides.settingsLauncher;
 assert phone.type == "phone" && phone.architecture == "aarch64-linux";
 assert phone.hasBattery && phone.hasBacklight && phone.hasBluetooth && phone.bluetooth;
 assert !phone.hasLid && !phone.hasTouchpad && phone.lid.HandleLidSwitch == "ignore";

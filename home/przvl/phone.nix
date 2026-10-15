@@ -18,6 +18,7 @@
     ./programs/audio.nix
     ./environments/oxwm.nix
     ./phone/terminal-editor.nix
+    ./phone/topbar.nix
   ];
 
   home.packages = with pkgs; [ xfe mpv ];

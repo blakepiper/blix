@@ -1,4 +1,4 @@
-{ config, lib, pkgs, displayHotplug, oxwmVolume, oxwmBrightness, blixSettings, ... }:
+{ config, lib, pkgs, displayHotplug, oxwmVolume, oxwmBrightness, blixSettings, oxwmExtraBarBlocks, ... }:
 
 let
   display = config.blix.display;
@@ -41,6 +41,7 @@ let
 in
 {
   _module.args = {
+    oxwmExtraBarBlocks = lib.mkDefault "";
     blixDisplayEnvironment = displayEnvironment;
     blixSessionSettings = sessionSettings;
   };
@@ -58,8 +59,8 @@ in
   home.file = {
     ".config/mimeapps.list".source = ./config/mimeapps.list;
     ".config/oxwm/config.lua".text = lib.replaceStrings
-      [ "@nixos-logo@" "@oxwm-volume@" "@oxwm-brightness@" "@wpctl@" "@brightnessctl@" "@blix-settings@" ]
-      [ "${nixosLogo}" "${oxwmVolume}/bin/oxwm-volume" "${oxwmBrightness}/bin/oxwm-brightness" "${pkgs.wireplumber}/bin/wpctl" "${pkgs.brightnessctl}/bin/brightnessctl" "${blixSettings}/bin/blix-settings" ]
+      [ "@nixos-logo@" "@oxwm-volume@" "@oxwm-brightness@" "@wpctl@" "@brightnessctl@" "@blix-settings@" "-- @oxwm-extra-bar-blocks@" ]
+      [ "${nixosLogo}" "${oxwmVolume}/bin/oxwm-volume" "${oxwmBrightness}/bin/oxwm-brightness" "${pkgs.wireplumber}/bin/wpctl" "${pkgs.brightnessctl}/bin/brightnessctl" "${blixSettings}/bin/blix-settings" oxwmExtraBarBlocks ]
       (builtins.readFile ./config/oxwm/config.lua);
     ".config/picom/picom.conf" = {
       source = ./config/picom/picom.conf;

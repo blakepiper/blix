@@ -84,6 +84,8 @@ scope and risk rules in the Validation section.
 - `home/przvl/phone/terminal-editor.nix` owns the phone's 12 pt Ghostty font
   and derives its compact Neovim/IDE variant from the shared configuration.
   Keep those small-screen layouts and UI overrides out of the shared files.
+- `home/przvl/phone/topbar.nix` adds the phone-only, touchable Blix settings
+  launcher between the CPU and date through the X11 bar-block extension.
 - `home/przvl/base.nix` owns shared user identity, state version and capability
   options. `default.nix` selects the workstation environment for laptops and
   desktops; `phone.nix` independently selects the phone's applications and
