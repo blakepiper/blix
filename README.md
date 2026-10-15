@@ -473,8 +473,30 @@ fixture and ARM session-settings check also built successfully. The image is
 37,625,856 bytes with SHA-256
 `cf32916e374903eb4f837890ece7d20084d930920b6518402f891090d332d902`.
 OXWM and Ghostty were observed on the physical panel, with direct rendering on
-the Adreno 630. The Bluetooth keyboard reconnects, and landscape rotation was
-tested. Audible output and suspend/resume still require physical validation.
+the Adreno 630. The Bluetooth keyboard connected, and landscape rotation was
+tested. Audible output still requires physical validation.
+
+Later suspend use on 2026-10-15 left the screen unresponsive and required a
+force restart. The journal records completed resumes at 18:15:53 and
+18:54:32, followed by DPU display-encoder errors; subsequent power-key presses
+still reached logind. Display restoration is therefore suspect, rather than a
+proven failure of the whole system to wake. Bluetooth UART wake is disabled in
+the observed runtime, although the power key is enabled. The keyboard remains
+paired and trusted, but Blueman's explicit automatic-connect service list is
+empty; pairing alone does not configure its periodic reconnect attempts. Keep
+device pairing and reconnect selections on the phone.
+
+Wi-Fi firmware also crashed and recovered at 16:58 and 17:29, before those
+suspends. Subsequent boots repeatedly completed WPA authentication, then failed
+NetworkManager activation roughly 45 seconds later, with ath10k key-removal
+timeouts during disconnect. Wi-Fi was connected when the investigation began.
+WARN-level NetworkManager logs do not establish whether DHCP or another
+activation stage caused those retries. The saved
+network already disables Wi-Fi power saving, so that workaround has not
+resolved all reliability problems. Suspend/display recovery, keyboard wake and
+automatic reconnection, and Wi-Fi reliability remain unresolved; use Lock in
+place of Suspend pending further validation. Evidence is recorded locally in
+`/home/przvl/systemdebugging.md`.
 
 The initial live userspace switch stopped the Qualcomm modem/network services;
 the kernel then reported ath10k timeouts and unavailable Wi-Fi hardware during

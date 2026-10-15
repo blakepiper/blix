@@ -17,9 +17,14 @@ A preceding warm reboot entered Qualcomm 05c6:900e crash mode; physical reset
 restored normal boot, but no saved panic established the cause.
 The phone-local O6T HiFi speaker profile now exposes the speaker sink and starts
 the TFA9894 amplifier during playback; audible confirmation is pending. USB
-receive errors, microphone/headset/call routing and physical suspend validation
-remain unresolved. The phone's pinned 6.4.0 display driver exposes no hardware
-gamma ramp, so Gammastep night light has no visible effect despite saving
+receive errors and microphone/headset/call routing remain unresolved. Physical
+suspend testing left the screen unresponsive: journals show completed resumes
+followed by DPU encoder errors and continued power-key handling. Bluetooth UART
+wake is disabled, Blueman's automatic-connect list is empty, and Wi-Fi firmware
+crashes and post-boot activation failures were observed despite the saved
+power-save-off preference. See README.md and the local debugging log; these
+reliability issues remain unresolved. The phone's pinned 6.4.0 display driver
+exposes no hardware gamma ramp, so Gammastep night light has no visible effect despite saving
 successfully in Blix Settings. Choose validation according to the
 scope and risk rules in the Validation section.
 
