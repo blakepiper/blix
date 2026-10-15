@@ -184,6 +184,8 @@ The Blueman pairing agent starts with the Blix X11 session without requiring a
 system tray. Launch `blueman-manager` from dmenu or a terminal to pair, trust and
 connect devices. Pairing records stay on the machine; hosts can opt out with
 `blix.machine.hasBluetooth = false`.
+The phone disables Blueman's connection/disconnection popups; other hosts keep
+their existing notification behavior.
 
 Charge thresholds, Wi-Fi power quirks, and panel-driver workarounds remain
 host-specific. The profiles share manual suspend and locking before suspend.

@@ -21,6 +21,8 @@
   ];
 
   home.packages = with pkgs; [ xfe mpv ];
+  # Suppress connection/disconnection popups while keeping the pairing agent.
+  dconf.settings."org/blueman/general".plugin-list = [ "!ConnectionNotifier" ];
   # First-install pulls must work before this device has GitHub SSH credentials.
   programs.git.settings.url."git@github.com:".insteadOf = lib.mkForce [ ];
   # The folding keyboard reports its touch surface as a wheel mouse, so it
