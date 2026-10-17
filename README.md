@@ -827,8 +827,8 @@ that left the pinned kernel's Wi-Fi unavailable during the first activation.
 The full phone host always logs into `przvl` and runs `startx` on local tty1.
 SSH shells, other virtual terminals and terminal windows do not start X.
 `hosts/phone/display.nix` selects the observed DSI-1 panel in landscape mode;
-it uses 192 DPI (twice the initial 96 DPI) and the same local
-`~/Pictures/forest.jpg` wallpaper as T490. Supply that image separately on the
+it uses 192 DPI (twice the initial 96 DPI) and the local
+`~/Pictures/forest.jpg` wallpaper. Supply that image separately on the
 phone; personal pictures are not embedded in the flake. Ghostty uses a phone-only
 12 pt font. At 192 DPI the previous 22 pt setting left only a 66×12 terminal
 grid, which squeezed the desktop IDE layout. The phone-only module

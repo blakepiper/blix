@@ -10,6 +10,6 @@
     mirrorMode = "1920x1080";
     # 125% application scaling relative to the standard 96 DPI baseline.
     dpi = 120;
-    wallpaper = "/home/przvl/Pictures/forest.jpg";
+    wallpaper = "/home/przvl/Pictures/nix-blue-mountain.png";
   };
 }
