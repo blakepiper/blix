@@ -23,7 +23,7 @@ PAGES = [
     ("audio", "Audio", "audio-volume-high-symbolic", "Speakers, headphones and microphones", "sound volume microphone mic input output mute"),
     ("bluetooth", "Bluetooth", "bluetooth-symbolic", "Pair and manage nearby devices", "wireless pair headset headphones keyboard device"),
     ("network", "Networking", "network-wireless-symbolic", "Wi-Fi, Ethernet and saved connections", "wifi wi-fi internet ethernet connection password vpn"),
-    ("power", "Power", "battery-symbolic", "Battery status, display timeout and session controls", "battery charging sleep suspend lock screen off idle"),
+    ("power", "Power", "battery-symbolic", "Power mode, battery status, display timeout and session controls", "battery charging sleep suspend lock screen off idle performance balanced saver longevity"),
     ("input", "Input", "input-touchpad-symbolic", "Pointing devices and keyboard repeat", "mouse touchpad keyboard tapping scrolling speed repeat"),
     ("shortcuts", "Shortcuts", "preferences-desktop-keyboard-shortcuts-symbolic", "A quick reference for your OXWM keyboard shortcuts", "key binding super shortcut"),
     ("about", "About", "computer-symbolic", "Your device and the Blix desktop", "system version cpu processor memory storage kernel"),
@@ -123,6 +123,7 @@ class Window(Gtk.ApplicationWindow):
         self.dirty_blank = False
         self.saving_keyboard = False
         self.saving_blank = False
+        self.saving_power_mode = False
         self.saving_transparency = False
         self.pending_inputs = set()
         self.demo_meter = False
@@ -1080,6 +1081,20 @@ class Window(Gtk.ApplicationWindow):
 
     def build_power(self):
         body = self.pages["power"]
+        self.power_mode_card = self.card(body, "Power mode")
+        self.power_mode_card.set_no_show_all(True)
+        self.power_mode_controls = {}
+        group = None
+        for profile, (title, description) in core.POWER_PROFILES.items():
+            control = Gtk.RadioButton.new_from_widget(group)
+            group = control
+            control.set_sensitive(False)
+            self.row(self.power_mode_card, title, control, description)
+            self.connect_control(control, "toggled", lambda widget, profile=profile:
+                                 self.save_power_mode(profile) if widget.get_active() else None)
+            self.power_mode_controls[profile] = control
+        self.power_mode_status = label("", "dim", True)
+        self.power_mode_card.pack_start(self.power_mode_status, False, False, 0)
         self.battery_card = self.card(body, "Battery")
         card = self.card(body, "Screen")
         self.blank_minutes = spin(0, 0, 1440)
@@ -1107,6 +1122,7 @@ class Window(Gtk.ApplicationWindow):
         session.pack_start(controls, False, False, 0)
 
     def update_power(self, state):
+        self.update_power_profiles(state.get("power_profiles", {"available": False}))
         self.update_batteries(state["batteries"])
         if not self.saving_blank:
             self.blank_minutes.set_sensitive(True)
@@ -1117,6 +1133,49 @@ class Window(Gtk.ApplicationWindow):
                     self.blank_minutes.set_value(state["blank_seconds"] / 60)
                 finally:
                     self.syncing = False
+
+    def update_power_profiles(self, state):
+        supported = self.defaults.get("capabilities", {}).get("hasPowerProfiles", False)
+        if not supported:
+            self.power_mode_card.hide()
+            return
+        self.power_mode_card.show()
+        for child in self.power_mode_card.get_children():
+            child.show_all()
+        if self.saving_power_mode:
+            return
+        self.syncing = True
+        try:
+            for profile, control in self.power_mode_controls.items():
+                control.set_sensitive(state["available"] and profile in state.get("profiles", []))
+                control.set_active(profile == state.get("active"))
+            self.power_mode_status.set_text(state.get("error", "Your choice is saved and stays selected when the charger changes."))
+        finally:
+            self.syncing = False
+
+    def save_power_mode(self, profile):
+        if self.saving_power_mode:
+            return
+        self.saving_power_mode = True
+        self.invalidate("power")
+        for control in self.power_mode_controls.values():
+            control.set_sensitive(False)
+        def apply():
+            if self.demo:
+                self.demo.calls.append(("power-mode", profile))
+                self.demo.power_profile = profile
+                self.preferences.update("power_mode", profile)
+            else:
+                core.set_power_profile(profile, self.preferences)
+        def finished(error=None):
+            self.saving_power_mode = False
+            if error:
+                self.notify(str(error), True)
+            else:
+                self.notify(f"{core.POWER_PROFILES[profile][0]} mode selected.")
+            self.invalidate("power")
+            self.refresh()
+        self.run(apply, lambda _: finished(), finished)
 
     def update_batteries(self, items):
         for child in self.battery_card.get_children()[1:]:

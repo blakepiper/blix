@@ -1,7 +1,7 @@
 """In-memory preview devices, also used by the GTK interaction checks."""
 import copy
 
-from core import parse_outputs, default_display
+from core import POWER_PROFILES, parse_outputs, default_display
 
 
 class DemoPreferences:
@@ -21,7 +21,7 @@ class DemoPreferences:
 class Demo:
     def __init__(self):
         self.calls = []
-        self.defaults = {"capabilities": {"hasBacklight": True, "hasBattery": True, "hasBluetooth": True},
+        self.defaults = {"capabilities": {"hasBacklight": True, "hasBattery": True, "hasBluetooth": True, "hasPowerProfiles": True},
                          "display": {"primaryOutput": "eDP-1", "layout": "extend", "primaryRotation": "normal",
                                      "blankAfterSeconds": 0}, "keyboard": {"delay": 200, "rate": 50},
                          "input": {"mouse": {"speed": 0, "natural": True},
@@ -44,6 +44,7 @@ HDMI-2 connected 1920x1080+1920+0 (normal left inverted right x axis y axis)
         self.dpi = 120
         self.keyboard = {"delay": 200, "rate": 50}
         self.blank_seconds = 0
+        self.power_profile = "balanced"
         self.wifi = {"enabled": True, "available": True,
                      "networks": [{"name": "Home", "ssid": b"Home", "security": "wpa", "strength": 94,
                                    "saved": "home", "active": True, "status": "Connected", "device": "wifi", "path": "home"},
@@ -83,7 +84,8 @@ HDMI-2 connected 1920x1080+1920+0 (normal left inverted right x axis y axis)
                                           "transparency": self.transparency},
             "audio": self.audio, "input": {"devices": self.devices, "keyboard": self.keyboard},
             "power": {"batteries": [{"name": "Battery", "capacity": "82", "status": "Discharging", "charge_limit": "80"}],
-                      "blank_seconds": self.blank_seconds},
+                      "blank_seconds": self.blank_seconds, "power_profiles": {
+                          "available": True, "active": self.power_profile, "profiles": list(POWER_PROFILES)}},
             "about": [("System", "NixOS · Blix desktop"), ("Device", "Preview device"), ("Session", "OXWM / X11"),
                       ("Memory", "16 GiB"), ("Blix Settings", "0.1.0")],
             "network": self.wifi, "bluetooth": self.bluetooth}[kind])

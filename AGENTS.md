@@ -73,6 +73,11 @@ scope and risk rules in the Validation section.
   policy; `x11.nix` composes input policy for the desktop environment.
   `keyboards/mechanical.nix` owns the USB-specific Cmd/Super mapping; modifier
   swaps must never be applied to every keyboard.
+- `modules/hardware/power-profiles/intel.nix` supplies reusable Intel HWP/TLP
+  power profiles and tlp-pd, explicitly imported by Zen and T490. Host modules
+  own charge limits, initial mode and CPU-policy exceptions. The battery popup
+  and Blix Settings Power page share the daemon's current mode; confirmed user
+  choices are saved and restored at login. Other profiles do not enable it.
 - `hosts/<hostname>/default.nix` owns configuration specific to that machine
   and composes a machine profile, its generated hardware module, and genuinely
   device-specific settings.

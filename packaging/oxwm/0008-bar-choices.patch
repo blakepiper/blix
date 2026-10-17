@@ -1,0 +1,351 @@
+diff --git a/src/bar/slider.zig b/src/bar/slider.zig
+index e4e4983..cd1c30f 100644
+--- a/src/bar/slider.zig
++++ b/src/bar/slider.zig
+@@ -2,15 +2,15 @@ const std = @import("std");
+ const xlib = @import("../x11/xlib.zig");
+ const config_mod = @import("../config/config.zig");
+ const Bar = @import("bar.zig").Bar;
++const Shell = @import("blocks/shell.zig").Shell;
+ 
+ /// A single override-redirect popup, using the bar's font and colors.
+ pub const Slider = struct {
+     const width: i32 = 240;
+-    const height: i32 = 82;
+     const track_x: i32 = 18;
+     const track_width: i32 = width - 2 * track_x;
+     const track_y: i32 = 48;
+-    pub const EventResult = enum { ignored, handled, close };
++    pub const EventResult = enum { ignored, handled, close, activate };
+ 
+     window: xlib.Window,
+     pixmap: xlib.Pixmap,
+@@ -19,6 +19,13 @@ pub const Slider = struct {
+     font: *xlib.XftFont,
+     screen: c_int,
+     settings: config_mod.SliderConfig,
++    choices: ?config_mod.ChoicesConfig = null,
++    query: ?Shell = null,
++    query_buffer: [256]u8 = undefined,
++    last_query: i64 = -1,
++    active_choice: ?usize = null,
++    choice_touched: bool = false,
++    popup_height: i32 = 82,
+     command: []const u8,
+     foreground: u32,
+     background: u32,
+@@ -30,7 +37,10 @@ pub const Slider = struct {
+     last_apply: u32 = 0,
+ 
+     pub fn create(display: *xlib.Display, screen: c_int, bar: *Bar, click_x: i32, click: config_mod.ClickAction) ?Slider {
+-        const settings = click.slider orelse return null;
++        const settings = click.slider orelse if (click.choices) |choices|
++            config_mod.SliderConfig{ .label = choices.label, .min = 0, .max = @intCast(choices.options.len - 1) }
++        else return null;
++        const height: i32 = if (click.choices) |choices| 40 + @as(i32, @intCast(choices.options.len)) * 32 else 82;
+         var initial: i32 = settings.min;
+         var center = click_x;
+         var accent: c_ulong = bar.scheme_selected.foreground;
+@@ -39,11 +49,11 @@ pub const Slider = struct {
+             center = @divTrunc(block.x_start + block.x_end, 2);
+             accent = block.color();
+             const content = block.getContent();
+-            if (std.mem.indexOfScalar(u8, content, '%')) |end| {
++            if (click.slider != null) if (std.mem.indexOfScalar(u8, content, '%')) |end| {
+                 var start = end;
+                 while (start > 0 and std.ascii.isDigit(content[start - 1])) start -= 1;
+                 initial = std.fmt.parseInt(i32, content[start..end], 10) catch settings.min;
+-            }
++            };
+             break;
+         }
+         var attrs: xlib.XWindowAttributes = undefined;
+@@ -52,19 +62,19 @@ pub const Slider = struct {
+         const x = std.math.clamp(mon.mon_x + center - @divTrunc(width, 2), mon.mon_x, @max(mon.mon_x, mon.mon_x + mon.mon_w - width - 2));
+         const below = attrs.y + bar.height + 6;
+         const y = if (below + height <= mon.mon_y + mon.mon_h) below else attrs.y - height - 6;
+-        return createWindow(display, screen, x, y, bar, settings, click.command, initial, accent);
++        return createWindow(display, screen, x, y, bar, settings, click, initial, accent, height);
+     }
+ 
+-    fn createWindow(display: *xlib.Display, screen: c_int, x: i32, y: i32, bar: *Bar, settings: config_mod.SliderConfig, command: []const u8, initial: i32, accent: c_ulong) ?Slider {
++    fn createWindow(display: *xlib.Display, screen: c_int, x: i32, y: i32, bar: *Bar, settings: config_mod.SliderConfig, click: config_mod.ClickAction, initial: i32, accent: c_ulong, height: i32) ?Slider {
+         const visual = xlib.XDefaultVisual(display, screen);
+         const colormap = xlib.XDefaultColormap(display, screen);
+-        const window = xlib.c.XCreateSimpleWindow(display, xlib.XRootWindow(display, screen), x, y, width, height, 1, accent, bar.scheme_normal.background);
++        const window = xlib.c.XCreateSimpleWindow(display, xlib.XRootWindow(display, screen), x, y, width, @intCast(height), 1, accent, bar.scheme_normal.background);
+         var attrs: xlib.c.XSetWindowAttributes = std.mem.zeroes(xlib.c.XSetWindowAttributes);
+         attrs.override_redirect = xlib.True;
+         attrs.event_mask = xlib.c.ExposureMask | xlib.c.ButtonPressMask | xlib.c.ButtonReleaseMask | xlib.c.PointerMotionMask | xlib.c.KeyPressMask;
+         _ = xlib.c.XChangeWindowAttributes(display, window, xlib.c.CWOverrideRedirect | xlib.c.CWEventMask, &attrs);
+-        _ = xlib.c.XStoreName(display, window, "OXWM slider");
+-        const pixmap = xlib.XCreatePixmap(display, window, width, height, @intCast(xlib.XDefaultDepth(display, screen)));
++        _ = xlib.c.XStoreName(display, window, if (click.choices != null) "OXWM choices" else "OXWM slider");
++        const pixmap = xlib.XCreatePixmap(display, window, width, @intCast(height), @intCast(xlib.XDefaultDepth(display, screen)));
+         const gc = xlib.XCreateGC(display, pixmap, 0, null);
+         const draw = xlib.XftDrawCreate(display, pixmap, visual, colormap) orelse {
+             _ = xlib.XFreeGC(display, gc);
+@@ -80,7 +90,10 @@ pub const Slider = struct {
+             .font = bar.font.?,
+             .screen = screen,
+             .settings = settings,
+-            .command = command,
++            .command = click.command,
++            .choices = click.choices,
++            .popup_height = height,
++            .query = if (click.choices) |choices| Shell.init("{}", choices.read_command, 1, 0) else null,
+             .foreground = bar.scheme_normal.foreground,
+             .background = bar.scheme_normal.background,
+             .accent = accent,
+@@ -101,6 +114,7 @@ pub const Slider = struct {
+     }
+ 
+     pub fn deinit(self: *Slider, display: *xlib.Display) void {
++        if (self.query) |*query| query.deinit();
+         _ = xlib.XUngrabPointer(display, xlib.CurrentTime);
+         _ = xlib.c.XUngrabKeyboard(display, xlib.CurrentTime);
+         xlib.XftDrawDestroy(self.draw);
+@@ -112,6 +126,8 @@ pub const Slider = struct {
+ 
+     pub fn handleEvent(self: *Slider, display: *xlib.Display, io: std.Io, allocator: std.mem.Allocator, event: *xlib.XEvent) EventResult {
+         if (event.xany.window != self.window) return .ignored;
++        if (self.choices != null) return self.handleChoiceEvent(display, event);
++        const height = self.popup_height;
+         switch (event.type) {
+             xlib.Expose => self.render(display),
+             xlib.ButtonPress => {
+@@ -156,6 +172,94 @@ pub const Slider = struct {
+         return .handled;
+     }
+ 
++    /// The getter is collected through the same bounded, asynchronous reader as
++    /// status blocks. A slow or broken D-Bus service cannot freeze the WM.
++    pub fn updateChoice(self: *Slider, display: *xlib.Display, io: std.Io, allocator: std.mem.Allocator) void {
++        const choices = self.choices orelse return;
++        const query = if (self.query) |*query| query else return;
++        const now = std.Io.Timestamp.now(io, .awake).toSeconds();
++        if (query.collect(now, &self.query_buffer)) |value| {
++            self.active_choice = null;
++            for (choices.options, 0..) |option, i| {
++                if (std.mem.eql(u8, value, option.value)) {
++                    self.active_choice = i;
++                    if (!self.choice_touched) self.value = @intCast(i);
++                    break;
++                }
++            }
++            self.render(display);
++        }
++        if (!query.running() and (self.last_query == -1 or now - self.last_query >= 1)) {
++            self.last_query = now;
++            query.start(allocator, now);
++        }
++    }
++
++    pub fn choiceCommand(self: *const Slider, buffer: []u8) ?[]const u8 {
++        const choices = self.choices orelse return null;
++        const placeholder = std.mem.indexOf(u8, self.command, "{}") orelse return null;
++        return std.fmt.bufPrint(buffer, "{s}{s}{s}", .{
++            self.command[0..placeholder], choices.options[@intCast(self.value)].value, self.command[placeholder + 2 ..],
++        }) catch null;
++    }
++
++    fn handleChoiceEvent(self: *Slider, display: *xlib.Display, event: *xlib.XEvent) EventResult {
++        switch (event.type) {
++            xlib.Expose => self.render(display),
++            xlib.ButtonPress => {
++                const button = event.xbutton;
++                if (button.x < 0 or button.x >= width or button.y < 0 or button.y >= self.popup_height or button.button == 3) return .close;
++                if (button.button == 1) {
++                    if (self.choiceAt(button.y)) |index| {
++                        self.value = index;
++                        return .activate;
++                    }
++                }
++            },
++            xlib.MotionNotify => {
++                if (self.choiceAt(event.xmotion.y)) |index| {
++                    self.choice_touched = true;
++                    self.value = index;
++                    self.render(display);
++                }
++            },
++            xlib.KeyPress => {
++                switch (xlib.c.XLookupKeysym(&event.xkey, 0)) {
++                    xlib.c.XK_Escape => return .close,
++                    xlib.c.XK_Return, xlib.c.XK_KP_Enter, xlib.c.XK_space => return .activate,
++                    xlib.c.XK_Up => self.value = @max(0, self.value - 1),
++                    xlib.c.XK_Down => self.value = @min(self.settings.max, self.value + 1),
++                    xlib.c.XK_Home => self.value = 0,
++                    xlib.c.XK_End => self.value = self.settings.max,
++                    else => return .handled,
++                }
++                self.choice_touched = true;
++                self.render(display);
++            },
++            else => return .ignored,
++        }
++        return .handled;
++    }
++
++    fn choiceAt(self: *const Slider, y: i32) ?i32 {
++        if (y < 32 or y >= 32 + (self.settings.max + 1) * 32) return null;
++        return @divTrunc(y - 32, 32);
++    }
++
++    fn renderChoices(self: *Slider, display: *xlib.Display) void {
++        const choices = self.choices.?;
++        self.rect(display, 0, 0, width, self.popup_height, self.background);
++        self.text(display, track_x, self.font.ascent + 10, choices.label, self.foreground);
++        for (choices.options, 0..) |option, i| {
++            const row_y: i32 = 32 + @as(i32, @intCast(i)) * 32;
++            if (self.value == @as(i32, @intCast(i))) self.rect(display, 8, row_y, width - 16, 30, self.dim);
++            self.text(display, 36, row_y + self.font.ascent + 7, option.label, self.foreground);
++            if (self.active_choice == i) self.rect(display, 18, row_y + 11, 8, 8, self.accent);
++        }
++        _ = xlib.XCopyArea(display, self.pixmap, self.window, self.gc, 0, 0, width, @intCast(self.popup_height), 0, 0);
++        _ = xlib.c.XFlush(display);
++    }
++
+     fn setFromPointer(self: *Slider, x: i32) void {
+         const position = std.math.clamp(x - track_x, 0, track_width);
+         self.value = self.settings.min + @divTrunc(position * (self.settings.max - self.settings.min) + @divTrunc(track_width, 2), track_width);
+@@ -184,6 +288,8 @@ pub const Slider = struct {
+     }
+ 
+     fn render(self: *Slider, display: *xlib.Display) void {
++        if (self.choices != null) return self.renderChoices(display);
++        const height = self.popup_height;
+         self.rect(display, 0, 0, width, height, self.background);
+         var buffer: [160]u8 = undefined;
+         const label = std.fmt.bufPrint(&buffer, "{s} {d}%", .{ self.settings.label, self.value }) catch "";
+@@ -194,7 +300,7 @@ pub const Slider = struct {
+         self.rect(display, track_x + filled - 5, track_y - 9, 10, 18, self.accent);
+         self.text(display, track_x, height - 8, "-", self.foreground);
+         self.text(display, width - track_x - 10, height - 8, "+", self.foreground);
+-        _ = xlib.XCopyArea(display, self.pixmap, self.window, self.gc, 0, 0, width, height, 0, 0);
++        _ = xlib.XCopyArea(display, self.pixmap, self.window, self.gc, 0, 0, width, @intCast(height), 0, 0);
+         _ = xlib.c.XFlush(display);
+     }
+ 
+diff --git a/src/config/config.zig b/src/config/config.zig
+index d6eb9f3..bdee826 100644
+--- a/src/config/config.zig
++++ b/src/config/config.zig
+@@ -172,6 +172,14 @@ pub const ClickAction = struct {
+     floating: bool = false,
+     bypass_rules: bool = false,
+     slider: ?SliderConfig = null,
++    choices: ?ChoicesConfig = null,
++};
++
++pub const ChoiceOption = struct { label: []const u8, value: []const u8 };
++pub const ChoicesConfig = struct {
++    label: []const u8,
++    read_command: []const u8,
++    options: []const ChoiceOption,
+ };
+ 
+ pub const Block = struct {
+diff --git a/src/config/lua.zig b/src/config/lua.zig
+index e1a8e38..c9bee0a 100644
+--- a/src/config/lua.zig
++++ b/src/config/lua.zig
+@@ -1362,11 +1362,53 @@ fn parseClickAction(state: *c.lua_State, idx: c_int) ?config_mod.ClickAction {
+         }
+         c.lua_settop(state, -2);
+ 
+-        return .{ .command = cmd.?, .floating = floating, .bypass_rules = bypass_rules, .slider = slider };
++        var choices: ?config_mod.ChoicesConfig = null;
++        _ = c.lua_getfield(state, idx, "choices");
++        if (c.lua_type(state, -1) == c.LUA_TTABLE) {
++            choices = parseChoices(state, c.lua_gettop(state));
++            if (choices == null or slider != null or std.mem.indexOf(u8, cmd.?, "{}") == null) {
++                std.debug.print("choices: require 2..8 options, a read_command and a command containing {{}}; cannot combine with slider\n", .{});
++                c.lua_settop(state, -2);
++                return null;
++            }
++        }
++        c.lua_settop(state, -2);
++        return .{ .command = cmd.?, .floating = floating, .bypass_rules = bypass_rules, .slider = slider, .choices = choices };
+     }
+     return null;
+ }
+ 
++fn parseChoices(state: *c.lua_State, idx: c_int) ?config_mod.ChoicesConfig {
++    const cfg = config orelse return null;
++    const top = c.lua_gettop(state);
++    defer c.lua_settop(state, top);
++    _ = c.lua_getfield(state, idx, "label");
++    const label = dupeLuaString(state, -1) orelse "Choose";
++    _ = c.lua_getfield(state, idx, "read_command");
++    const read_command = dupeLuaString(state, -1) orelse return null;
++    _ = c.lua_getfield(state, idx, "options");
++    if (c.lua_type(state, -1) != c.LUA_TTABLE) return null;
++    const count = c.lua_rawlen(state, -1);
++    if (count < 2 or count > 8) return null;
++    const options = cfg.string_arena.allocator().alloc(config_mod.ChoiceOption, count) catch return null;
++    for (options, 0..) |*option, i| {
++        _ = c.lua_rawgeti(state, -1, @intCast(i + 1));
++        if (c.lua_type(state, -1) != c.LUA_TTABLE) return null;
++        _ = c.lua_getfield(state, -1, "label");
++        const text = dupeLuaString(state, -1) orelse return null;
++        c.lua_settop(state, -2);
++        _ = c.lua_getfield(state, -1, "value");
++        const value = dupeLuaString(state, -1) orelse return null;
++        // Values are substituted into shell commands; accept only plain tokens.
++        if (text.len == 0 or text.len > 48 or value.len == 0 or value.len > 64) return null;
++        for (value) |byte| if (!std.ascii.isAlphanumeric(byte) and byte != '-' and byte != '_') return null;
++        for (options[0..i]) |previous| if (std.mem.eql(u8, previous.value, value)) return null;
++        option.* = .{ .label = text, .value = value };
++        c.lua_settop(state, -3);
++    }
++    return .{ .label = label, .read_command = read_command, .options = options };
++}
++
+ fn parseColor(state: *c.lua_State, idx: c_int) u32 {
+     const lua_type = c.lua_type(state, idx);
+     if (lua_type == c.LUA_TNUMBER) {
+diff --git a/src/wm/handlers.zig b/src/wm/handlers.zig
+index 6fd1e86..e8d684e 100644
+--- a/src/wm/handlers.zig
++++ b/src/wm/handlers.zig
+@@ -16,6 +16,12 @@ const WindowManager = wm_mod.WindowManager;
+ pub fn handleEvent(event: *xlib.XEvent, wm: *WindowManager) void {
+     if (wm.slider) |*slider| {
+         switch (slider.handleEvent(wm.display.handle, wm.io, wm.allocator, event)) {
++            .activate => {
++                var buffer: [1024]u8 = undefined;
++                if (slider.choiceCommand(&buffer)) |command| actions.spawnCommand(wm, command);
++                wm.closeSlider();
++                return;
++            },
+             .close => {
+                 wm.closeSlider();
+                 return;
+@@ -263,7 +269,7 @@ fn handleButtonPress(event: *xlib.XButtonEvent, wm: *WindowManager) void {
+             const tag_mask: u32 = @as(u32, 1) << @intCast(tag_index);
+             core.view(tag_mask, wm);
+         } else if (bar.handleBlockClick(event.x)) |click_action| {
+-            if (click_action.slider != null) {
++            if (click_action.slider != null or click_action.choices != null) {
+                 if (event.button != 1) return;
+                 wm.closeSlider();
+                 wm.slider = slider_mod.Slider.create(wm.display.handle, wm.display.screen, bar, event.x, click_action);
+diff --git a/src/wm/wm.zig b/src/wm/wm.zig
+index 89271a6..a9866f1 100644
+--- a/src/wm/wm.zig
++++ b/src/wm/wm.zig
+@@ -735,6 +735,13 @@ pub const WindowManager = struct {
+             fds.clearRetainingCapacity();
+             fds.append(self.allocator, .{ .fd = self.x11_fd, .events = std.posix.POLL.IN, .revents = 0 }) catch break;
+ 
++            if (self.slider) |*slider| {
++                slider.updateChoice(self.display.handle, self.io, self.allocator);
++                if (slider.query) |query| if (query.fd) |fd| {
++                    fds.append(self.allocator, .{ .fd = fd, .events = std.posix.POLL.IN, .revents = 0 }) catch {};
++                };
++            }
++
+             var current_bar = self.bars;
+             while (current_bar) |bar| {
+                 bar.updateBlocks(self.io, self.allocator);

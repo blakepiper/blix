@@ -14,6 +14,7 @@ in
   bar-async = import ./bar-async.nix { inherit pkgs fixture; };
   firefox-video-opacity = import ./firefox-video-opacity.nix { inherit pkgs fixture; };
   blix-settings = import ./blix-settings.nix { inherit lib pkgs; };
+  power-profiles = import ./power-profiles.nix { inherit lib pkgs mkHost fixture; };
   display-hotplug = pkgs.runCommand "display-hotplug-checks" {
     nativeBuildInputs = [ pkgs.python3 pkgs.bash pkgs.coreutils pkgs.gawk pkgs.util-linux ];
   } ''

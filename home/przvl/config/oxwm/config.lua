@@ -65,6 +65,18 @@ if battery and battery:match("^[%w_%-]+$") then
         interval = 30,
         color = colors.status.battery,
         underline = false,
+        click = os.getenv("BLIX_HAS_POWER_PROFILES") == "1" and {
+          command = "@blix-settings-apply@ power-mode {}",
+          choices = {
+            label = "Power mode",
+            read_command = "@blix-settings-apply@ power-mode",
+            options = {
+              { label = "Performance", value = "performance" },
+              { label = "Balanced", value = "balanced" },
+              { label = "Power Saver", value = "power-saver" },
+            },
+          },
+        } or nil,
       }))
     end
   end

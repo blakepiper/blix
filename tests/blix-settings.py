@@ -194,6 +194,105 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(len(audio["sources"]), 1)
         self.assertEqual(audio["sinks"][0]["volume"], 50)
 
+    def test_power_mode_waits_for_the_backend_before_saving(self):
+        active = iter(("performance", "performance", "balanced"))
+        def call(method, *args):
+            if method == "GetAll":
+                return {"ActiveProfile": next(active), "Profiles": [{"Profile": item} for item in core.POWER_PROFILES]}
+        with patch.object(core, "power_profile_call", side_effect=call) as backend, patch.object(core.time, "sleep"):
+            core.set_power_profile("balanced")
+        self.assertIn(unittest.mock.call("Set", "ActiveProfile", "balanced"), backend.call_args_list)
+        self.assertEqual(core.Preferences().read()["power_mode"], "balanced")
+
+    def test_power_profile_dbus_wire_format_and_permission_failure(self):
+        # Use the check's private bus as a synthetic system bus. This exercises
+        # real D-Bus signatures/variants and never contacts the host's service.
+        service = self.root / "power-service.py"
+        service.write_text('''
+import dbus
+import dbus.service
+from dbus.mainloop.glib import DBusGMainLoop
+from gi.repository import GLib
+DBusGMainLoop(set_as_default=True)
+bus = dbus.SessionBus()
+name = dbus.service.BusName("org.freedesktop.UPower.PowerProfiles", bus, do_not_queue=True)
+class Profiles(dbus.service.Object):
+    active = "balanced"
+    @dbus.service.method("org.freedesktop.DBus.Properties", in_signature="s", out_signature="a{sv}")
+    def GetAll(self, interface):
+        assert interface == "org.freedesktop.UPower.PowerProfiles"
+        return {"ActiveProfile": self.active, "Profiles": dbus.Array([
+            dbus.Dictionary({"Profile": value}, signature="sv")
+            for value in ("performance", "balanced", "power-saver")], signature="a{sv}")}
+    @dbus.service.method("org.freedesktop.DBus.Properties", in_signature="ssv", out_signature="")
+    def Set(self, interface, key, value):
+        assert interface == "org.freedesktop.UPower.PowerProfiles" and key == "ActiveProfile"
+        if value == "power-saver":
+            raise dbus.DBusException("Not authorized", name="org.freedesktop.DBus.Error.AccessDenied")
+        self.active = str(value)
+obj = Profiles(bus, "/org/freedesktop/UPower/PowerProfiles")
+print("ready", flush=True)
+GLib.MainLoop().run()
+''')
+        process = subprocess.Popen([sys.executable, str(service)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try:
+            self.assertTrue(select.select([process.stdout], [], [], 5)[0], "Private power service did not start")
+            self.assertEqual(process.stdout.readline().strip(), "ready")
+            # libdbus caches bus addresses during earlier radio tests. Redirect
+            # only the connection constructor; all messages still cross D-Bus.
+            import dbus
+            with patch.object(dbus, "SystemBus", side_effect=lambda **_: dbus.bus.BusConnection(os.environ["DBUS_SESSION_BUS_ADDRESS"])):
+                self.assertEqual(core.power_profiles()["active"], "balanced")
+                core.set_power_profile("performance")
+                self.assertEqual(core.power_profiles()["active"], "performance")
+                self.assertEqual(core.Preferences().read()["power_mode"], "performance")
+                with self.assertRaisesRegex(SettingsError, "Not authorized"):
+                    core.set_power_profile("power-saver")
+                self.assertEqual(core.Preferences().read()["power_mode"], "performance")
+        finally:
+            process.terminate()
+            process.communicate(timeout=5)
+
+    def test_power_mode_failures_preserve_the_saved_choice(self):
+        core.Preferences().update("power_mode", "performance")
+        state = {"available": True, "active": "performance", "profiles": list(core.POWER_PROFILES)}
+        for mode in ("invalid", None, 2):
+            with patch.object(core, "power_profile_call") as backend, self.assertRaises(SettingsError):
+                core.set_power_profile(mode)
+            backend.assert_not_called()
+        with patch.object(core, "power_profiles", return_value=state), \
+                patch.object(core, "power_profile_call", side_effect=SettingsError("Not authorized")):
+            with self.assertRaisesRegex(SettingsError, "Not authorized"):
+                core.set_power_profile("balanced")
+        with patch.object(core, "power_profiles", return_value=state), patch.object(core, "power_profile_call"), \
+                patch.object(core.time, "monotonic", side_effect=[0, 9]):
+            with self.assertRaisesRegex(SettingsError, "did not confirm"):
+                core.set_power_profile("balanced")
+        self.assertEqual(core.Preferences().read()["power_mode"], "performance")
+
+    def test_power_page_survives_an_unavailable_backend_and_skips_unsupported_hosts(self):
+        with patch.object(core, "batteries", return_value=[]), patch.object(core, "session_state", return_value={"blank_seconds": 30}), \
+                patch.object(core, "defaults", return_value={"capabilities": {"hasPowerProfiles": True}}), \
+                patch.object(core, "power_profiles", side_effect=SettingsError("Service unavailable")):
+            state = core.power_state()
+        self.assertEqual(state["blank_seconds"], 30)
+        self.assertEqual(state["power_profiles"], {"available": False, "error": "Service unavailable"})
+        with patch.object(core, "batteries", return_value=[]), patch.object(core, "session_state", return_value={"blank_seconds": 0}), \
+                patch.object(core, "defaults", return_value={}), patch.object(core, "power_profiles") as backend:
+            self.assertEqual(core.power_state()["power_profiles"], {"available": False})
+            backend.assert_not_called()
+
+    def test_saved_power_mode_restores_at_login_only_on_supported_hosts(self):
+        core.Preferences().update("power_mode", "power-saver")
+        with patch.object(core, "apply_input_preferences"), patch.object(core, "set_power_profile") as setter, \
+                patch.object(core, "defaults", return_value={"capabilities": {"hasPowerProfiles": True}}):
+            core.apply_session_preferences()
+            setter.assert_called_once_with("power-saver", persist=False)
+            setter.reset_mock()
+            with patch.object(core, "defaults", return_value={}):
+                core.apply_session_preferences()
+            setter.assert_not_called()
+
     def test_live_x11_session_values_override_saved_defaults(self):
         core.Preferences().update("keyboard", {"delay": 600, "rate": 20})
         core.Preferences().update("blank_seconds", 600)
@@ -657,6 +756,35 @@ class GuiTests(unittest.TestCase):
         self.window.save_blank()
         self.pump()
         self.assertEqual(self.window.demo.blank_seconds, 120)
+
+    def test_power_modes_apply_once_and_follow_changes_from_the_bar(self):
+        self.page("power")
+        controls = self.window.power_mode_controls
+        self.assertTrue(controls["balanced"].get_active())
+        self.assertTrue(self.window.power_mode_card.get_mapped())
+        self.assertFalse(any(call[0] == "power-mode" for call in self.window.demo.calls))
+        for profile in ("performance", "balanced", "power-saver"):
+            controls[profile].set_active(True)
+            self.pump()
+            self.assertEqual(self.window.demo.power_profile, profile)
+            self.assertEqual(self.window.preferences.read()["power_mode"], profile)
+        self.assertEqual([call for call in self.window.demo.calls if call[0] == "power-mode"],
+                         [("power-mode", profile) for profile in ("performance", "balanced", "power-saver")])
+        self.window.demo.power_profile = "performance"
+        self.window.refresh()
+        self.pump()
+        self.assertTrue(controls["performance"].get_active())
+        self.assertEqual(sum(call[0] == "power-mode" for call in self.window.demo.calls), 3)
+
+    def test_power_controls_disable_on_service_failure_and_hide_without_support(self):
+        self.page("power")
+        self.window.update_power_profiles({"available": False, "error": "Service unavailable"})
+        self.assertTrue(all(not control.get_sensitive() for control in self.window.power_mode_controls.values()))
+        self.assertEqual(self.window.power_mode_status.get_text(), "Service unavailable")
+        self.assertTrue(self.window.blank_minutes.get_sensitive())
+        self.window.defaults["capabilities"]["hasPowerProfiles"] = False
+        self.window.update_power_profiles({"available": False})
+        self.assertFalse(self.window.power_mode_card.get_visible())
 
     def test_input_hotplug_preserves_other_unsaved_controls(self):
         self.page("input")

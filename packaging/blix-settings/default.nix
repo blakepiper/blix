@@ -1,6 +1,6 @@
 { lib, stdenvNoCC, python3, gtk3, gobject-introspection, wrapGAppsHook3
 , networkmanager, networkmanagerapplet, pulseaudio, xrandr, xinput, xset, xrdb
-, brightnessctl, systemd, gammastep, adwaita-icon-theme }:
+, brightnessctl, systemd, gammastep, adwaita-icon-theme, libnotify }:
 
 let
   python = python3.withPackages (ps: [ ps.pygobject3 ps.pycairo ps.dbus-python ]);
@@ -17,6 +17,7 @@ let
     systemctl = "${systemd}/bin/systemctl";
     udevadm = "${systemd}/bin/udevadm";
     connectionEditor = "${networkmanagerapplet}/bin/nm-connection-editor";
+    notify-send = "${libnotify}/bin/notify-send";
   };
 in
 stdenvNoCC.mkDerivation {

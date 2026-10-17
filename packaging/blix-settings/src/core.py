@@ -1,5 +1,6 @@
 """Runtime controls; Nix supplies defaults, services own their device state."""
 import fcntl
+from contextlib import closing
 import fnmatch
 import hashlib
 import json
@@ -267,7 +268,63 @@ def input_state():
 
 
 def power_state():
-    return {"batteries": batteries(), "blank_seconds": session_state()["blank_seconds"]}
+    state = {"batteries": batteries(), "blank_seconds": session_state()["blank_seconds"]}
+    state["power_profiles"] = {"available": False}
+    if defaults().get("capabilities", {}).get("hasPowerProfiles", False):
+        try:
+            state["power_profiles"] = power_profiles()
+        except SettingsError as error:
+            state["power_profiles"]["error"] = str(error)
+    return state
+
+
+POWER_PROFILES = {
+    "performance": ("Performance", "Maximum performance and turbo boost."),
+    "balanced": ("Balanced", "Balance performance and battery life, with turbo available."),
+    "power-saver": ("Power Saver", "Favor battery life and quieter operation; turbo is disabled."),
+}
+POWER_PROFILES_BUS = "org.freedesktop.UPower.PowerProfiles"
+POWER_PROFILES_PATH = "/org/freedesktop/UPower/PowerProfiles"
+
+
+def power_profile_call(method, *args):
+    # Each worker owns its connection; never share the GTK radio adapters' bus.
+    import dbus
+    try:
+        with closing(dbus.SystemBus(private=True)) as bus:
+            proxy = bus.get_object(POWER_PROFILES_BUS, POWER_PROFILES_PATH, introspect=False)
+            properties = dbus.Interface(proxy, "org.freedesktop.DBus.Properties")
+            signature = "ssv" if method == "Set" else "s"
+            return getattr(properties, method)(POWER_PROFILES_BUS, *args, signature=signature, timeout=4)
+    except dbus.DBusException as error:
+        raise SettingsError(f"Power mode control is unavailable: {error.get_dbus_message()}") from error
+
+
+def power_profiles():
+    properties = power_profile_call("GetAll")
+    available = [str(item["Profile"]) for item in properties.get("Profiles", [])]
+    active = str(properties.get("ActiveProfile", ""))
+    if active not in POWER_PROFILES or active not in available:
+        raise SettingsError("The power service reported an unknown mode.")
+    return {"available": True, "active": active,
+            "profiles": [profile for profile in POWER_PROFILES if profile in available]}
+
+
+def set_power_profile(profile, preferences=None, persist=True):
+    if not isinstance(profile, str) or profile not in POWER_PROFILES:
+        raise SettingsError("Choose Performance, Balanced or Power Saver.")
+    if profile not in power_profiles()["profiles"]:
+        raise SettingsError("This power mode is not available on this device.")
+    power_profile_call("Set", "ActiveProfile", profile)
+    # tlp-pd acknowledges the request before its detached TLP process applies it.
+    # Save only after the daemon confirms the new active profile.
+    deadline = time.monotonic() + 8
+    while power_profiles()["active"] != profile:
+        if time.monotonic() >= deadline:
+            raise SettingsError("The power service did not confirm the selected mode. Try again.")
+        time.sleep(0.1)
+    if persist:
+        (preferences or Preferences()).update("power_mode", profile)
 
 
 def mode_size(mode, rotation="normal", scale=1):
@@ -588,6 +645,14 @@ def apply_session_preferences():
         command("xset", "+dpms")
         command("xset", "dpms", 0, 0, blank)
     apply_input_preferences()
+
+    profile = saved.get("power_mode")
+    if profile is not None and defaults().get("capabilities", {}).get("hasPowerProfiles", False):
+        try:
+            set_power_profile(profile, persist=False)
+        except SettingsError as error:
+            # A temporarily unavailable power service must not prevent login.
+            print(error, file=sys.stderr)
 
 
 def watch_input():

@@ -89,6 +89,7 @@ modules/hardware/
 ├── mouse.nix                     Natural scrolling for ordinary mice
 ├── touchpad.nix                  Natural scrolling and click/tap defaults
 ├── power.nix                     Capability-based lid policy
+├── power-profiles/intel.nix      Shared Intel HWP/TLP performance, balanced and saver policies
 └── bluetooth.nix                 Capability-based Bluetooth support
 
 hosts/<host>/
@@ -190,6 +191,39 @@ their existing notification behavior.
 
 Charge thresholds, Wi-Fi power quirks, and panel-driver workarounds remain
 host-specific. The profiles share manual suspend and locking before suspend.
+On `zen` and `t490`, click **Bat** in the topbar to choose **Performance**,
+**Balanced**, or **Power Saver**. The popup uses the same native font, colors
+and placement as Vol and Bri; the active mode has a colored marker. Click an
+option, or use Up/Down and Enter. Escape or clicking outside dismisses it.
+The same three choices are in **Blix Settings → Power → Power mode**. Both
+controls read TLP's current profile; confirmed choices are saved in the user's
+Blix settings and restored at login. Connecting a charger and resuming from
+suspend preserve the choice. Before login, T490 defaults to Performance and
+Zen to Balanced. If the service is unavailable, the settings app disables
+the choices and shows the error while retaining the other Power controls.
+After the first rebuild, start a new X session to load the updated window
+manager and battery click menu.
+
+The hosts explicitly import `modules/hardware/power-profiles/intel.nix`, which
+enables TLP's profile daemon (`tlp-pd`) and supplies common Intel HWP defaults.
+This uses TLP's native Performance/Balanced/Power Saver profiles independently
+of the current power source, without a second power-management daemon.
+Per-machine overrides stay in `hosts/<host>/default.nix`.
+
+| Mode | T490 (Whiskey Lake) | Zen (Lunar Lake) |
+| --- | --- | --- |
+| Performance | Performance governor/EPP and firmware profile, full CPU range, turbo allowed | Same, within the machine's firmware and thermal limits |
+| Balanced | Adaptive `powersave` governor with responsive `balance_performance` EPP, balanced firmware, turbo allowed | Adaptive `powersave` with `balance_power` EPP, balanced firmware, turbo allowed |
+| Power Saver | `power` EPP, low-power firmware, turbo and dynamic HWP boost disabled | Same, using the platform's supported controls |
+
+Balanced and saver allow the CPU to scale down; no arbitrary frequency cap is
+imposed. Firmware support determines which platform controls take effect.
+These are hardware-informed policies, not measured battery-runtime guarantees;
+Zen's profile behavior still needs live verification. Charge limits remain
+75–80% on T490 and 79% on Zen in every mode. T490 keeps Wi-Fi power saving off
+in all three modes to preserve its connection workaround. The phone and generic
+profiles do not enable these Intel-specific power controls.
+
 The phone profile also enables zram and UPower, requests orderly shutdown at 3%
 battery, and makes a short power-button press lock the session. The phone has
 no automatic idle lock, suspend or display power-off; use the software controls

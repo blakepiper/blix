@@ -59,8 +59,8 @@ in
   home.file = {
     ".config/mimeapps.list".source = ./config/mimeapps.list;
     ".config/oxwm/config.lua".text = lib.replaceStrings
-      [ "@nixos-logo@" "@oxwm-volume@" "@oxwm-brightness@" "@wpctl@" "@brightnessctl@" "@blix-settings@" "-- @oxwm-extra-bar-blocks@" ]
-      [ "${nixosLogo}" "${oxwmVolume}/bin/oxwm-volume" "${oxwmBrightness}/bin/oxwm-brightness" "${pkgs.wireplumber}/bin/wpctl" "${pkgs.brightnessctl}/bin/brightnessctl" "${blixSettings}/bin/blix-settings" oxwmExtraBarBlocks ]
+      [ "@nixos-logo@" "@oxwm-volume@" "@oxwm-brightness@" "@wpctl@" "@brightnessctl@" "@blix-settings@" "@blix-settings-apply@" "-- @oxwm-extra-bar-blocks@" ]
+      [ "${nixosLogo}" "${oxwmVolume}/bin/oxwm-volume" "${oxwmBrightness}/bin/oxwm-brightness" "${pkgs.wireplumber}/bin/wpctl" "${pkgs.brightnessctl}/bin/brightnessctl" "${blixSettings}/bin/blix-settings" "${blixSettings}/bin/blix-settings-apply" oxwmExtraBarBlocks ]
       (builtins.readFile ./config/oxwm/config.lua);
     ".config/picom/picom.conf" = {
       source = ./config/picom/picom.conf;
@@ -103,6 +103,7 @@ ${lib.concatStringsSep "\n" (lib.mapAttrsToList (name: value:
 ) displayEnvironment)}
     export BLIX_BATTERY=
     export BLIX_HAS_BACKLIGHT=${if config.blix.hardware.hasBacklight then "1" else "0"}
+    export BLIX_HAS_POWER_PROFILES=${if config.blix.hardware.hasPowerProfiles then "1" else "0"}
 
 ${lib.optionalString config.blix.hardware.hasBattery ''
     for battery in /sys/class/power_supply/*; do

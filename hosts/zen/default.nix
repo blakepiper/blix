@@ -9,6 +9,7 @@
     ../../profiles/laptop.nix
     ./hardware-configuration.nix
     ../../modules/hardware/graphics/intel.nix
+    ../../modules/hardware/power-profiles/intel.nix
   ];
 
   # Home Manager settings that depend on this machine, merged with the
@@ -30,7 +31,7 @@
   # The ASUS WMI battery driver exposes BAT0's native charge threshold;
   # TLP reapplies it after boot, resume, and AC/battery transitions.
   services.tlp = {
-    enable = true;
+    # Lunar Lake uses the shared HWP energy-saving balance with turbo available.
     settings.STOP_CHARGE_THRESH_BAT0 = 79;
   };
 

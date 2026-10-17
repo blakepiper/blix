@@ -36,6 +36,7 @@ in
         hasBattery = cfg.hasBattery;
         hasBacklight = cfg.hasBacklight;
         hasBluetooth = config.hardware.bluetooth.enable;
+        hasPowerProfiles = config.services.tlp.pd.enable;
       };
     };
   };
