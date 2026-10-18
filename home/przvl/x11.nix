@@ -4,6 +4,17 @@ let
   display = config.blix.display;
   wallpaper = config.blix.display.wallpaper;
   primaryScaleFrom = config.blix.display.primaryScaleFrom;
+  oxwmPowerMode = pkgs.writeShellApplication {
+    name = "oxwm-power-mode";
+    runtimeInputs = [ pkgs.systemd ];
+    text = ''
+      profile=$(busctl --system --timeout=4 get-property \
+        org.freedesktop.UPower.PowerProfiles /org/freedesktop/UPower/PowerProfiles \
+        org.freedesktop.UPower.PowerProfiles ActiveProfile)
+      profile=''${profile#s \"}
+      printf '%s\n' "''${profile%\"}"
+    '';
+  };
   nixosLogo = pkgs.runCommand "blix-bar-nixos-logo.xpm" {
     nativeBuildInputs = [ pkgs.imagemagick ];
   } ''
@@ -59,8 +70,8 @@ in
   home.file = {
     ".config/mimeapps.list".source = ./config/mimeapps.list;
     ".config/oxwm/config.lua".text = lib.replaceStrings
-      [ "@nixos-logo@" "@oxwm-volume@" "@oxwm-brightness@" "@wpctl@" "@brightnessctl@" "@blix-settings@" "@blix-settings-apply@" "-- @oxwm-extra-bar-blocks@" ]
-      [ "${nixosLogo}" "${oxwmVolume}/bin/oxwm-volume" "${oxwmBrightness}/bin/oxwm-brightness" "${pkgs.wireplumber}/bin/wpctl" "${pkgs.brightnessctl}/bin/brightnessctl" "${blixSettings}/bin/blix-settings" "${blixSettings}/bin/blix-settings-apply" oxwmExtraBarBlocks ]
+      [ "@nixos-logo@" "@oxwm-volume@" "@oxwm-brightness@" "@oxwm-power-mode@" "@wpctl@" "@brightnessctl@" "@blix-settings@" "@blix-settings-apply@" "-- @oxwm-extra-bar-blocks@" ]
+      [ "${nixosLogo}" "${oxwmVolume}/bin/oxwm-volume" "${oxwmBrightness}/bin/oxwm-brightness" "${oxwmPowerMode}/bin/oxwm-power-mode" "${pkgs.wireplumber}/bin/wpctl" "${pkgs.brightnessctl}/bin/brightnessctl" "${blixSettings}/bin/blix-settings" "${blixSettings}/bin/blix-settings-apply" oxwmExtraBarBlocks ]
       (builtins.readFile ./config/oxwm/config.lua);
     ".config/picom/picom.conf" = {
       source = ./config/picom/picom.conf;

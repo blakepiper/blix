@@ -26,8 +26,15 @@ root = pathlib.Path(sys.argv[1])
 name = sys.argv[2]
 if len(sys.argv) == 3:
     if name == 'power-mode' and (root / 'slow-getter').exists():
-        time.sleep(5)
-    print((root / name).read_text() + ('' if name == 'power-mode' else '%'))
+        (root / 'getter-waiting').touch()
+        deadline = time.monotonic() + 5
+        while (root / 'slow-getter').exists() and time.monotonic() < deadline:
+            time.sleep(0.01)
+        (root / 'getter-waiting').unlink(missing_ok=True)
+    value = (root / name).read_text()
+    if name == 'power-mode':
+        (root / 'observed-power-mode').write_text(value)
+    print(value + ('' if name == 'power-mode' else '%'))
 else:
     time.sleep(0.02)
     value = sys.argv[3] if name == 'power-mode' else int(sys.argv[3])
@@ -44,7 +51,7 @@ for pattern, command in (
     (r'"[^"\n]*/bin/oxwm-brightness"', f"{backend_command} brightness"),
     (r'"[^"\n]*/bin/wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ \{\}%"', f"{backend_command} volume {{}}"),
     (r'"[^"\n]*/bin/brightnessctl --class=backlight --min-value=1 set \{\}%"', f"{backend_command} brightness {{}}"),
-    (r'"[^"\n]*/bin/blix-settings-apply power-mode"', f"{backend_command} power-mode"),
+    (r'"[^"\n]*/bin/oxwm-power-mode"', f"{backend_command} power-mode"),
     (r'"[^"\n]*/bin/blix-settings-apply power-mode \{\}"', f"{backend_command} power-mode {{}}"),
     (r'"oxwm-battery"', "printf '%s' 'Bat 82%'"),
 ):
@@ -180,6 +187,31 @@ try:
         finally:
             x.XDestroyImage(capture)
 
+    def selected_row(window, row):
+        capture = x.XGetImage(display, int(window), 10, 47 + row * 32, 1, 1, c.c_ulong(-1).value, 2)
+        try:
+            return x.XGetPixel(capture, 0, 0) == int(re.search(r'dim = "#([0-9a-fA-F]{6})"', config)[1], 16)
+        finally:
+            x.XDestroyImage(capture)
+
+    def block_getter(profile):
+        observed = state / "observed-power-mode"
+        eventually(lambda: observed.exists() and observed.read_text() == profile,
+                   "The closed popup did not refresh its current power mode")
+        (state / "slow-getter").touch()
+        eventually(lambda: (state / "getter-waiting").exists(), "The background getter did not start")
+
+    # Block the next read so the very first displayed frame must use the cache.
+    block_getter("balanced")
+    window, bounds = open_choices()
+    assert active_marker(window, 1), "Opening flashed an empty or incorrect active mode"
+    assert selected_row(window, 1) and not selected_row(window, 0), "Opening highlighted the default instead of Balanced"
+    run_mouse("key", "Escape")
+    eventually(lambda: popup("choices") is None, "Cached choices did not dismiss")
+    assert not power_calls(), "Opening cached choices changed power mode"
+    (state / "slow-getter").unlink()
+    eventually(lambda: not (state / "getter-waiting").exists(), "The background getter did not finish")
+
     run_mouse("mousemove", battery_x, 10, "click", 3)
     assert popup("choices") is None, "A secondary battery click opened the menu"
     window, bounds = open_choices()
@@ -209,8 +241,34 @@ try:
         eventually(lambda: popup("choices") is None, "Choices did not dismiss")
         assert power_calls() == before, "Dismissing choices changed power mode"
 
-    (state / "slow-getter").touch()
-    open_choices()
+    observed = state / "observed-power-mode"
+    last_read = observed.stat().st_mtime_ns
+    eventually(lambda: observed.stat().st_mtime_ns > last_read, "The background getter stopped refreshing")
+    (state / "power-mode").write_text("performance")
+    window, bounds = open_choices()
+    eventually(lambda: active_marker(window, 0) and selected_row(window, 0),
+               "Opening waited for the next one-second refresh after a recent change", timeout=0.5)
+    run_mouse("key", "Escape")
+    eventually(lambda: popup("choices") is None, "Fresh choices did not dismiss")
+    assert power_calls() == before, "Refreshing choices changed power mode"
+
+    (state / "power-mode").write_text("unavailable")
+    block_getter("unavailable")
+    window, bounds = open_choices()
+    assert not any(active_marker(window, row) or selected_row(window, row) for row in range(3)), "An unknown mode implied a selected profile"
+    run_mouse("key", "Return")
+    assert popup("choices"), "Enter confirmed an unknown initial selection"
+    assert power_calls() == before, "An unknown initial selection changed power mode"
+    run_mouse("key", "Escape")
+    eventually(lambda: popup("choices") is None, "Unknown choices did not dismiss")
+    (state / "slow-getter").unlink()
+    eventually(lambda: not (state / "getter-waiting").exists(), "The background getter did not finish")
+
+    # External changes made while closed must also be present on the first frame.
+    (state / "power-mode").write_text("balanced")
+    block_getter("balanced")
+    window, bounds = open_choices()
+    assert active_marker(window, 1) and selected_row(window, 1), "Reopening used a stale profile"
     started = time.monotonic()
     run_mouse("key", "Escape")
     eventually(lambda: popup("choices") is None, "Slow power getter blocked Escape", timeout=1)
@@ -229,7 +287,7 @@ try:
     run_mouse("key", "super+shift+q")
     manager.wait(timeout=8)
     assert manager.returncode == 0
-    print("PASS: native sliders and power choices use the generated config; volume/brightness clamp, all power modes apply on confirmation, current mode follows external changes, slow getters stay responsive, and dismissal restores WM input without changing modes.")
+    print("PASS: native sliders and power choices use the generated config; volume/brightness clamp, cached choices display the current mode immediately, all power modes apply on confirmation, current mode follows external changes while open or closed, slow getters stay responsive, and dismissal restores WM input without changing modes.")
 finally:
     if manager is not None and manager.poll() is None:
         manager.terminate()

@@ -69,7 +69,7 @@ if battery and battery:match("^[%w_%-]+$") then
           command = "@blix-settings-apply@ power-mode {}",
           choices = {
             label = "Power mode",
-            read_command = "@blix-settings-apply@ power-mode",
+            read_command = "@oxwm-power-mode@",
             options = {
               { label = "Performance", value = "performance" },
               { label = "Balanced", value = "balanced" },
