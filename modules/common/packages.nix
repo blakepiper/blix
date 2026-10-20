@@ -11,7 +11,6 @@
     shellcheck
     pciutils
     psmisc
-    tailscale
   ];
 
   environment.pathsToLink = [ "/share/bash-completion" ];
