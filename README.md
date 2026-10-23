@@ -13,6 +13,11 @@ status and remaining hardware issues.
 Its independent user composition lets its applications and environment evolve
 separately from the workstations.
 
+The laptop profile selects `linuxPackages_latest`, the latest stable kernel in
+the pinned Nixpkgs input, for Zen and T490. Kernel upgrades take effect after a
+reboot; previous generations remain available in the boot menu. The phone keeps
+its separate device-specific kernel and boot-image workflow.
+
 The desktop uses:
 
 - Zen and T490 start Xorg manually with `startx`. The phone logs in as `przvl`

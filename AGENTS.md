@@ -59,6 +59,8 @@ scope and risk rules in the Validation section.
   the shared foundation, select system and user environments, and supply inherited
   defaults. Every host imports one profile. Profiles describe capabilities
   independently of CPU architecture.
+  The laptop profile defaults to `linuxPackages_latest` from pinned Nixpkgs;
+  the phone retains its device-specific kernel selection.
 - `modules/boot/uefi.nix` supplies optional PC boot defaults. Shared common
   modules and the phone profile do not select a bootloader or device kernel.
 - `modules/common/default.nix` aggregates the shared system foundation: boot,

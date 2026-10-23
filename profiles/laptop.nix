@@ -1,8 +1,10 @@
 # Portable workstations share one system and Home Manager environment.
-{ lib, ... }:
+{ lib, pkgs, ... }:
 
 {
   imports = [ ../modules/common ../modules/desktop ../modules/boot/uefi.nix ];
+
+  boot.kernelPackages = lib.mkDefault pkgs.linuxPackages_latest;
 
   home-manager.users.przvl.imports = [ ../home/przvl ];
 
