@@ -10,5 +10,5 @@
     ./environments/oxwm.nix
   ];
 
-  home.packages = with pkgs; [ xfe mpv moonlight-qt ];
+  home.packages = with pkgs; [ xfe mpv ];
 }
