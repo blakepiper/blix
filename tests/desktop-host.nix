@@ -1,4 +1,4 @@
-# Evaluate the actual installation host, including its placeholder storage.
+# Evaluate the installed Desktop host, including its detected storage.
 { lib, pkgs, mkHost }:
 let
   c = (mkHost { modules = [ ../hosts/desktop ]; }).config;

@@ -20,15 +20,16 @@ its separate device-specific kernel and boot-image workflow.
 
 The Ryzen/NVIDIA `desktop` host inherits the desktop profile and adds Steam,
 32-bit NVIDIA graphics, suspend VRAM preservation and zram. Desktop disables
-systemd's pre-suspend user-session freeze so Xorg can answer NVIDIA's VT switch;
-physical suspend/resume verification of this workaround is pending. Its topbar brightness
+systemd's pre-suspend user-session freeze so Xorg can answer NVIDIA's VT switch.
+Physical suspend/resume passed on 2026-10-28: journals confirm S3 entry and
+resume, and the user confirmed successful wake. Its topbar brightness
 slider controls the first DDC/CI monitor; enable DDC/CI in the monitor menu if
 it reports `N/A`. It sits between volume and RAM; a session service coalesces
 slider requests so slow monitor transactions do not block OXWM. Desktop enables
 I2C access for the local logged-in user.
 Desktop also lists its GPU in Neofetch and shows NVIDIA GPU utilization beside
 CPU in the topbar, refreshed every five seconds (`N/A` if unavailable).
-Its hardware file is an installation template, not detected hardware. See the
+Its hardware file contains detected storage configuration. See the
 [desktop installation guide](docs/desktop-install.md) for manual UEFI installation
 and physical graphics/suspend checks.
 

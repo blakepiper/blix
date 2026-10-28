@@ -1,11 +1,12 @@
 # Desktop installation
 
-Prepared host: Ryzen 5 5600X, RTX 3070, 32 GiB RAM, x86_64 UEFI.
+Installed host: Ryzen 5 5600X, RTX 3070, 32 GiB RAM, x86_64 UEFI.
 The installed host is running this configuration with detected storage in
 `hardware-configuration.nix`. The observed motherboard is ASUS TUF GAMING
 X570-PLUS (WI-FI), BIOS 5021; firmware advertises S3 and the kernel selects deep
-sleep. Successful physical suspend/resume remains unverified. The installation
-steps below are for a fresh installation; generate storage facts for that target.
+sleep. Physical suspend/resume passed on 2026-10-28 with the workaround below.
+The installation steps below are for a fresh installation; generate storage
+facts for that target.
 The initial system state version is 26.05; retain it on later upgrades.
 
 The desktop profile supplies the existing X11/OXWM, picom and Home Manager
@@ -28,9 +29,11 @@ after systemd froze the Xorg session (2026-10-28). The Desktop host now sets
 [NVIDIA's workaround](https://forums.developer.nvidia.com/t/ubuntu-24-fails-to-resume-after-hibernation-due-to-nvidia-issue/370371/4)
 for the Xorg/VT-switch deadlock, including the kernel-notifier path. This only
 disables systemd's preliminary cgroup freeze; normal kernel suspend freezing
-still occurs. Activate the validated configuration, then physically verify sleep
-and wake before treating suspend as working. No driver reload or reboot is needed
-for this service environment change.
+still occurs. After activation on 2026-10-28, the journal recorded the unfrozen
+user sessions, S3 entry, wake from S3 and `PM: suspend exit` at 19:49:49 EDT;
+the user confirmed that suspend and wake worked. This verifies one physical
+cycle; repeated cycles and suspend with Steam running remain further checks.
+No driver reload or reboot is needed for this service environment change.
 
 ## Live USB and disk preparation
 

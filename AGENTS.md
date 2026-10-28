@@ -3,8 +3,11 @@
 This repository is the declarative NixOS configuration for Blix machines and
 the Home Manager configuration for the `przvl` user. It is structured for
 multiple hosts; `zen`, `t490`, `desktop` and the OnePlus 6T `phone` are defined.
-The Ryzen/NVIDIA desktop is prepared for installation; its hardware file is an
-explicit template until replaced with live-USB detection.
+The Ryzen/NVIDIA desktop is installed with detected storage configuration.
+On 2026-10-28, physical suspend/resume passed after a Desktop-only
+`SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=false` override on `systemd-suspend.service`
+resolved the NVIDIA/Xorg pre-S3 stall. Journals confirm S3 entry and resume;
+the user confirmed successful wake. Keep this workaround in the Desktop host.
 The small phone bootstrap was installed and physically booted on 2026-10-14.
 The full native build, ARM checks, temporary native-image boot and installed
 native boot passed on 2026-10-15. Both boot slots and the full default/runtime
