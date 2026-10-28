@@ -19,8 +19,10 @@ reboot; previous generations remain available in the boot menu. The phone keeps
 its separate device-specific kernel and boot-image workflow.
 
 The Ryzen/NVIDIA `desktop` host inherits the desktop profile and adds Steam,
-32-bit NVIDIA graphics, suspend VRAM preservation and zram. Its hardware file
-is an installation template, not detected hardware. See the
+32-bit NVIDIA graphics, suspend VRAM preservation and zram. Its topbar brightness
+slider controls the first DDC/CI monitor; enable DDC/CI in the monitor menu if
+it reports `N/A`. Desktop enables I2C access for the local logged-in user.
+Its hardware file is an installation template, not detected hardware. See the
 [desktop installation guide](docs/desktop-install.md) for manual UEFI installation
 and physical graphics/suspend checks.
 

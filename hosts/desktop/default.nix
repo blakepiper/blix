@@ -18,6 +18,9 @@
       "steam" "steam-original" "steam-unwrapped" "steam-run"
     ];
 
+  # DDC/CI access for the external monitor brightness slider.
+  hardware.i2c.enable = true;
+
   programs.steam.enable = true;
   zramSwap = {
     enable = true;

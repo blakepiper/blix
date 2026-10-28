@@ -128,6 +128,8 @@ scope and risk rules in the Validation section.
   `display.nix` owns the display helper package and hotplug service. The X11
   display environment remains in `home/przvl/x11.nix`. `bluetooth.nix` binds the
   Blueman pairing agent to the startx Blix session without a tray dependency.
+- `hosts/desktop/brightness.nix` supplies the external-monitor DDC/CI topbar
+  slider; Desktop enables I2C access rather than claiming an internal backlight.
 - `hosts/<hostname>/home.nix` composes machine-dependent user settings and
   imports `display.nix` for connector, layout, rotation and DPI facts when using X11.
 
