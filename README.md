@@ -19,7 +19,9 @@ reboot; previous generations remain available in the boot menu. The phone keeps
 its separate device-specific kernel and boot-image workflow.
 
 The Ryzen/NVIDIA `desktop` host inherits the desktop profile and adds Steam,
-32-bit NVIDIA graphics, suspend VRAM preservation and zram. Its topbar brightness
+32-bit NVIDIA graphics, suspend VRAM preservation and zram. Desktop disables
+systemd's pre-suspend user-session freeze so Xorg can answer NVIDIA's VT switch;
+physical suspend/resume verification of this workaround is pending. Its topbar brightness
 slider controls the first DDC/CI monitor; enable DDC/CI in the monitor menu if
 it reports `N/A`. It sits between volume and RAM; a session service coalesces
 slider requests so slow monitor transactions do not block OXWM. Desktop enables

@@ -1,9 +1,11 @@
 # Desktop installation
 
 Prepared host: Ryzen 5 5600X, RTX 3070, 32 GiB RAM, x86_64 UEFI.
-This configuration has not been booted on the target. Motherboard, SSD device,
-network controller, monitor connectors/DPI and firmware sleep support remain
-unobserved. Replace the tracked hardware template during installation.
+The installed host is running this configuration with detected storage in
+`hardware-configuration.nix`. The observed motherboard is ASUS TUF GAMING
+X570-PLUS (WI-FI), BIOS 5021; firmware advertises S3 and the kernel selects deep
+sleep. Successful physical suspend/resume remains unverified. The installation
+steps below are for a fresh installation; generate storage facts for that target.
 The initial system state version is 26.05; retain it on later upgrades.
 
 The desktop profile supplies the existing X11/OXWM, picom and Home Manager
@@ -19,6 +21,16 @@ notifiers with open modules, so separate NVIDIA sleep services are unnecessary.
 Older supported drivers use the module's systemd services instead. Firmware
 and the kernel select the supported suspend state; no `mem_sleep_default` is
 forced. zram uses 25% of RAM; this layout does not provide disk hibernation.
+
+On the installed Desktop, the 595.104.02 open driver stalled before S3 entry
+after systemd froze the Xorg session (2026-10-28). The Desktop host now sets
+`SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=false` on `systemd-suspend.service`, following
+[NVIDIA's workaround](https://forums.developer.nvidia.com/t/ubuntu-24-fails-to-resume-after-hibernation-due-to-nvidia-issue/370371/4)
+for the Xorg/VT-switch deadlock, including the kernel-notifier path. This only
+disables systemd's preliminary cgroup freeze; normal kernel suspend freezing
+still occurs. Activate the validated configuration, then physically verify sleep
+and wake before treating suspend as working. No driver reload or reboot is needed
+for this service environment change.
 
 ## Live USB and disk preparation
 
