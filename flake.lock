@@ -3,8 +3,8 @@
     "codex-aarch64": {
       "flake": false,
       "locked": {
-        "lastModified": 1792726563,
-        "narHash": "sha256-RbS1ApmHeQmpWd9nb49HtUJaZCULipBD9/tW3VvstVg=",
+        "lastModified": 1793126405,
+        "narHash": "sha256-Whs3HWkLMdMlbd0acl/MjkVgXD6bfx9qlpMB3k3KUgo=",
         "type": "tarball",
         "url": "https://github.com/openai/codex/releases/latest/download/codex-package-aarch64-unknown-linux-musl.tar.gz"
       },
@@ -16,8 +16,8 @@
     "codex-x86_64": {
       "flake": false,
       "locked": {
-        "lastModified": 1792726299,
-        "narHash": "sha256-CwcMI0TQO61RxNx78rxUbkX+epSLK7sBNVmUQsrqsHE=",
+        "lastModified": 1793126348,
+        "narHash": "sha256-BcESPKHdCfitz8bc+2Pupf8Fu1hIZCDGNVedQkDpt4M=",
         "type": "tarball",
         "url": "https://github.com/openai/codex/releases/latest/download/codex-package-x86_64-unknown-linux-musl.tar.gz"
       },
