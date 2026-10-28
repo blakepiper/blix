@@ -377,6 +377,10 @@ BLIX_PRIMARY_SCALE_FROM
 BLIX_WALLPAPER
 ```
 
+Shared Firefox defaults select Black by XI (3.0.2) and DuckDuckGo for regular
+and private searches, alongside the existing privacy settings. The theme is
+automatically installed from Mozilla Add-ons and selected at browser startup.
+
 Firefox's local Blix Video Opacity extension marks a window's title with
 `[blix-video]` while its active tab plays an HTML video, including embedded
 videos and private windows. Picom makes only marked Firefox windows opaque;

@@ -67,8 +67,9 @@ user_pref("pdfjs.forcePageColors", true);
 user_pref("pdfjs.pageColorsBackground", "#181818");
 user_pref("pdfjs.pageColorsForeground", "#eeeeee");
 
+// Select Black by XI, installed through the shared extension policy.
+user_pref("extensions.activeThemeID", "{9b84b6b4-07c4-4b4b-ba21-394d86f6e9ee}");
 // Appearance settings extracted from the local saved preferences.
-user_pref("extensions.activeThemeID", "default-theme@mozilla.org");
 user_pref("browser.theme.toolbar-theme", 0);
 user_pref("sidebar.verticalTabs", true);
 user_pref("browser.newtabpage.enabled", false);
