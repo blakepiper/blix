@@ -5,7 +5,7 @@
 # blix
 
 Declarative NixOS and Home Manager configuration for the `przvl` user. The
-flake defines `zen`, `t490`, and a OnePlus 6T `phone`, with the same
+flake defines `zen`, `t490`, `desktop`, and a OnePlus 6T `phone`, with the same
 Blix-style OXWM desktop session. The phone's bootstrap physically booted on
 2026-10-14; its installed native boot and accelerated OXWM/Ghostty desktop were
 verified on 2026-10-15. See the phone section for the latest startup verification
@@ -18,9 +18,15 @@ the pinned Nixpkgs input, for Zen and T490. Kernel upgrades take effect after a
 reboot; previous generations remain available in the boot menu. The phone keeps
 its separate device-specific kernel and boot-image workflow.
 
+The Ryzen/NVIDIA `desktop` host inherits the desktop profile and adds Steam,
+32-bit NVIDIA graphics, suspend VRAM preservation and zram. Its hardware file
+is an installation template, not detected hardware. See the
+[desktop installation guide](docs/desktop-install.md) for manual UEFI installation
+and physical graphics/suspend checks.
+
 The desktop uses:
 
-- Zen and T490 start Xorg manually with `startx`. The phone logs in as `przvl`
+- Zen, T490 and desktop start Xorg manually with `startx`. The phone logs in as `przvl`
   and starts Xorg automatically on tty1; none uses a display manager.
 - OXWM is the window manager, with the Blix configuration and local patches.
 - Ghostty, `dmenu`, `picom`, `xsecurelock`, `xss-lock`, `clipmenu`, and Xfe provide

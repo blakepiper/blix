@@ -2,7 +2,9 @@
 
 This repository is the declarative NixOS configuration for Blix machines and
 the Home Manager configuration for the `przvl` user. It is structured for
-multiple hosts; `zen`, `t490` and the OnePlus 6T `phone` are defined.
+multiple hosts; `zen`, `t490`, `desktop` and the OnePlus 6T `phone` are defined.
+The Ryzen/NVIDIA desktop is prepared for installation; its hardware file is an
+explicit template until replaced with live-USB detection.
 The small phone bootstrap was installed and physically booted on 2026-10-14.
 The full native build, ARM checks, temporary native-image boot and installed
 native boot passed on 2026-10-15. Both boot slots and the full default/runtime

@@ -4,6 +4,7 @@ let
   fixture = import ./profile-fixture.nix { inherit mkHost; };
 in
 {
+  desktop-host = import ./desktop-host.nix { inherit lib pkgs mkHost; };
   machine-profiles = import ./machine-profiles.nix { inherit lib pkgs fixture; };
   environment-composition = import ./environment-composition.nix { inherit lib pkgs fixture; };
   phone-hardware = import ./phone-hardware.nix { inherit lib pkgs phone phoneBootstrap; };

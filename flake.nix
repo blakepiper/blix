@@ -54,6 +54,7 @@
     {
       nixosConfigurations = {
         t490 = mkHost { modules = [ ./hosts/t490 ]; };
+        desktop = mkHost { modules = [ ./hosts/desktop ]; };
         zen = mkHost { modules = [ ./hosts/zen ]; };
         inherit phone;
       };
