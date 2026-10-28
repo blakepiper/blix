@@ -1,10 +1,17 @@
 { config, lib, pkgs, ... }:
 
 {
-  home.packages = with pkgs; [ neofetch ];
+  options.blix.neofetch.showGpu = lib.mkEnableOption "GPU reporting in Neofetch";
 
-  xdg.configFile."neofetch/config.conf".text = lib.replaceStrings
-    [ "# BLIX_BATTERY_INFO" ]
-    [ (lib.optionalString config.blix.hardware.hasBattery ''info "Battery" battery'') ]
-    (builtins.readFile ../config/neofetch/config.conf);
+  config = {
+    home.packages = with pkgs; [ neofetch ];
+
+    xdg.configFile."neofetch/config.conf".text = lib.replaceStrings
+      [ "# BLIX_BATTERY_INFO" "# BLIX_GPU_INFO" ]
+      [
+        (lib.optionalString config.blix.hardware.hasBattery ''info "Battery" battery'')
+        (lib.optionalString config.blix.neofetch.showGpu ''info "GPU" gpu'')
+      ]
+      (builtins.readFile ../config/neofetch/config.conf);
+  };
 }

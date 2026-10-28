@@ -1,5 +1,5 @@
 { ... }:
 
 {
-  imports = [ ./display.nix ./brightness.nix ];
+  imports = [ ./display.nix ./brightness.nix ./gpu.nix ];
 }

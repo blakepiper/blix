@@ -24,6 +24,8 @@ slider controls the first DDC/CI monitor; enable DDC/CI in the monitor menu if
 it reports `N/A`. It sits between volume and RAM; a session service coalesces
 slider requests so slow monitor transactions do not block OXWM. Desktop enables
 I2C access for the local logged-in user.
+Desktop also lists its GPU in Neofetch and shows NVIDIA GPU utilization beside
+CPU in the topbar, refreshed every five seconds (`N/A` if unavailable).
 Its hardware file is an installation template, not detected hardware. See the
 [desktop installation guide](docs/desktop-install.md) for manual UEFI installation
 and physical graphics/suspend checks.
