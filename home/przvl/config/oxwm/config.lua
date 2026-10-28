@@ -125,6 +125,7 @@ if os.getenv("BLIX_HAS_BACKLIGHT") == "1" then
     underline = false,
   }))
 end
+-- @oxwm-brightness-bar-blocks@
 table.insert(blocks, oxwm.bar.block.ram({
   format = "Ram: {used}/{total} GB",
   interval = 5,

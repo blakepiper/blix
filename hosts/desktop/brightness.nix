@@ -4,36 +4,32 @@
 let
   brightness = pkgs.writeShellApplication {
     name = "blix-monitor-brightness";
-    runtimeInputs = [ pkgs.ddcutil pkgs.gawk pkgs.util-linux pkgs.coreutils ];
     text = ''
-      # Serialize bar polling and slider writes on the same monitor.
-      exec 9>"''${XDG_RUNTIME_DIR:?}/blix-monitor-brightness.lock"
-      flock -w 2 9 || exit 0
-      values=$(timeout 8s ddcutil --display 1 --terse getvcp 10) || {
-        echo 'N/A'
-        exit 0
-      }
-      read -r current maximum < <(awk '$1 == "VCP" && $2 == "10" && $3 == "C" {print $4, $5}' <<< "$values")
-      [[ $current =~ ^[0-9]+$ && $maximum =~ ^[0-9]+$ ]] || exit 1
-      (( maximum > 0 )) || exit 1
-      if (( $# == 0 )); then
-        printf '%d%%\n' "$((current * 100 / maximum))"
-      else
-        [[ $# == 1 && $1 =~ ^[0-9]{1,3}$ ]] || exit 2
-        percent=$((10#$1))
-        (( percent >= 1 && percent <= 100 )) || exit 2
-        timeout 8s ddcutil --display 1 setvcp 10 "$(((percent * maximum + 99) / 100))"
-      fi
+      exec ${pkgs.python3}/bin/python3 ${./monitor-brightness.py} ${pkgs.ddcutil}/bin/ddcutil "$@"
     '';
   };
 in
 {
   home.packages = [ brightness ];
-  _module.args.oxwmExtraBarBlocks = ''
+  systemd.user.services.blix-monitor-brightness = {
+    Unit = {
+      Description = "Coalesce monitor brightness updates outside the window manager";
+      PartOf = [ "blix-session.target" ];
+    };
+    Service = {
+      ExecStart = "${brightness}/bin/blix-monitor-brightness serve";
+      RuntimeDirectory = "blix-monitor-brightness";
+      RuntimeDirectoryMode = "0700";
+      Restart = "on-failure";
+      RestartSec = 2;
+    };
+    Install.WantedBy = [ "blix-session.target" ];
+  };
+  _module.args.oxwmBrightnessBarBlocks = ''
     table.insert(blocks, oxwm.bar.block.shell({
       format = "Bri {}",
       command = "${brightness}/bin/blix-monitor-brightness",
-      interval = 5,
+      interval = 1,
       color = colors.status.brightness,
       underline = false,
       click = {

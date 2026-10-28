@@ -22,4 +22,12 @@ assert c.boot.loader.systemd-boot.enable;
 assert h.blix.display.primaryOutput == null;
 assert h.home.file ? ".xinitrc";
 assert h.home.file ? ".config/picom/picom.conf";
-pkgs.runCommand "desktop-host-checks" { } ''touch "$out"''
+assert h.systemd.user.services.blix-monitor-brightness.Install.WantedBy == [ "blix-session.target" ];
+assert h.systemd.user.services.blix-monitor-brightness.Unit.PartOf == [ "blix-session.target" ];
+pkgs.runCommand "desktop-host-checks" {
+  nativeBuildInputs = [ pkgs.python3 ];
+} ''
+  python3 ${./monitor-brightness.py} ${../hosts/desktop/monitor-brightness.py} \
+    ${h.home.file.".config/oxwm/config.lua".source}
+  touch "$out"
+''
