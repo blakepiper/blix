@@ -22,6 +22,8 @@ in
     python3 ${./display-hotplug.py} ${../home/przvl/hardware/display-hotplug.sh}
     touch "$out"
   '';
+} // lib.optionalAttrs (system == "x86_64-linux") {
+  steam-gaming = import ./steam-gaming.nix { inherit pkgs mkHost; };
 } // lib.optionalAttrs (system == "aarch64-linux") {
   # A buildable ARM desktop/system check, not a deployable phone image.
   phone-system = (fixture {

@@ -29,6 +29,13 @@ slider requests so slow monitor transactions do not block OXWM. Desktop enables
 I2C access for the local logged-in user.
 Desktop also lists its GPU in Neofetch and shows NVIDIA GPU utilization beside
 CPU in the topbar, refreshed every five seconds (`N/A` if unavailable).
+Steam games remain opaque via Picom's `STEAM_GAME` property and `steam_app_`
+class/instance rules, including windowed and unfocused games; eligible fullscreen
+games bypass composition. `hosts/desktop/gaming.nix` supplies Steam's `pactl`
+utility and a Desktop-only OXWM patch that directly focuses Steam game windows
+whose Proton input hints otherwise leave keyboard focus on Steam. Other clients
+retain their input hints. Restart the X session after activating an OXWM update.
+Physical gameplay verification of this workaround remains pending.
 Its hardware file contains detected storage configuration. See the
 [desktop installation guide](docs/desktop-install.md) for manual UEFI installation
 and physical graphics/suspend checks.

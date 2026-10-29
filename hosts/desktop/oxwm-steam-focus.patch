@@ -1,0 +1,26 @@
+--- a/src/wm/core.zig
++++ b/src/wm/core.zig
+@@ -593,6 +593,23 @@
+ 
+         if ((hints.*.flags & xlib.InputHint) != 0) {
+             client.never_focus = hints.*.input == 0;
++            // Proton game windows can leave keyboard focus on Steam despite
++            // WM_TAKE_FOCUS. Focus managed Steam games directly on this host.
++            // Preserve InputHint for all other clients (including Steam UI).
++            if (client.never_focus) {
++                var class_hint: xlib.XClassHint = .{ .res_name = null, .res_class = null };
++                if (xlib.XGetClassHint(wm.display.handle, client.window, &class_hint) != 0) {
++                    defer {
++                        if (class_hint.res_name != null) _ = xlib.XFree(class_hint.res_name);
++                        if (class_hint.res_class != null) _ = xlib.XFree(class_hint.res_class);
++                    }
++                    const game_class = class_hint.res_class != null and
++                        std.mem.startsWith(u8, std.mem.span(class_hint.res_class), "steam_app_");
++                    const game_instance = class_hint.res_name != null and
++                        std.mem.startsWith(u8, std.mem.span(class_hint.res_name), "steam_app_");
++                    if (game_class or game_instance) client.never_focus = false;
++                }
++            }
+         } else {
+             client.never_focus = false;
+         }

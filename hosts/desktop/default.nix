@@ -4,6 +4,7 @@
 {
   imports = [
     ../../profiles/desktop.nix
+    ./gaming.nix
     ./hardware-configuration.nix
     ../../modules/hardware/graphics/nvidia.nix
   ];
@@ -21,7 +22,6 @@
   # DDC/CI access for the external monitor brightness slider.
   hardware.i2c.enable = true;
 
-  programs.steam.enable = true;
   zramSwap = {
     enable = true;
     memoryPercent = 25;
