@@ -26,7 +26,10 @@ resume, and the user confirmed successful wake. Its topbar brightness
 slider controls the first DDC/CI monitor; enable DDC/CI in the monitor menu if
 it reports `N/A`. It sits between volume and RAM; a session service coalesces
 slider requests so slow monitor transactions do not block OXWM. Desktop enables
-I2C access for the local logged-in user.
+I2C access for the local logged-in user. The service reads brightness once at
+startup and caches confirmed slider changes; it never polls the monitor while
+idle because NVIDIA DDC reads cause rendering stalls. Changes made with the
+monitor's buttons are reflected after restarting the brightness service.
 Desktop also lists its GPU in Neofetch and shows NVIDIA GPU utilization beside
 CPU in the topbar, refreshed every five seconds (`N/A` if unavailable).
 Steam games remain opaque via Picom's `STEAM_GAME` property and `steam_app_`

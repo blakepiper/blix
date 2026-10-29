@@ -65,6 +65,9 @@ if "getvcp" in sys.argv:
         assert calls[0] == "--display 1 --terse getvcp 10", calls
         assert calls[-1] == "--display 1 --noverify setvcp 10 180", calls
         assert run().stdout == "90%\n"
+        # Idle reads previously ran every five seconds and stalled NVIDIA games.
+        time.sleep(5.5)
+        assert log.read_text().splitlines() == calls, 'Unexpected idle DDC polling'
         for invalid in ("0", "101", "-1", "oops", "1; touch bad"):
             assert run(invalid).returncode == 2
         # A failed write must not publish a falsely confirmed brightness.
@@ -78,4 +81,4 @@ if "getvcp" in sys.argv:
         service.terminate()
         service.wait(timeout=2)
 
-print("monitor brightness: coalescing, nonblocking setter, scaling, failure and recovery passed")
+print("monitor brightness: coalescing, no idle polling, nonblocking setter, scaling, failure and recovery passed")

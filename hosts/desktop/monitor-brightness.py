@@ -7,7 +7,6 @@ import socket
 import subprocess
 import sys
 import threading
-import time
 
 
 class Monitor:
@@ -36,14 +35,8 @@ class Monitor:
 
     def work(self):
         maximum = None
-        next_poll = 0
+        target = None
         while True:
-            with self.condition:
-                self.condition.wait_for(
-                    lambda: self.pending is not None,
-                    timeout=max(0, next_poll - time.monotonic()),
-                )
-                target, self.pending = self.pending, None
             try:
                 if target is None or maximum is None:
                     output = self.command("--terse", "getvcp", "10")
@@ -54,8 +47,7 @@ class Monitor:
                     self.publish(f"{current * 100 // maximum}%")
                 if target is not None:
                     # Maximum is cached: no pre-read or verification round trip
-                    # for every drag position. Idle polling reconciles changes
-                    # made through the monitor's own controls.
+                    # for every drag position.
                     self.command("--noverify", "setvcp", "10",
                                  str((target * maximum + 99) // 100))
                     self.publish(f"{target}%")
@@ -63,7 +55,11 @@ class Monitor:
                 print(f"monitor brightness: {error}", file=sys.stderr, flush=True)
                 maximum = None
                 self.publish("N/A")
-            next_poll = time.monotonic() + 5
+            # DDC reads stall NVIDIA rendering even in this separate worker.
+            # Read once at startup; otherwise touch I2C only on slider requests.
+            with self.condition:
+                self.condition.wait_for(lambda: self.pending is not None)
+                target, self.pending = self.pending, None
 
 
 def main():
