@@ -13,6 +13,6 @@
     primaryScaleFrom = "1646x1029";
     # Reset the previous 120 DPI override during live switches as well as login.
     dpi = 96;
-    wallpaper = "/home/przvl/Pictures/nix-sunset-mountain-paint.png";
+    wallpaper = "/home/przvl/Pictures/mojavedark.jpg";
   };
 }
