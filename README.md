@@ -51,6 +51,8 @@ The desktop uses:
 - Ghostty runs Bash with ble.sh for interactive editing, highlighting and
   completion. Home Manager manages its settings and Bash integration; OXWM's
   terminal binding uses the same executable as `$TERMINAL`.
+  Its session service uses `Type=notify` with an explicit SIGUSR2 reload while
+  Ghostty 1.3.1 needs the [systemd 262 startup workaround](https://github.com/ghostty-org/ghostty/pull/14399).
   Clicking within the current shell command moves the editing cursor there.
   Ctrl-click opens links in Firefox; use Ctrl-Shift-click when a terminal
   application captures the mouse.

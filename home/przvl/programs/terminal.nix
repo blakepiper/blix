@@ -60,5 +60,12 @@ in
     [Unit]
     PartOf=blix-session.target
     ConditionEnvironment=DISPLAY
+
+    [Service]
+    # Ghostty 1.3.1 can notify READY before installing its SIGUSR2 handler.
+    # systemd 262 rejects notify-reload startup in that race (upstream #14399).
+    # Keep readiness notification and explicit config reload until it ships.
+    Type=notify
+    ExecReload=${pkgs.coreutils}/bin/kill -USR2 $MAINPID
   '';
 }
