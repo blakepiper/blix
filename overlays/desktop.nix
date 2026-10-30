@@ -22,7 +22,6 @@ final: prev:
       ../packaging/oxwm/0006-async-bar-blocks.patch
       ../packaging/oxwm/0007-center-bar-blocks.patch
       ../packaging/oxwm/0008-bar-choices.patch
-      ../packaging/oxwm/0009-align-bar-popups.patch
     ];
     buildInputs = (old.buildInputs or [ ]) ++ [ final.libxpm ];
     doCheck = true;
