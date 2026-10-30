@@ -14,6 +14,7 @@ let
     "forward-button"
     "urlbar-container"
     "stop-reload-button"
+    "ipprotection-button"
     "vertical-spacer"
     "smartwindow-group-tabs-button"
     "ai-window-toggle"
@@ -64,7 +65,7 @@ in
             "vertical-tabs" = [ "tabbrowser-tabs" ];
             "PersonalToolbar" = [ "import-button" "personal-bookmarks" ];
           };
-          seen = extensions ++ [ "reset-pbm-toolbar-button" "developer-button" "screenshot-button" ];
+          seen = extensions ++ [ "reset-pbm-toolbar-button" "developer-button" "screenshot-button" "ipprotection-button" ];
           dirtyAreaCache = [ "nav-bar" "TabsToolbar" "vertical-tabs" "PersonalToolbar" "unified-extensions-area" "toolbar-menubar" ];
           currentVersion = 26;
           newElementCount = 1;

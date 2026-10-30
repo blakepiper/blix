@@ -44,6 +44,10 @@
       "SponsoredSuggestions": false
     },
     "Preferences": {
+      "browser.ipProtection.enabled": {
+        "Status": "locked",
+        "Value": true
+      },
       "privacy.globalprivacycontrol.enabled": {
         "Status": "user",
         "Value": true
