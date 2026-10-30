@@ -1,0 +1,14 @@
+Align bar popups with the outer edge of tiled application windows.
+Use the monitor's effective vertical outer gap instead of a fixed offset.
+
+--- a/src/bar/slider.zig
++++ b/src/bar/slider.zig
+@@ -64,6 +64,6 @@
+         const mon = bar.monitor;
+         const x = std.math.clamp(mon.mon_x + center - @divTrunc(width, 2), mon.mon_x, @max(mon.mon_x, mon.mon_x + mon.mon_w - width - 2));
+-        const below = attrs.y + bar.height + 6;
+-        const y = if (below + height <= mon.mon_y + mon.mon_h) below else attrs.y - height - 6;
++        const below = attrs.y + bar.height + mon.gap_outer_h;
++        const y = if (below + height <= mon.mon_y + mon.mon_h) below else attrs.y - height - 2 - mon.gap_outer_h;
+         return createWindow(display, screen, x, y, bar, settings, click, initial, active_choice, accent, height);
+     }
