@@ -130,7 +130,7 @@ table.insert(blocks, oxwm.bar.block.ram({
   format = "Ram: {used}/{total} GB",
   interval = 5,
   color = colors.status.ram,
-  underline = false,
+  underline = true,
 }))
 table.insert(blocks, oxwm.bar.block.static({
   text = "│",
@@ -143,7 +143,7 @@ table.insert(blocks, oxwm.bar.block.shell({
   command = "oxwm-cpu",
   interval = 5,
   color = colors.status.cpu,
-  underline = false,
+  underline = true,
 }))
 table.insert(blocks, oxwm.bar.block.static({
   text = "│",
@@ -157,7 +157,7 @@ table.insert(blocks, oxwm.bar.block.datetime({
   date_format = "%a, %b %d - %H:%M",
   interval = 60,
   color = colors.status.clock,
-  underline = false,
+  underline = true,
 }))
 oxwm.bar.set_blocks(blocks)
 
