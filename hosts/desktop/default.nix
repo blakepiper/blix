@@ -12,6 +12,9 @@
   networking.hostName = "desktop";
   home-manager.users.przvl = import ./home.nix;
 
+  # Detected Intel USB Bluetooth adapter (8087:0025).
+  blix.machine.hasBluetooth = true;
+
   # Proprietary NVIDIA userspace and Steam are explicitly selected on this host.
   nixpkgs.config.allowUnfreePredicate = package:
     builtins.elem (lib.getName package) [
