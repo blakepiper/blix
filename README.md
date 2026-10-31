@@ -13,10 +13,10 @@ status and remaining hardware issues.
 Its independent user composition lets its applications and environment evolve
 separately from the workstations.
 
-The laptop profile selects `linuxPackages_latest`, the latest stable kernel in
-the pinned Nixpkgs input, for Zen and T490. Kernel upgrades take effect after a
-reboot; previous generations remain available in the boot menu. The phone keeps
-its separate device-specific kernel and boot-image workflow.
+The laptop and desktop profiles select `linuxPackages_latest`, the latest stable
+kernel in the pinned Nixpkgs input, for Zen, T490 and Desktop. Kernel upgrades
+take effect after a reboot; previous generations remain available in the boot
+menu. The phone keeps its separate device-specific kernel and boot-image workflow.
 
 The Ryzen/NVIDIA `desktop` host inherits the desktop profile and adds Steam,
 32-bit NVIDIA graphics, suspend VRAM preservation and zram. Desktop disables
