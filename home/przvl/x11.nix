@@ -1,4 +1,4 @@
-{ config, lib, pkgs, displayHotplug, oxwmVolume, oxwmBrightness, blixSettings, oxwmExtraBarBlocks, oxwmBrightnessBarBlocks, ... }:
+{ config, lib, pkgs, displayHotplug, oxwmVolume, oxwmBrightness, blixSettings, oxwmExtraBarBlocks, oxwmBrightnessBarBlocks, oxwmExtraKeybindings, ... }:
 
 let
   display = config.blix.display;
@@ -54,6 +54,7 @@ in
   _module.args = {
     oxwmExtraBarBlocks = lib.mkDefault "";
     oxwmBrightnessBarBlocks = lib.mkDefault "";
+    oxwmExtraKeybindings = lib.mkDefault "";
     blixDisplayEnvironment = displayEnvironment;
     blixSessionSettings = sessionSettings;
   };
@@ -73,7 +74,8 @@ in
     ".config/oxwm/config.lua".text = lib.replaceStrings
       [ "@nixos-logo@" "@oxwm-volume@" "@oxwm-brightness@" "@oxwm-power-mode@" "@wpctl@" "@brightnessctl@" "@blix-settings@" "@blix-settings-apply@" "-- @oxwm-extra-bar-blocks@" "-- @oxwm-brightness-bar-blocks@" ]
       [ "${nixosLogo}" "${oxwmVolume}/bin/oxwm-volume" "${oxwmBrightness}/bin/oxwm-brightness" "${oxwmPowerMode}/bin/oxwm-power-mode" "${pkgs.wireplumber}/bin/wpctl" "${pkgs.brightnessctl}/bin/brightnessctl" "${blixSettings}/bin/blix-settings" "${blixSettings}/bin/blix-settings-apply" oxwmExtraBarBlocks oxwmBrightnessBarBlocks ]
-      (builtins.readFile ./config/oxwm/config.lua);
+      (lib.replaceStrings [ "-- @oxwm-extra-keybindings@" ] [ oxwmExtraKeybindings ]
+        (builtins.readFile ./config/oxwm/config.lua));
     ".config/picom/picom.conf" = {
       source = ./config/picom/picom.conf;
       onChange = ''
