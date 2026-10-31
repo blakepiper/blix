@@ -1,16 +1,5 @@
-{ lib, ghostty, makeWrapper, runCommand, symlinkJoin, xdg-utils, callPackage, browser }:
+{ lib, ghostty, makeWrapper, symlinkJoin, xdg-utils, browser }:
 
-let
-  integration = callPackage ./bash-integration.nix { inherit ghostty; };
-  resources = runCommand "ghostty-resources" { } ''
-    mkdir -p "$out"
-    for resource in ${ghostty}/share/ghostty/*; do
-      ln -s "$resource" "$out/"
-    done
-    rm "$out/shell-integration"
-    ln -s ${integration} "$out/shell-integration"
-  '';
-in
 symlinkJoin {
   name = "ghostty-${ghostty.version}-blix";
   inherit (ghostty) version meta;
@@ -19,7 +8,6 @@ symlinkJoin {
   postBuild = ''
     rm "$out/bin/ghostty"
     makeWrapper ${lib.getExe ghostty} "$out/bin/ghostty" \
-      --set GHOSTTY_RESOURCES_DIR ${resources} \
       --set BROWSER ${lib.getExe browser} \
       --prefix PATH : ${lib.makeBinPath [ xdg-utils ]}
 
@@ -34,6 +22,5 @@ symlinkJoin {
   '';
   passthru = (ghostty.passthru or { }) // {
     inherit (ghostty) man terminfo vim;
-    shell_integration = integration;
   };
 }
