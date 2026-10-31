@@ -43,6 +43,13 @@ Its hardware file contains detected storage configuration. See the
 [desktop installation guide](docs/desktop-install.md) for manual UEFI installation
 and physical graphics/suspend checks.
 
+When a Desktop update changes the NVIDIA driver, stage it with
+`sudo nixos-rebuild boot --flake .#desktop`, then reboot when ready. A live
+`switch` can update Xorg's driver while the previous NVIDIA kernel module stays
+loaded, causing `startx` to fail with `no screens found` and an `NVRM: API
+mismatch` in `journalctl -b -k`. If this happens after a successful update,
+reboot into the updated default generation, log in, and run `startx` again.
+
 The desktop uses:
 
 - Zen, T490 and desktop start Xorg manually with `startx`. The phone logs in as `przvl`
