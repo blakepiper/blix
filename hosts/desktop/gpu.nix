@@ -24,8 +24,8 @@ in
       format = "GPU: {}",
       command = "${gpu}/bin/oxwm-gpu",
       interval = 5,
-      color = colors.status.cpu,
-      underline = false,
+      color = colors.status.battery,
+      underline = true,
     }))
     table.insert(blocks, oxwm.bar.block.static({
       text = "│",
