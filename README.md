@@ -34,10 +34,11 @@ Desktop also lists its GPU in Neofetch and shows NVIDIA GPU utilization beside
 CPU in the topbar, refreshed every five seconds (`N/A` if unavailable).
 Steam games remain opaque via Picom's `STEAM_GAME` property and `steam_app_`
 class/instance rules, including windowed and unfocused games; eligible fullscreen
-games bypass composition. `hosts/desktop/gaming.nix` supplies Steam's `pactl`
-utility and a Desktop-only OXWM patch that directly focuses Steam game windows
-whose Proton input hints otherwise leave keyboard focus on Steam. Other clients
+games bypass composition. Zen and Desktop select `modules/desktop/steam.nix`,
+which supplies Steam, its `pactl` utility and an OXWM patch that directly focuses
+Steam game windows whose Proton input hints otherwise leave keyboard focus on Steam. Other clients
 retain their input hints. Restart the X session after activating an OXWM update.
+Both hosts import `home/przvl/programs/steam.nix` to launch Steam with Super+G.
 Physical gameplay verification of this workaround remains pending.
 Its hardware file contains detected storage configuration. See the
 [desktop installation guide](docs/desktop-install.md) for manual UEFI installation

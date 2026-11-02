@@ -4,5 +4,5 @@
 { ... }:
 
 {
-  imports = [ ./display.nix ];
+  imports = [ ./display.nix ../../home/przvl/programs/steam.nix ];
 }

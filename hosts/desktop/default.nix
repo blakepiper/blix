@@ -4,7 +4,7 @@
 {
   imports = [
     ../../profiles/desktop.nix
-    ./gaming.nix
+    ../../modules/desktop/steam.nix
     ./hardware-configuration.nix
     ../../modules/hardware/graphics/nvidia.nix
   ];

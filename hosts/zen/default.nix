@@ -7,6 +7,7 @@
 {
   imports = [
     ../../profiles/laptop.nix
+    ../../modules/desktop/steam.nix
     ./hardware-configuration.nix
     ../../modules/hardware/graphics/intel.nix
     ../../modules/hardware/power-profiles/intel.nix

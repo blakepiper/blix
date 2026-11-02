@@ -133,9 +133,11 @@ scope and risk rules in the Validation section.
   Blueman pairing agent to the startx Blix session without a tray dependency.
 - `hosts/desktop/brightness.nix` supplies the external-monitor DDC/CI topbar
   slider; Desktop enables I2C access rather than claiming an internal backlight.
-- `hosts/desktop/gaming.nix` owns Desktop's Steam environment and OXWM
-  Steam-game focus workaround. Shared Picom rules keep Steam games opaque
-  and allow eligible fullscreen games to bypass composition.
+- `modules/desktop/steam.nix` supplies the optional Steam environment and OXWM
+  Steam-game focus workaround selected by Zen and Desktop. Their home modules
+  import `home/przvl/programs/steam.nix` for the Super+G launcher.
+  Shared Picom rules keep Steam games opaque and allow eligible fullscreen games
+  to bypass composition.
 - `hosts/desktop/gpu.nix` enables Neofetch GPU reporting and supplies the
   NVIDIA utilization topbar block only on Desktop.
 - `hosts/<hostname>/home.nix` composes machine-dependent user settings and

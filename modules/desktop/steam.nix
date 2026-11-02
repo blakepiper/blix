@@ -1,5 +1,5 @@
-# Steam integration and the observed Proton/OXWM focus workaround on Desktop.
-{ pkgs, ... }:
+# Optional Steam integration and the Proton/OXWM game-focus workaround.
+{ lib, pkgs, ... }:
 
 {
   programs.steam = {
@@ -7,6 +7,12 @@
     # Steam and its overlay query PulseAudio even when PipeWire supplies it.
     extraPackages = with pkgs; [ pulseaudio ];
   };
+
+  # Hosts with additional proprietary packages can supply a broader predicate.
+  nixpkgs.config.allowUnfreePredicate = lib.mkDefault (package:
+    builtins.elem (lib.getName package) [
+      "steam" "steam-original" "steam-unwrapped" "steam-run"
+    ]);
 
   nixpkgs.overlays = [
     (final: prev: {
