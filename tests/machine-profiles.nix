@@ -30,7 +30,7 @@ let
         home.systemd.user.targets.blix-session.Unit.Wants;
       bluetoothNoTray = !home.services.blueman-applet.enable || (
         home.systemd.user.services.blueman-applet.Unit.Requires == [ ]
-        && home.systemd.user.services.blueman-applet.Unit.After == [ "blix-lock.service" ]
+        && home.systemd.user.services.blueman-applet.Unit.After == [ "blix-lock.service" "dunst.service" ]
         && home.systemd.user.services.blueman-applet.Unit.PartOf == [ "blix-session.target" ]
       );
       efiVariables = cfg.boot.loader.efi.canTouchEfiVariables;

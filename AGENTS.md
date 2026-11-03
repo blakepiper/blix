@@ -131,6 +131,9 @@ scope and risk rules in the Validation section.
   `display.nix` owns the display helper package and hotplug service. The X11
   display environment remains in `home/przvl/x11.nix`. `bluetooth.nix` binds the
   Blueman pairing agent to the startx Blix session without a tray dependency.
+- `home/przvl/services/notifications.nix` supplies Dunst for all X11 sessions;
+  Bluetooth status bubbles are icon-free and expire after two seconds, while
+  pairing requests remain actionable. The phone keeps connection popups disabled.
 - `hosts/desktop/brightness.nix` supplies the external-monitor DDC/CI topbar
   slider; Desktop enables I2C access rather than claiming an internal backlight.
 - `modules/desktop/steam.nix` supplies the optional Steam environment and OXWM
