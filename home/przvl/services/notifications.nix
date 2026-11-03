@@ -11,6 +11,12 @@
         notification_limit = 3;
         font = "monospace 11";
         frame_color = "#98c379";
+        show_indicators = false;
+      };
+      # Terminal completion messages should be brief even with a client timeout.
+      ghostty = lib.hm.dag.entryAfter [ "global" ] {
+        appname = "ghostty";
+        override_dbus_timeout = "3s";
       };
       # Blueman uses the default (-1) timeout for connection status, including
       # AutoConnect. Pairing/authorization requests use 0 and must stay actionable.
