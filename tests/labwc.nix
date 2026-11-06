@@ -4,11 +4,21 @@ let
   laptop = fixture { profile = ../profiles/laptop.nix; system = pkgs.stdenv.hostPlatform.system; };
   phone = fixture { profile = ../profiles/phone.nix; system = pkgs.stdenv.hostPlatform.system; };
   home = laptop.config.home-manager.users.przvl;
+  steamLaptop = fixture {
+    profile = ../profiles/laptop.nix;
+    system = pkgs.stdenv.hostPlatform.system;
+    modules = [ ../modules/desktop/steam.nix ];
+  };
+  steamBinding = ''<keybind key="W-g"><action name="Execute" command="${lib.escapeXML "${steamLaptop.config.programs.steam.package}/bin/steam"}" /></keybind>'';
   rc = pkgs.writeText "blix-labwc-rc.xml" home.xdg.configFile."labwc/rc.xml".text;
   theme = pkgs.writeText "blix-labwc-themerc" home.xdg.configFile."labwc/themerc-override".text;
   wants = home.systemd.user.targets.blix-wayland-session.Unit.Wants;
 in
 assert laptop.config.programs.labwc.enable;
+assert pkgs.stdenv.hostPlatform.isx86 ->
+  lib.hasInfix (builtins.unsafeDiscardStringContext steamBinding)
+    steamLaptop.config.home-manager.users.przvl.xdg.configFile."labwc/rc.xml".text;
+assert !(lib.hasInfix ''key="W-g"'' home.xdg.configFile."labwc/rc.xml".text);
 assert laptop.config.security.pam.services ? gtklock;
 assert !(phone.config.security.pam.services ? gtklock);
 assert laptop.config.services.xserver.windowManager.oxwm.enable;
