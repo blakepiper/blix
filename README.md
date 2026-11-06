@@ -22,11 +22,11 @@ The Ryzen/NVIDIA `desktop` host inherits the desktop profile and adds Steam,
 32-bit NVIDIA graphics, suspend VRAM preservation and zram. Desktop disables
 systemd's pre-suspend user-session freeze so Xorg can answer NVIDIA's VT switch.
 Physical suspend/resume passed on 2026-10-28: journals confirm S3 entry and
-resume, and the user confirmed successful wake. Its topbar brightness
+resume, and the user confirmed successful wake. Its OXWM and labwc topbar brightness
 slider controls the first DDC/CI monitor; enable DDC/CI in the monitor menu if
 it reports `N/A`. It sits between volume and RAM; a session service coalesces
-slider requests so slow monitor transactions do not block OXWM. Desktop enables
-I2C access for the local logged-in user. The service reads brightness once at
+slider requests so slow monitor transactions do not block the session. Desktop
+enables I2C access for the local logged-in user. The service reads brightness once at
 startup and caches confirmed slider changes; it never polls the monitor while
 idle because NVIDIA DDC reads cause rendering stalls. Changes made with the
 monitor's buttons are reflected after restarting the brightness service.

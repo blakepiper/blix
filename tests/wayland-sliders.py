@@ -69,7 +69,9 @@ if 'power-mode' in sys.argv:
         with Path({str(log)!r}).open('a') as stream:
             stream.write('power ' + sys.argv[-1] + '\\n')
     raise SystemExit(0)
-if 'get-volume' in sys.argv:
+if len(sys.argv) == 1:
+    print('65%')
+elif 'get-volume' in sys.argv:
     print('Volume: 0.40')
 elif '--machine-readable' in sys.argv:
     print('test,backlight,70,70%,100')
@@ -79,7 +81,9 @@ else:
 ''')
     fake.chmod(0o755)
     tools = {name: str(fake) for name in ("wpctl", "brightnessctl", "powerMode")}
-    for kind, initial in (("volume", 40), ("brightness", 70)):
+    for kind, initial in (("volume", 40), ("brightness", 70), ("monitor-brightness", 65)):
+        tools["monitorBrightness"] = str(fake)
+        suffix = "" if kind == "monitor-brightness" else "%"
         popup = Popup(kind, tools, {"center": 600, "width": 1280, "height": 28, "monitor": 0})
         assert popup.fixed.child_get_property(popup.area, 'x') == 479
         assert popup.fixed.child_get_property(popup.area, 'y') == 34
@@ -97,14 +101,25 @@ else:
         assert popup.value == (50 if kind == 'volume' else 51), popup.value
         popup.set_value(55)
         popup.set_value(76)
-        pump(lambda: log.exists() and log.read_text().splitlines()[-1] == '76%', seconds=5)
-        assert log.read_text().splitlines()[-1] == '76%'
+        pump(lambda: log.exists() and log.read_text().splitlines()[-1] == '76' + suffix, seconds=5)
+        assert log.read_text().splitlines()[-1] == '76' + suffix
         popup.key(popup, SimpleNamespace(keyval=Gdk.KEY_Right))
         assert popup.value == 77
         popup.finish()
-        assert log.read_text().splitlines()[-1] == '77%', 'Final value must be written before exit'
+        assert log.read_text().splitlines()[-1] == '77' + suffix, 'Final value must be written before exit'
         popup.destroy()
         log.unlink()
+
+    unavailable = directory / 'unavailable'
+    unavailable.write_text(f'#!{sys.executable}\nprint("N/A")\n')
+    unavailable.chmod(0o755)
+    popup = Popup('monitor-brightness', {**tools, 'monitorBrightness': str(unavailable)},
+                  {"center": 600, "width": 1280, "height": 28, "monitor": 0})
+    assert popup.error
+    popup.set_value(80)
+    popup.finish()
+    popup.destroy()
+    assert not log.exists(), 'Unavailable monitor brightness must not write'
 
     # Slow setters must remain serialized while rapid edits collapse to the
     # latest value. Closing must still apply the final edit exactly once.

@@ -15,6 +15,7 @@ let
   popupTools = pkgs.writeText "blix-wayland-slider-tools.json" (builtins.toJSON {
     wpctl = "${pkgs.wireplumber}/bin/wpctl";
     brightnessctl = "${pkgs.brightnessctl}/bin/brightnessctl";
+    monitorBrightness = config.blix.wayland.brightnessCommand;
     powerMode = "${blixSettings}/bin/blix-settings-apply";
   });
   popup = pkgs.writeShellApplication {
@@ -311,6 +312,7 @@ in
       modules-left = [ "image#logo" "wlr/taskbar" ];
       modules-right = lib.optional config.blix.hardware.hasBattery "battery"
         ++ [ "pulseaudio" ]
+        ++ lib.optional (config.blix.wayland.brightnessCommand != null) "custom/brightness"
         ++ lib.optional config.blix.hardware.hasBacklight "backlight"
         ++ [ "memory" "cpu_usage" ]
         ++ builtins.attrNames labwcExtraBarModules ++ [ "clock" ];
@@ -357,6 +359,15 @@ in
         on-click-right = "${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle";
         scroll-step = 5;
       };
+      "custom/brightness" = {
+        exec = config.blix.wayland.brightnessCommand;
+        format = "Bri {}";
+        # Only reads the worker's cached file; never polls DDC/CI.
+        interval = 1;
+        tooltip = false;
+        on-click = "${popup}/bin/blix-wayland-slider monitor-brightness";
+        blix-popup-anchor = true;
+      };
       backlight = {
         format = "Bri {percent}%";
         # Udev supplies changes; avoid re-enumerating devices every two seconds.
@@ -377,7 +388,7 @@ in
       }
       window#waybar { background: #1a1b26; color: #bbbbbb; }
       #image.logo { padding: 0 10px; }
-      #image.logo:hover, #pulseaudio:hover, #backlight:hover, #battery:hover { background: #34324a; }
+      #image.logo:hover, #pulseaudio:hover, #backlight:hover, #custom-brightness:hover, #battery:hover { background: #34324a; }
       #taskbar { margin-left: 8px; }
       #taskbar button {
         background: transparent;
@@ -390,7 +401,7 @@ in
         box-shadow: inset 0 -2px #e0af68;
       }
       #taskbar button:hover { background: #34324a; }
-      #clock, #cpu_usage, #memory, #battery, #pulseaudio, #backlight, #custom-gpu, #tray {
+      #clock, #cpu_usage, #memory, #battery, #pulseaudio, #backlight, #custom-brightness, #custom-gpu, #tray {
         padding: 0 10px;
         margin: 3px 0;
         border-left: 1px solid #6e738d;
@@ -398,7 +409,7 @@ in
       .modules-right > widget:first-child > * { border-left: none; }
       #battery, #custom-gpu { color: #a6da95; }
       #pulseaudio { color: #8aadf4; }
-      #backlight { color: #eed49f; }
+      #backlight, #custom-brightness { color: #eed49f; }
       #memory { color: #c6a0f6; }
       #cpu_usage { color: #ed8796; }
       #clock { color: #cad3f5; }

@@ -10,6 +10,12 @@ let
   };
 in
 {
+  options.blix.wayland.brightnessCommand = lib.mkOption {
+    type = lib.types.nullOr lib.types.str;
+    default = null;
+    description = "External monitor brightness executable: no arguments reads a cached percentage; an integer argument sets it.";
+  };
+
   options.blix.wayland.outputs = lib.mkOption {
     type = lib.types.attrsOf (lib.types.submodule {
       options.scale = lib.mkOption {

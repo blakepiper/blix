@@ -21,6 +21,9 @@ let
   '';
 in
 assert laptop.config.programs.labwc.enable;
+assert home.blix.wayland.brightnessCommand == null;
+assert !(builtins.elem "custom/brightness"
+  (builtins.fromJSON (builtins.unsafeDiscardStringContext home.xdg.configFile."waybar/config".text)).modules-right);
 assert pkgs.stdenv.hostPlatform.isx86 ->
   lib.hasInfix (builtins.unsafeDiscardStringContext steamBinding)
     steamLaptop.config.home-manager.users.przvl.xdg.configFile."labwc/rc.xml".text;

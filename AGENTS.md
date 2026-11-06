@@ -174,7 +174,8 @@ scope and risk rules in the Validation section.
   Bluetooth status bubbles are icon-free and expire after two seconds, while
   pairing requests remain actionable. The phone keeps connection popups disabled.
 - `hosts/desktop/brightness.nix` supplies the external-monitor DDC/CI topbar
-  slider; Desktop enables I2C access rather than claiming an internal backlight.
+  slider in OXWM and labwc through a shared session worker; Desktop enables I2C
+  access rather than claiming an internal backlight.
 - `modules/desktop/steam.nix` supplies the optional Steam environment and OXWM
   Steam-game focus workaround selected by Zen and Desktop. Their home modules
   import `home/przvl/programs/steam.nix` for the Super+G launcher.

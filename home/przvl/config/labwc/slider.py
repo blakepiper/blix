@@ -28,9 +28,9 @@ class Popup(Gtk.Window):
         super().__init__(title="Blix bar slider")
         self.tools = tools
         self.kind = kind
-        self.label = {"volume": "Volume", "brightness": "Brightness", "power": "Power mode"}[kind]
+        self.label = {"volume": "Volume", "brightness": "Brightness", "monitor-brightness": "Brightness", "power": "Power mode"}[kind]
         self.minimum = 0 if kind == "volume" else 1
-        self.accent = {"volume": "8aadf4", "brightness": "eed49f", "power": "a6da95"}[kind]
+        self.accent = {"volume": "8aadf4", "brightness": "eed49f", "monitor-brightness": "eed49f", "power": "a6da95"}[kind]
         self.popup_height = 138 if kind == "power" else 84
         self.active_choice = None
         self.choice_touched = False
@@ -67,10 +67,14 @@ class Popup(Gtk.Window):
 
     def read_slider(self):
         kind, tools = self.kind, self.tools
-        args = [tools["wpctl"], "get-volume", "@DEFAULT_AUDIO_SINK@"] if kind == "volume" else [
-            tools["brightnessctl"], "--class=backlight", "--machine-readable"]
-        result = subprocess.run(args, capture_output=True, text=True, check=True, timeout=5)
-        value = float(result.stdout.split()[1]) * 100 if kind == "volume" else float(result.stdout.split(",")[3].rstrip("%"))
+        if kind == "monitor-brightness":
+            result = subprocess.run([tools["monitorBrightness"]], capture_output=True, text=True, check=True, timeout=5)
+            value = float(result.stdout.strip().rstrip("%"))
+        else:
+            args = [tools["wpctl"], "get-volume", "@DEFAULT_AUDIO_SINK@"] if kind == "volume" else [
+                tools["brightnessctl"], "--class=backlight", "--machine-readable"]
+            result = subprocess.run(args, capture_output=True, text=True, check=True, timeout=5)
+            value = float(result.stdout.split()[1]) * 100 if kind == "volume" else float(result.stdout.split(",")[3].rstrip("%"))
         if not math.isfinite(value):
             raise ValueError("Invalid device value")
         self.value = min(100, max(self.minimum, math.floor(value + 0.5)))
@@ -236,6 +240,8 @@ class Popup(Gtk.Window):
         return True
 
     def setter(self):
+        if self.kind == "monitor-brightness":
+            return [self.tools["monitorBrightness"], str(self.value)]
         if self.kind == "volume":
             return [self.tools["wpctl"], "set-volume", "-l", "1", "@DEFAULT_AUDIO_SINK@", f"{self.value}%"]
         return [self.tools["brightnessctl"], "--class=backlight", "--min-value=1", "set", f"{self.value}%"]
@@ -336,8 +342,8 @@ class Popup(Gtk.Window):
 
 if __name__ == "__main__":
     tools = json.loads(Path(sys.argv[1]).read_text())
-    if sys.argv[2] not in ("volume", "brightness", "power"):
-        raise SystemExit("Choose volume, brightness or power")
+    if sys.argv[2] not in ("volume", "brightness", "monitor-brightness", "power"):
+        raise SystemExit("Choose volume, brightness, monitor-brightness or power")
     anchor = {key: int(os.environ[f"BLIX_PANEL_{key.upper()}"]) for key in ("center", "width", "height", "monitor")}
     popup = Popup(sys.argv[2], tools, anchor)
     Gtk.main()

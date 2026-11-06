@@ -10,11 +10,12 @@ let
   };
 in
 {
+  blix.wayland.brightnessCommand = "${brightness}/bin/blix-monitor-brightness";
   home.packages = [ brightness ];
   systemd.user.services.blix-monitor-brightness = {
     Unit = {
       Description = "Coalesce monitor brightness updates outside the window manager";
-      PartOf = [ "blix-session.target" ];
+      PartOf = [ "blix-session.target" "blix-wayland-session.target" ];
     };
     Service = {
       ExecStart = "${brightness}/bin/blix-monitor-brightness serve";
@@ -23,8 +24,9 @@ in
       Restart = "on-failure";
       RestartSec = 2;
     };
-    Install.WantedBy = [ "blix-session.target" ];
+    Install.WantedBy = [ "blix-session.target" "blix-wayland-session.target" ];
   };
+  systemd.user.targets.blix-wayland-session.Unit.Wants = [ "blix-monitor-brightness.service" ];
   _module.args.oxwmBrightnessBarBlocks = ''
     table.insert(blocks, oxwm.bar.block.shell({
       format = "Bri {}",
