@@ -1,5 +1,5 @@
 # Parallel floating Wayland environment for workstation compositions.
-{ config, osConfig, lib, pkgs, blixSettings, labwcIconData, ... }:
+{ config, osConfig, lib, pkgs, blixSettings, labwcIconData, labwcExtraBarModules, ... }:
 let
   target = "blix-wayland-session.target";
   xml = lib.escapeXML;
@@ -187,6 +187,7 @@ let
 in
 {
   imports = [ ./labwc-icons.nix ];
+  _module.args.labwcExtraBarModules = lib.mkDefault {};
   home.packages = with pkgs; [
     start screenshot clipboard menu controlMenu wallpaper gtklock fuzzel wdisplays wlr-randr wl-clipboard cliphist
     fileManager nwg-look
@@ -278,6 +279,7 @@ in
           </context>
         </mouse>
         <libinput>
+          <device category="non-touch"><naturalScroll>yes</naturalScroll></device>
           <device category="touchpad">
             <naturalScroll>yes</naturalScroll><tap>yes</tap>
             <tapButtonMap>lrm</tapButtonMap><clickMethod>clickfinger</clickMethod><disableWhileTyping>yes</disableWhileTyping>
@@ -302,7 +304,7 @@ in
       window.inactive.label.text.color: #565f89
       window.inactive.button.unpressed.image.color: #565f89
     '';
-    "waybar/config".text = builtins.toJSON {
+    "waybar/config".text = builtins.toJSON ({
       layer = "top";
       position = "top";
       height = 28;
@@ -310,7 +312,8 @@ in
       modules-right = lib.optional config.blix.hardware.hasBattery "battery"
         ++ [ "pulseaudio" ]
         ++ lib.optional config.blix.hardware.hasBacklight "backlight"
-        ++ [ "memory" "cpu_usage" "clock" ];
+        ++ [ "memory" "cpu_usage" ]
+        ++ builtins.attrNames labwcExtraBarModules ++ [ "clock" ];
       "image#logo" = {
         path = "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
         size = 22;
@@ -363,7 +366,7 @@ in
         on-scroll-up = "${pkgs.brightnessctl}/bin/brightnessctl --class=backlight set +5%";
         on-scroll-down = "${pkgs.brightnessctl}/bin/brightnessctl --class=backlight --min-value=1 set 5%-";
       };
-    };
+    } // labwcExtraBarModules);
     "waybar/style.css".text = ''
       * {
         font-family: "JetBrainsMono Nerd Font";
@@ -387,13 +390,13 @@ in
         box-shadow: inset 0 -2px #e0af68;
       }
       #taskbar button:hover { background: #34324a; }
-      #clock, #cpu_usage, #memory, #battery, #pulseaudio, #backlight, #tray {
+      #clock, #cpu_usage, #memory, #battery, #pulseaudio, #backlight, #custom-gpu, #tray {
         padding: 0 10px;
         margin: 3px 0;
         border-left: 1px solid #6e738d;
       }
       .modules-right > widget:first-child > * { border-left: none; }
-      #battery { color: #a6da95; }
+      #battery, #custom-gpu { color: #a6da95; }
       #pulseaudio { color: #8aadf4; }
       #backlight { color: #eed49f; }
       #memory { color: #c6a0f6; }

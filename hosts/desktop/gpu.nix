@@ -19,6 +19,13 @@ in
 {
   blix.neofetch.showGpu = true;
 
+  _module.args.labwcExtraBarModules."custom/gpu" = {
+    exec = "${gpu}/bin/oxwm-gpu";
+    format = "GPU: {}";
+    interval = 5;
+    tooltip = false;
+  };
+
   _module.args.oxwmExtraBarBlocks = ''
     table.insert(blocks, oxwm.bar.block.shell({
       format = "GPU: {}",

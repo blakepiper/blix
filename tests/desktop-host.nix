@@ -3,6 +3,8 @@
 let
   c = (mkHost { modules = [ ../hosts/desktop ]; }).config;
   h = c.home-manager.users.przvl;
+  panel = builtins.fromJSON (builtins.unsafeDiscardStringContext h.xdg.configFile."waybar/config".text);
+  gpu = panel."custom/gpu";
 in
 assert c.networking.hostName == "desktop";
 assert c.blix.machine.type == "desktop";
@@ -25,10 +27,21 @@ assert h.home.file ? ".xinitrc";
 assert h.home.file ? ".config/picom/picom.conf";
 assert h.systemd.user.services.blix-monitor-brightness.Install.WantedBy == [ "blix-session.target" ];
 assert h.systemd.user.services.blix-monitor-brightness.Unit.PartOf == [ "blix-session.target" ];
+assert builtins.elem "custom/gpu" panel.modules-right;
+assert gpu.interval == 5 && gpu.format == "GPU: {}" && !gpu.tooltip;
+assert lib.hasInfix gpu.exec h.home.file.".config/oxwm/config.lua".text;
 pkgs.runCommand "desktop-host-checks" {
   nativeBuildInputs = [ pkgs.python3 ];
+  PANEL_CONFIG = h.xdg.configFile."waybar/config".source;
 } ''
   python3 ${./monitor-brightness.py} ${../hosts/desktop/monitor-brightness.py} \
     ${h.home.file.".config/oxwm/config.lua".source}
+  # No NVIDIA device in the sandbox: the shared command must degrade cleanly.
+  python3 - <<'PYTEST'
+  import json, os, subprocess
+  with open(os.environ['PANEL_CONFIG']) as file:
+      command = json.load(file)['custom/gpu']['exec']
+  assert subprocess.check_output([command], text=True).strip() == 'N/A'
+  PYTEST
   touch "$out"
 ''

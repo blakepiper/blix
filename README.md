@@ -179,7 +179,7 @@ tests/
 ├── machine-profiles.nix          Profile defaults and hardware overrides
 ├── environment-composition.nix   Shared foundation and phone environment replacement
 ├── phone-hardware.nix            Real fajita/bootstrap integration assertions
-├── keyboard-mapping.nix          Compiled built-in and mechanical keymaps
+├── keyboard-mapping.nix          Compiled keyboard hwdb and modifier checks
 ├── keyboard-mapping.py           Win/Cmd modifier regression checks
 ├── display-hotplug.py            Monitor, rotation, scaling, and reconnect checks
 ├── blix-settings.nix             Settings backend and isolated GTK checks
@@ -306,9 +306,11 @@ the additional tap and click defaults; scrolling can be overridden with
 `services.libinput.touchpad.naturalScrolling`.
 
 `keyboards/mechanical.nix` matches USB ID `1fc9:e8c7` and swaps Alt/Super for that
-keyboard's Mac-mode Cmd key. Built-in laptop Win keys retain Super. Xorg applies
-the rule when the device connects; no keyboard hotplug daemon or Xorg log parsing
-is needed. New device-specific mappings belong alongside that module.
+keyboard's Mac-mode Cmd key. Built-in laptop Win keys retain Super. A udev hwdb
+rule remaps only that device's HID modifier scancodes before X11 or Wayland sees
+them, so Cmd works as Super in both sessions without a second Xorg swap. The rule
+applies when the device connects; reconnect it after the first activation. New
+device-specific mappings belong alongside that module.
 
 Display behavior and its dedicated hotplug service live in
 `home/przvl/hardware/display.nix` and `display-hotplug.sh`. Display facts live in
@@ -517,8 +519,11 @@ The panel uses native usage-only CPU sampling every 10 seconds, memory every
 30 seconds and a time-only, minute-resolution clock. CPU percentages have no
 numeric padding, and the memory label omits the GB suffix. Battery and backlight changes arrive
 through kernel events, with a 60-second fallback scan. The static logo loads once;
-there are no periodic shell status commands or CPU-frequency probes. Sliders
-schedule work only after an edit and wait for setter completion without polling.
+there are no shared periodic shell status commands or CPU-frequency probes.
+Desktop additionally displays `GPU: N%` using the same NVIDIA command as OXWM,
+with a five-second interval and an `N/A` fallback. This host-only extension lives
+in `hosts/desktop/gpu.nix`. Sliders schedule work only after an edit and wait for
+setter completion without polling.
 The power chooser subscribes to D-Bus changes instead of repeatedly launching
 Settings. Blix Settings pauses periodic device queries while unfocused or hidden
 and refreshes when you return. The top-layer panel is hidden behind unobscured
@@ -566,9 +571,10 @@ are shared with X11. Layout, resolution and refresh-rate
 editing open wdisplays; theme and fonts open nwg-look. Wayland display changes
 last for the session. The unsupported X11 input and display-timeout controls
 are hidden in this session. XRandR connector names, mirror policies and scaling are not reused as Wayland output
-configuration. Blix Settings' X11 display/appearance controls and the
-USB-keyboard-specific Xorg modifier swap do not configure labwc. No global
-Alt/Super swap is applied to other keyboards.
+configuration. Blix Settings' X11 display/appearance controls do not configure
+labwc. Labwc enables natural scrolling for its non-touch mouse category as well
+as touchpads. The USB-scoped mechanical keyboard hwdb mapping works in both
+sessions; no global Alt/Super swap is applied to other keyboards.
 
 Validation includes headless labwc startup, generated XML, output discovery,
 mock-device slider writes, real GTK pointer events and a virtual-pointer click on

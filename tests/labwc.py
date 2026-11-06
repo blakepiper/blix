@@ -25,6 +25,8 @@ for number in range(1, 10):
     assert keys[f'W-S-{number}'].attrib['name'] == 'SendToDesktop'
     assert keys[f'W-S-{number}'].attrib['to'] == str(number)
     assert keys[f'W-S-{number}'].attrib['follow'] == 'no'
+assert root.findtext("libinput/device[@category='non-touch']/naturalScroll") == 'yes'
+assert root.findtext("libinput/device[@category='touchpad']/naturalScroll") == 'yes'
 assert not root.findall('windowRules/windowRule/action')  # no forced tiling
 with open('labwc.log', 'w+') as log:
     process = subprocess.Popen(['labwc', '-d', '-C', str(Path('config').resolve())],

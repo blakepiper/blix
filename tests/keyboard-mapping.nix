@@ -9,6 +9,7 @@ let
   cfg = host.config.services.xserver;
   settings = pkgs.writeText "blix-keyboard-settings.json" (builtins.toJSON {
     inherit (cfg) inputClassSections;
+    hwdb = host.config.services.udev.extraHwdb;
     inherit (cfg.xkb) layout model variant options;
   });
   phoneCfg = phone.config.services.xserver;
@@ -21,7 +22,7 @@ let
   });
 in
 pkgs.runCommand "keyboard-mapping-checks" {
-  nativeBuildInputs = [ pkgs.python3 pkgs.libxkbcommon ];
+  nativeBuildInputs = [ pkgs.python3 pkgs.libxkbcommon pkgs.systemd ];
 } ''
   python3 ${./keyboard-mapping.py} ${settings} ${phoneSettings}
   touch "$out"

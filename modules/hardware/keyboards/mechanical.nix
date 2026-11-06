@@ -1,16 +1,13 @@
-{ config, lib, ... }:
+{ ... }:
 
 {
-  # This keyboard's Mac mode puts Cmd in the Alt position. Scope the swap to
-  # its USB identity so the built-in keyboard keeps Win as Super. Xorg applies
-  # this on every connection, without scraping device IDs from its log.
-  services.xserver.inputClassSections = lib.mkAfter [
-    ''
-      Identifier "Blix mechanical keyboard"
-      MatchIsKeyboard "on"
-      MatchUSBID "1fc9:e8c7"
-      Option "XkbLayout" "${config.services.xserver.xkb.layout}"
-      Option "XkbOptions" "terminate:ctrl_alt_bksp,altwin:swap_alt_win"
-    ''
-  ];
+  # This keyboard's Mac mode puts Cmd in the Alt position. Remap its USB
+  # scancodes before X11/Wayland so both sessions agree without a global swap.
+  services.udev.extraHwdb = ''
+    evdev:input:b0003v1FC9pE8C7*
+     KEYBOARD_KEY_700e2=leftmeta
+     KEYBOARD_KEY_700e3=leftalt
+     KEYBOARD_KEY_700e6=rightmeta
+     KEYBOARD_KEY_700e7=rightalt
+  '';
 }

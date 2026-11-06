@@ -109,7 +109,8 @@ scope and risk rules in the Validation section.
 - `modules/hardware/` separates keyboard, mouse, touchpad, lid/power and
   Bluetooth policy. `default.nix` imports session-independent power and Bluetooth
   policy; `x11.nix` composes input policy for the desktop environment.
-  `keyboards/mechanical.nix` owns the USB-specific Cmd/Super mapping; modifier
+  `keyboards/mechanical.nix` owns the USB-specific Cmd/Super mapping through
+  udev hwdb for both X11 and Wayland; do not add a second Xorg swap. Modifier
   swaps must never be applied to every keyboard.
 - `modules/hardware/suspend.nix` enables workstation suspend and is selected by
   laptop/desktop profiles; the phone keeps its separate policy.
@@ -181,7 +182,7 @@ scope and risk rules in the Validation section.
   Shared Picom rules keep Steam games opaque and allow eligible fullscreen games
   to bypass composition.
 - `hosts/desktop/gpu.nix` enables Neofetch GPU reporting and supplies the
-  NVIDIA utilization topbar block only on Desktop.
+  NVIDIA utilization topbar block in both OXWM and labwc only on Desktop.
 - `hosts/<hostname>/home.nix` composes machine-dependent user settings and
   imports `display.nix` for connector, layout, rotation and DPI facts when using X11.
 
