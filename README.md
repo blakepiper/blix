@@ -64,6 +64,8 @@ The desktop uses:
   terminal binding uses the same executable as `$TERMINAL`.
   Its session service uses `Type=notify` with an explicit SIGUSR2 reload while
   Ghostty 1.3.1 needs the [systemd 262 startup workaround](https://github.com/ghostty-org/ghostty/pull/14399).
+  In labwc, Ghostty starts on demand through D-Bus and exits after its last
+  window closes, freeing its idle memory. X11 retains its preloaded instance.
   Clicking within the current shell command moves the editing cursor there.
   Ctrl-click opens links in Firefox; use Ctrl-Shift-click when a terminal
   application captures the mouse.
@@ -223,8 +225,9 @@ uses `hasLid`, independently of the profile's name. Bluetooth support enables
 BlueZ and powers the controller on at boot. The selected desktop supplies Blueman
 and the user session supplies its pairing agent.
 The Blueman pairing agent starts with the Blix X11 session without requiring a
-system tray. Launch `blueman-manager` from dmenu or a terminal to pair, trust and
-connect devices. Pairing records stay on the machine; hosts can opt out with
+system tray. The unused tray icon plugins are disabled while pairing, automatic
+reconnects and notifications remain available. Launch `blueman-manager` from
+dmenu or a terminal to pair, trust and connect devices. Pairing records stay on the machine; hosts can opt out with
 `blix.machine.hasBluetooth = false`.
 The shared X11 session runs Dunst before the pairing agent. Bluetooth status
 notifications have no icon, expire after two seconds, and leave no history;

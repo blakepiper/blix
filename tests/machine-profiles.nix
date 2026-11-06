@@ -31,7 +31,10 @@ let
       bluetoothInSession = builtins.elem "blueman-applet.service"
         home.systemd.user.targets.blix-session.Unit.Wants;
       bluetoothNoTray = !home.services.blueman-applet.enable || (
-        home.systemd.user.services.blueman-applet.Unit.Requires == [ ]
+        lib.all (plugin: builtins.elem plugin
+          (map (entry: entry.value) home.dconf.settings."org/blueman/general".plugin-list.value))
+          [ "!StatusIcon" "!ShowConnected" "!StatusNotifierItem" ]
+        && home.systemd.user.services.blueman-applet.Unit.Requires == [ ]
         && home.systemd.user.services.blueman-applet.Unit.After == [ "blix-lock.service" "dunst.service" ]
         && home.systemd.user.services.blueman-applet.Unit.PartOf ==
           ([ "blix-session.target" ] ++ lib.optional cfg.programs.labwc.enable "blix-wayland-session.target")

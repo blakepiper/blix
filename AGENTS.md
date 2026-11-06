@@ -74,6 +74,8 @@ scope and risk rules in the Validation section.
 - `modules/desktop/labwc.nix` enables the parallel experimental Wayland session
   only in laptop and desktop profiles. `home/przvl/environments/labwc.nix` owns
   `startlabwc`, floating-window shortcuts and the separate Wayland session target.
+  Ghostty starts on demand in labwc and exits after its last window closes;
+  X11 retains its preloaded instance.
   Blix Settings supplies session-aware Wayland controls and styling in
   `packaging/blix-settings/src/`; host display modules set `blix.wayland.outputs`
   for Wayland scale preferences. Its app menu uses nwg-menu below the opaque bar;
@@ -165,7 +167,8 @@ scope and risk rules in the Validation section.
 - `home/przvl/hardware/` declares typed user capabilities and display options;
   `display.nix` owns the display helper package and hotplug service. The X11
   display environment remains in `home/przvl/x11.nix`. `bluetooth.nix` binds the
-  Blueman pairing agent to the startx Blix session without a tray dependency.
+  Blueman pairing agent to the startx Blix session without a tray dependency
+  and disables unused tray plugins while preserving pairing and reconnects.
 - `home/przvl/services/notifications.nix` supplies Dunst for all X11 sessions;
   Bluetooth status bubbles are icon-free and expire after two seconds, while
   pairing requests remain actionable. The phone keeps connection popups disabled.

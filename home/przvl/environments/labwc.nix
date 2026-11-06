@@ -103,7 +103,8 @@ let
     text = ''
       extra=()
       if [[ ''${XDG_SESSION_TYPE:-} == wayland ]]; then
-        extra=(--window-decoration=server --background-opacity=0.85 --background-opacity-cells=true)
+        extra=(--window-decoration=server --background-opacity=0.85 --background-opacity-cells=true
+          --quit-after-last-window-closed=true)
       fi
       exec ${lib.getExe config.programs.ghostty.package} --gtk-single-instance=true --initial-window=false "''${extra[@]}"
     '';
@@ -455,7 +456,7 @@ in
 
   systemd.user.targets.blix-wayland-session.Unit = {
     Description = "Blix labwc Wayland session services";
-    Wants = [ "dunst.service" "app-com.mitchellh.ghostty.service"
+    Wants = [ "dunst.service"
       "blix-wayland-panel.service" "blix-wayland-lock.service"
       "blix-wayland-clipboard.service" "blix-wayland-wallpaper.service"
       "blix-wayland-nightlight.service" ]

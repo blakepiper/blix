@@ -9,6 +9,10 @@
   # Use notification bubbles instead of Blueman's focus-taking GTK fallback.
   dconf.settings."org/blueman/general" = lib.mkIf config.services.blueman-applet.enable {
     notification-daemon = true;
+    # Neither Blix panel has a tray. Disable the icon and its dependent plugin
+    # together so ShowConnected cannot load StatusIcon again at startup.
+    # AuthAgent, AutoConnect and ConnectionNotifier remain enabled.
+    plugin-list = lib.mkAfter [ "!StatusIcon" "!ShowConnected" "!StatusNotifierItem" ];
   };
 
   # OXWM has no tray target. Keep the pairing agent with the manual X11

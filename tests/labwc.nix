@@ -32,6 +32,9 @@ assert !phone.config.programs.labwc.enable;
 assert !(phone.config.home-manager.users.przvl.systemd.user.targets ? blix-wayland-session);
 assert !lib.any (unit: builtins.elem unit wants) [ "blix-session.target" "blix-picom.service" "blix-lock.service" "blix-display-hotplug.service" "blix-nightlight.service" ];
 assert builtins.elem "blix-wayland-nightlight.service" wants;
+assert !(builtins.elem "app-com.mitchellh.ghostty.service" wants);
+assert builtins.elem "app-com.mitchellh.ghostty.service"
+  home.systemd.user.targets.blix-session.Unit.Wants;
 pkgs.runCommand "labwc-session-checks" {
   nativeBuildInputs = [ pkgs.labwc (pkgs.python3.withPackages (ps: [ ps.pygobject3 ps.pycairo ])) pkgs.dbus pkgs.wlr-randr pkgs.wlrctl pkgs.grim pkgs.strace ];
   GI_TYPELIB_PATH = lib.makeSearchPath "lib/girepository-1.0" (map lib.getLib [ pkgs.gtk3 pkgs.gtk-layer-shell pkgs.glib pkgs.gobject-introspection pkgs.pango pkgs.harfbuzz pkgs.atk pkgs.gdk-pixbuf ]);
