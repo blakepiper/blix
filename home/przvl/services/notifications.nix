@@ -9,9 +9,24 @@
         offset = "(12, 36)";
         width = "(180, 360)";
         notification_limit = 3;
-        font = "monospace 11";
-        frame_color = "#98c379";
+        font = "JetBrainsMono Nerd Font 11";
+        frame_color = "#7aa2f7";
         show_indicators = false;
+      };
+      urgency_low = {
+        background = "#1a1b26";
+        foreground = "#a9b1d6";
+        frame_color = "#292e42";
+      };
+      urgency_normal = {
+        background = "#1a1b26";
+        foreground = "#c0caf5";
+        frame_color = "#7aa2f7";
+      };
+      urgency_critical = {
+        background = "#1a1b26";
+        foreground = "#f7768e";
+        frame_color = "#f7768e";
       };
       # Terminal completion messages should be brief even with a client timeout.
       ghostty = lib.hm.dag.entryAfter [ "global" ] {

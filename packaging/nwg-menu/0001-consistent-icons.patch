@@ -1,0 +1,120 @@
+--- a/uicomponents.go
++++ b/uicomponents.go
+@@ -12,6 +12,30 @@
+ 	"github.com/gotk3/gotk3/gdk"
+ 	"github.com/gotk3/gotk3/gtk"
+ )
++
++// Use GTK's symbolic rendering and an explicit size for navigation/session
++// icons. Loading these through raw pixbufs loses their foreground color, while
++// ICON_SIZE_DND silently gives folder icons inconsistent sizes.
++func themedImage(icon string, size int) *gtk.Image {
++	aliases := map[string]string{
++		"folder-home": "user-home-symbolic",
++		"folder-downloads": "folder-download-symbolic",
++		"applications-development": "applications-engineering-symbolic",
++		"applications-accessories": "applications-utilities-symbolic",
++		"applications-office": "x-office-document-symbolic",
++		"applications-other": "applications-utilities-symbolic",
++		"preferences-system-network": "network-workgroup-symbolic",
++		"dialog-cancel": "window-close-symbolic",
++	}
++	if replacement, ok := aliases[icon]; ok {
++		icon = replacement
++	} else if !strings.HasSuffix(icon, "-symbolic") {
++		icon += "-symbolic"
++	}
++	image, _ := gtk.ImageNewFromIconName(icon, gtk.ICON_SIZE_BUTTON)
++	image.SetPixelSize(size)
++	return image
++}
+ 
+ func setUpPinnedListBox() *gtk.ListBox {
+ 	listBox, _ := gtk.ListBoxNew()
+@@ -112,15 +136,13 @@
+ 
+ 			connectCategoryListBox(cat.Name, eventBox, row)
+ 
+-			pixbuf, _ := createPixbuf(cat.Icon, *iconSizeLarge)
+-			img, _ := gtk.ImageNewFromPixbuf(pixbuf)
++			img := themedImage(cat.Icon, *iconSizeLarge)
+ 			hBox.PackStart(img, false, false, 0)
+ 
+ 			lbl, _ := gtk.LabelNew(cat.DisplayName)
+ 			hBox.PackStart(lbl, false, false, 0)
+ 
+-			pixbuf, _ = createPixbuf("pan-end-symbolic", *iconSizeSmall)
+-			img, _ = gtk.ImageNewFromPixbuf(pixbuf)
++			img = themedImage("pan-end-symbolic", *iconSizeSmall)
+ 			hBox.PackEnd(img, false, false, 0)
+ 
+ 			row.Add(vBox)
+@@ -548,7 +570,7 @@
+ 	eventBox.Add(hBox)
+ 	vBox.PackStart(eventBox, false, false, *itemPadding*3)
+ 
+-	img, _ := gtk.ImageNewFromIconName(iconName, gtk.ICON_SIZE_DND)
++	img := themedImage(iconName, *iconSizeLarge)
+ 	hBox.PackStart(img, false, false, 0)
+ 
+ 	if len(displayName) > *sLen {
+@@ -632,8 +654,7 @@
+ 	eventBox.Add(wrapperHbox)
+ 
+ 	btn, _ := gtk.ButtonNew()
+-	pixbuf, _ := createPixbuf("system-lock-screen", *iconSizeLarge)
+-	img, _ := gtk.ImageNewFromPixbuf(pixbuf)
++	img := themedImage("system-lock-screen", *iconSizeLarge)
+ 	btn.SetImage(img)
+ 	btn.SetCanFocus(false)
+ 	box.PackStart(btn, true, true, 6)
+@@ -644,8 +665,7 @@
+ 	})
+ 
+ 	btn, _ = gtk.ButtonNew()
+-	pixbuf, _ = createPixbuf("system-log-out", *iconSizeLarge)
+-	img, _ = gtk.ImageNewFromPixbuf(pixbuf)
++	img = themedImage("system-log-out", *iconSizeLarge)
+ 	btn.SetImage(img)
+ 	btn.SetCanFocus(false)
+ 	box.PackStart(btn, true, true, 6)
+@@ -655,8 +675,7 @@
+ 	})
+ 
+ 	btn, _ = gtk.ButtonNew()
+-	pixbuf, _ = createPixbuf("system-reboot", *iconSizeLarge)
+-	img, _ = gtk.ImageNewFromPixbuf(pixbuf)
++	img = themedImage("system-reboot", *iconSizeLarge)
+ 	btn.SetImage(img)
+ 	btn.SetCanFocus(false)
+ 	box.PackStart(btn, true, true, 6)
+@@ -666,8 +685,7 @@
+ 	})
+ 
+ 	btn, _ = gtk.ButtonNew()
+-	pixbuf, _ = createPixbuf("system-shutdown", *iconSizeLarge)
+-	img, _ = gtk.ImageNewFromPixbuf(pixbuf)
++	img = themedImage("system-shutdown", *iconSizeLarge)
+ 	btn.SetImage(img)
+ 	btn.SetCanFocus(false)
+ 	box.PackStart(btn, true, true, 6)
+@@ -687,8 +705,7 @@
+ 	box, _ := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 0)
+ 
+ 	btn, _ := gtk.ButtonNew()
+-	pixbuf, _ := createPixbuf(icon, *iconSizeLarge)
+-	img, _ := gtk.ImageNewFromPixbuf(pixbuf)
++	img := themedImage(icon, *iconSizeLarge)
+ 	btn.SetImage(img)
+ 	btn.SetCanFocus(false)
+ 	box.PackEnd(btn, false, false, 16)
+@@ -702,8 +719,7 @@
+ 	})
+ 
+ 	btn, _ = gtk.ButtonNew()
+-	pixbuf, _ = createPixbuf("dialog-cancel", *iconSizeLarge)
+-	img, _ = gtk.ImageNewFromPixbuf(pixbuf)
++	img = themedImage("dialog-cancel", *iconSizeLarge)
+ 	btn.SetImage(img)
+ 	btn.SetCanFocus(false)
+ 	box.PackEnd(btn, false, false, 6)

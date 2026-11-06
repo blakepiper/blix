@@ -11,6 +11,10 @@ assert keys['W-q'].attrib['name'] == 'Close'
 assert keys['W-S-f'].attrib['name'] == 'ToggleMaximize'
 assert keys['W-m'].attrib['name'] == 'ToggleMaximize'
 assert keys['W-S-Left'].attrib['direction'] == 'left'
+assert keys['XF86Sleep'].attrib['command'].endswith('/bin/blix-suspend')
+assert keys['W-S-l'].attrib['command'] == keys['XF86Sleep'].attrib['command']
+assert root.findtext('desktops/popupTime') == '0'
+assert root.findtext('core/decoration') == 'server'
 for number in range(1, 10):
     assert keys[f'W-{number}'].attrib['to'] == str(number)
     assert keys[f'W-S-{number}'].attrib['follow'] == 'no'
@@ -28,6 +32,9 @@ with open('labwc.log', 'w+') as log:
             time.sleep(0.1)
         assert sockets, 'labwc did not expose a Wayland socket'
         os.environ['WAYLAND_DISPLAY'] = sockets[0].name
+        os.environ['GDK_BACKEND'] = 'wayland'
+        subprocess.run(['python3', os.environ['SLIDER_TEST'], os.environ['SLIDER_SOURCE']], check=True)
+        subprocess.run(['python3', os.environ['PANEL_TEST']], check=True)
         subprocess.run(['wlr-randr'], check=True)
         subprocess.run(['grim', 'headless.png'], check=True)
         assert Path('headless.png').stat().st_size > 0

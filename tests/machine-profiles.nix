@@ -23,6 +23,8 @@ let
       autologinUser = cfg.services.getty.autologinUser;
       touchpadScrolling = cfg.services.libinput.touchpad.naturalScrolling;
       lid = cfg.services.logind.settings.Login;
+      suspendPolicy = cfg.systemd.sleep.settings.Sleep.AllowSuspend or null;
+      suspendLauncher = home.blix.power.suspendCommand or null;
       bluetooth = cfg.hardware.bluetooth.enable && cfg.hardware.bluetooth.powerOnBoot;
       bluetoothManager = cfg.services.blueman.enable;
       bluetoothApplet = home.services.blueman-applet.enable;
@@ -105,6 +107,10 @@ assert laptop.hasBluetooth && laptop.bluetooth && laptop.bluetoothManager && lap
 assert laptop.batteryHelper && laptop.brightnessHelper && laptop.batteryProbe;
 assert laptop.backlightBindings && laptop.batteryReporting;
 assert laptop.lid.HandleLidSwitch == "suspend" && laptop.lid.HandleLidSwitchDocked == "ignore";
+assert laptop.lid.HandleLidSwitchExternalPower == "suspend";
+assert laptop.suspendPolicy && laptop.suspendLauncher != null;
+assert desktop.suspendPolicy && desktop.suspendLauncher != null;
+assert phone.suspendPolicy == null && phone.suspendLauncher == null;
 assert desktop.type == "desktop" && desktop.layout == "extend";
 assert laptop.touchpadScrolling && desktop.touchpadScrolling && phone.touchpadScrolling;
 assert !desktop.hasBattery && !desktop.hasBacklight && !desktop.hasTouchpad && !desktop.hasLid;

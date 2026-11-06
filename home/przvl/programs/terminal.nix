@@ -20,15 +20,17 @@ in
       font-family = "JetBrainsMono Nerd Font";
       font-size = 11;
       background = "1a1b26";
-      foreground = "bbbbbb";
+      foreground = "c0caf5";
       # Match Neovim's terminal palette so ANSI artwork stays vivid.
       palette = [
-        "0=#000000" "1=#cd0000" "2=#00cd00" "3=#cdcd00"
-        "4=#82b4ff" "5=#cd00cd" "6=#00cdcd" "7=#e5e5e5"
-        "8=#7f7f7f" "9=#ff0000" "10=#00ff00" "11=#ffff00"
-        "12=#a6c8ff" "13=#ff00ff" "14=#00ffff" "15=#ffffff"
+        "0=#15161e" "1=#f7768e" "2=#9ece6a" "3=#e0af68"
+        "4=#7aa2f7" "5=#bb9af7" "6=#7dcfff" "7=#a9b1d6"
+        "8=#414868" "9=#ff899d" "10=#9fe044" "11=#faba4a"
+        "12=#8db0ff" "13=#c7a9ff" "14=#a4daff" "15=#c0caf5"
       ];
-      cursor-color = "bbbbbb";
+      cursor-color = "c0caf5";
+      selection-background = "283457";
+      selection-foreground = "c0caf5";
       cursor-style = "block";
       cursor-click-to-move = true;
       link-url = true;

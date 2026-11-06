@@ -7,6 +7,7 @@
     ./packages.nix
     ./appearance.nix
     ./programs
+    ./programs/power.nix
     ./environments/oxwm.nix
     ./environments/labwc.nix
   ];

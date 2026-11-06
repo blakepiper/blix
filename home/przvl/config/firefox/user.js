@@ -64,11 +64,11 @@ user_pref("pdfjs.viewerCssTheme", 2);
 
 // Render PDF pages with a dark background and light text.
 user_pref("pdfjs.forcePageColors", true);
-user_pref("pdfjs.pageColorsBackground", "#181818");
-user_pref("pdfjs.pageColorsForeground", "#eeeeee");
+user_pref("pdfjs.pageColorsBackground", "#1a1b26");
+user_pref("pdfjs.pageColorsForeground", "#c0caf5");
 
-// Select Black by XI, installed through the shared extension policy.
-user_pref("extensions.activeThemeID", "{9b84b6b4-07c4-4b4b-ba21-394d86f6e9ee}");
+// Select Tokyo Night, installed through the shared extension policy.
+user_pref("extensions.activeThemeID", "{cebd391d-f568-473f-bb6e-698d08ec81ec}");
 // Appearance settings extracted from the local saved preferences.
 user_pref("browser.theme.toolbar-theme", 0);
 user_pref("sidebar.verticalTabs", true);

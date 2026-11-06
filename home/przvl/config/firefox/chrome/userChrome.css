@@ -1,6 +1,18 @@
 
 /* Square corners throughout Firefox's browser interface. */
 :root {
+  --lwt-accent-color: #1a1b26 !important;
+  --lwt-text-color: #c0caf5 !important;
+  --toolbar-bgcolor: #1a1b26 !important;
+  --toolbar-color: #c0caf5 !important;
+  --toolbar-field-background-color: #24283b !important;
+  --toolbar-field-color: #c0caf5 !important;
+  --urlbarView-highlight-background: #292e42 !important;
+  --lwt-sidebar-background-color: #16161e !important;
+  --lwt-sidebar-text-color: #c0caf5 !important;
+  --arrowpanel-background: #1a1b26 !important;
+  --arrowpanel-color: #c0caf5 !important;
+  --arrowpanel-border-color: #414868 !important;
   --border-radius-small: 0px !important;
   --border-radius-medium: 0px !important;
   --border-radius-large: 0px !important;
@@ -86,4 +98,9 @@
 /* Later preference: use the installed family throughout browser text. */
 :root, :root * {
   font-family: "JetBrainsMono Nerd Font", monospace !important;
+}
+
+/* Window closing is handled by the desktop's controls and shortcuts. */
+.titlebar-close {
+  display: none !important;
 }

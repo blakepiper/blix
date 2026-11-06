@@ -24,6 +24,9 @@ backend.write_text("""
 import pathlib, sys, time
 root = pathlib.Path(sys.argv[1])
 name = sys.argv[2]
+if name == 'suspend':
+    (root / 'suspend-request').touch()
+    raise SystemExit(0)
 if len(sys.argv) == 3:
     if name == 'power-mode' and (root / 'slow-getter').exists():
         (root / 'getter-waiting').touch()
@@ -69,6 +72,7 @@ end
 ''' + config)
 env = os.environ.copy()
 env.update(BLIX_HAS_BACKLIGHT="1", BLIX_BATTERY="test-battery", BLIX_HAS_POWER_PROFILES="1", TERMINAL="/bin/sh")
+env['BLIX_SUSPEND_COMMAND'] = backend_command + ' suspend'
 env.pop("XAUTHORITY", None)
 log = (scratch / "session.log").open("w")
 xvfb = sp.Popen([xvfb_path, "-displayfd", "1", "-screen", "0", "1600x800x24", "-nolisten", "tcp"], stdout=sp.PIPE, stderr=log, text=True, env=env)
@@ -275,6 +279,11 @@ try:
     assert time.monotonic() - started < 1, "Power getter blocked the X11 event loop"
 
     # Dismissal must release the keyboard grab so ordinary WM bindings work again.
+    run_mouse("key", "XF86Sleep")
+    eventually(lambda: (state / "suspend-request").exists(), "The Sleep key did not call the suspend launcher")
+    (state / "suspend-request").unlink()
+    run_mouse("key", "super+shift+l")
+    eventually(lambda: (state / "suspend-request").exists(), "The suspend shortcut did not call the launcher")
     run_mouse("key", "super+shift+q")
     manager.wait(timeout=8)
     assert manager.returncode == 0, "OXWM did not exit cleanly after popup dismissal"

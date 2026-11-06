@@ -1,7 +1,9 @@
 { config, osConfig, lib, pkgs, blixLock, ... }:
 
 let
-  blixSettings = pkgs.callPackage ../../../packaging/blix-settings { };
+  blixSettings = pkgs.callPackage ../../../packaging/blix-settings {
+    withWayland = osConfig.programs.labwc.enable or false;
+  };
   speed = value: if value == null then 0 else builtins.fromJSON value;
 in
 {
@@ -30,6 +32,7 @@ in
       };
     };
     lockCommand = "${blixLock}/bin/blix-lock";
+    suspendCommand = config.blix.power.suspendCommand or null;
     shortcutsFile = "${config.home.homeDirectory}/.config/oxwm/config.lua";
   };
 

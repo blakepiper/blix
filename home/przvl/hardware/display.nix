@@ -10,6 +10,18 @@ let
   };
 in
 {
+  options.blix.wayland.outputs = lib.mkOption {
+    type = lib.types.attrsOf (lib.types.submodule {
+      options.scale = lib.mkOption {
+        type = lib.types.numbers.positive;
+        default = 1;
+        description = "Wayland output scale at session startup.";
+      };
+    });
+    default = {};
+    description = "Host-specific Wayland connector preferences, independent of XRandR.";
+  };
+
   options.blix.display = {
     layout = lib.mkOption {
       type = lib.types.enum [ "mirror" "extend" ];

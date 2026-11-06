@@ -18,6 +18,7 @@ assert c.hardware.nvidia.powerManagement.kernelSuspendNotifier
   || (lib.elem "systemd-suspend.service" c.systemd.services.nvidia-suspend.requiredBy
     && lib.elem "systemd-suspend.service" c.systemd.services.nvidia-resume.after);
 assert c.zramSwap.enable && c.powerManagement.enable;
+assert c.systemd.services.systemd-suspend.environment.SYSTEMD_SLEEP_FREEZE_USER_SESSIONS == "false";
 assert c.boot.loader.systemd-boot.enable;
 assert h.blix.display.primaryOutput == null;
 assert h.home.file ? ".xinitrc";

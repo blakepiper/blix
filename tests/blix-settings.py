@@ -42,6 +42,32 @@ class RuntimeTests(unittest.TestCase):
         self.environment.stop()
         self.temp.cleanup()
 
+    def test_wayland_display_and_power_never_query_x11(self):
+        outputs = [{"name": "eDP-1", "enabled": True, "scale": 1.75}]
+        with patch.object(core, "is_wayland", return_value=True), \
+             patch.object(core, "command", return_value=json.dumps(outputs)) as command, \
+             patch.object(core, "brightness", return_value=62), \
+             patch.object(core, "defaults", return_value={}), \
+             patch.object(core, "batteries", return_value=[]):
+            state = core.display_state()
+            self.assertEqual(state["outputs"], outputs)
+            self.assertEqual(state["brightness"], 62)
+            self.assertIsNone(core.power_state()["blank_seconds"])
+            command.assert_called_once_with("wlr-randr", "--json")
+
+    def test_wayland_scale_refuses_disconnected_outputs_and_invalid_values(self):
+        with patch.object(core, "wayland_outputs", return_value=[]) as outputs, \
+             patch.object(core, "command") as command:
+            with self.assertRaisesRegex(SettingsError, "no longer connected"):
+                core.set_wayland_scale("eDP-1", 1.75)
+            command.assert_not_called()
+            for value in (0, 4, float("nan")):
+                with self.assertRaises(SettingsError):
+                    core.set_wayland_scale("eDP-1", value)
+            outputs.return_value = [{"name": "eDP-1", "enabled": True}]
+            core.set_wayland_scale("eDP-1", 1.75)
+            command.assert_called_once_with("wlr-randr", "--output", "eDP-1", "--scale", 1.75)
+
     def test_nightlight_persistence_and_failure_recovery(self):
         self.assertEqual(core.nightlight_settings(), {"enabled": False, "intensity": 50})
         with patch.object(core, "command") as command:
@@ -66,6 +92,17 @@ class RuntimeTests(unittest.TestCase):
         for intensity in (-1, 101, True, 1.5):
             with self.assertRaises(SettingsError):
                 core.set_nightlight(True, intensity)
+
+    def test_wayland_nightlight_uses_native_backend_and_session_service(self):
+        with patch.object(core, "is_wayland", return_value=True), \
+             patch.object(core, "command") as command, \
+             patch.dict(core.TOOLS, gammastep="/test/gammastep"), \
+             patch.object(core.os, "execv") as execute:
+            core.set_nightlight(True, 50)
+            command.assert_called_once_with("systemctl", "--user", "restart", "blix-wayland-nightlight.service")
+            core.run_nightlight()
+            self.assertEqual(execute.call_args.args[1][1:3], ["-m", "wayland"])
+            self.assertIn("4500:4500", execute.call_args.args[1])
 
     def test_transparency_restarts_picom_and_survives_the_next_session(self):
         original = (source / "picom.conf").read_text()
@@ -584,6 +621,27 @@ class GuiTests(unittest.TestCase):
     def tearDown(self):
         self.pump()
         self.assertEqual(self.callback_errors, [], "GTK callback raised an exception")
+
+    def test_wayland_display_page_has_native_scale_and_brightness_controls(self):
+        from gi.repository import Gtk
+        outputs = [{"name": "eDP-1", "enabled": True, "make": "Panel", "model": "Built-in",
+                    "scale": 1.0, "modes": [{"width": 2880, "height": 1800, "refresh": 120, "current": True}]}]
+        self.window.wayland = True
+        try:
+            self.window.update_display({"outputs": outputs, "brightness": 62})
+            scales = [widget for widget in self.widgets(self.window.pages["display"]) if isinstance(widget, Gtk.ComboBoxText)]
+            self.assertEqual(len(scales), 1)
+            self.assertEqual(scales[0].get_active_id(), "1.0")
+            self.assertEqual(self.window.brightness_slider.get_value(), 62)
+            self.assertTrue(self.window.brightness_slider.get_sensitive())
+            self.assertTrue(self.buttons("display", "Open display editor"))
+            self.assertTrue(self.buttons("display", "Customize appearance"))
+            self.assertIsInstance(self.window.nightlight_switch, Gtk.Switch)
+            self.assertFalse(self.buttons("display", "Apply…"))
+        finally:
+            self.window.wayland = False
+            self.window.last_models.pop("display", None)
+            self.window.refresh()
 
     def drag(self, widget, value):
         from gi.repository import Gtk

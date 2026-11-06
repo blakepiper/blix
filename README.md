@@ -75,7 +75,7 @@ The desktop uses:
   Origin, Dark Reader, and Enhancer for YouTube extensions. Its default profile
   includes the captured privacy preferences, vertical tabs, square corners,
   JetBrains Mono fonts, and dark PDF pages.
-- Neovim uses LazyVim with the minimal theme and absolute line numbers.
+- Neovim uses LazyVim with Tokyo Night and absolute line numbers.
   `nvimide [project-directory]`
   adds a left explorer and two stacked terminals on the right, with Neofetch
   in the second terminal. Plain `nvim` keeps the normal editor layout.
@@ -274,6 +274,25 @@ ignores idle sessions. Other profiles leave automatic suspend to verified host
 policy. Hosts can override individual logind defaults through
 `services.logind.settings.Login`.
 
+Laptop and desktop profiles explicitly select `modules/hardware/suspend.nix`.
+It enables systemd suspend without forcing a hardware sleep state; firmware and
+the kernel choose s2idle/deep. The phone does not import this policy or the
+workstation suspend launcher. Desktop retains its NVIDIA-specific
+`SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=false` workaround.
+
+Use **Suspend** in the app menu, **Blix Settings → Power**, **Super+Shift+L**, or
+**Sleep**. The workstation OXWM Control menu uses the same `blix-suspend` helper.
+It checks that the active desktop's lock service holds its sleep delay inhibitor
+before asking logind to suspend. `blix-suspend --check` only verifies readiness.
+The services lock on logind's PrepareForSleep event, covering lid-triggered
+suspends as well as UI requests. Laptop lid-close handling is already declared
+in `modules/hardware/power.nix`: suspend on battery or AC, and ignore the lid
+while docked. Desktop and phone lid handling stays disabled through capabilities.
+Zen's journal confirms physical lid close/open and completed s2idle resumes;
+physical verification of the new labwc path and each other machine is separate
+from evaluation/build tests. Labwc imports its current logind session ID at
+startup instead of retaining an earlier TTY's ID in the user manager.
+
 Keyboard, mouse, touchpad, lid and Bluetooth policy live in separate files under
 `modules/hardware/`. Natural scrolling applies to ordinary mice and all touchpads,
 including external touchpads on desktop and phone hosts using the X11 environment.
@@ -402,7 +421,7 @@ BLIX_PRIMARY_SCALE_FROM
 BLIX_WALLPAPER
 ```
 
-Shared Firefox defaults select Black by XI (3.0.2) and DuckDuckGo for regular
+Shared Firefox defaults select Tokyo Night (3.0) and DuckDuckGo for regular
 and private searches, alongside the existing privacy settings. The theme is
 automatically installed from Mozilla Add-ons and selected at browser startup.
 The built-in VPN feature is always enabled, with its button beside Reload in
@@ -425,6 +444,12 @@ window/tab/frame lifecycle, browser restarts and Picom's rendered opacity.
 To leave the session, exit OXWM or use the configured lock/power controls and
 return to the TTY.
 
+Firefox’s own window-close button is hidden by the shared `userChrome.css` on
+all hosts and desktop environments. Desktop window controls and shortcuts remain
+available. Restart Firefox after activation to load browser chrome changes.
+Steam’s local desktop-entry override places it only in Games while preserving
+its URL handlers, translations and Library/Store actions.
+
 ## Experimental Wayland session
 
 Workstation profiles also select `modules/desktop/labwc.nix` and
@@ -443,7 +468,7 @@ tags. Sending a window to another workspace does not follow it.
 | --- | --- |
 | Super+Enter | Ghostty |
 | Super+Space / Super+D | Fuzzel application launcher |
-| Super+F / Super+B | Xfe / Firefox |
+| Super+F / Super+B | Thunar / Firefox |
 | Super+Q | Close window |
 | Super+M | Toggle maximized size |
 | Super+Shift+F | Toggle maximized size (keep the bar visible) |
@@ -457,33 +482,72 @@ tags. Sending a window to another workspace does not follow it.
 | Super+Ctrl+Shift+arrows | Move window to another output |
 | Super+left/right mouse drag | Move / resize window |
 | Super+L | Lock with swaylock |
-| Super+S | Wayland display settings (wdisplays) |
+| Super+Shift+L / Sleep key | Lock and suspend |
+| Super+S | Blix Settings |
 | Super+V | Clipboard history |
 | Super+Shift+S / Print | Region / whole-desktop screenshot, saved and copied |
 | Super+Shift+Q | Exit to TTY |
 
-Volume, media and laptop brightness keys are also configured. Waybar provides
-numbered workspaces and OXWM-style status colors, separators and RAM/CPU/clock
-underlines, plus volume, brightness and battery where applicable, and a tray.
+Volume, media and laptop brightness keys are also configured. The compact,
+opaque Waybar provides numbered workspaces and colored status labels without
+RAM/CPU/clock underlines. Battery status is labeled, with a `+` while charging. Clicking volume or brightness
+opens an OXWM-style slider below the clicked block: the same 240×82 content,
+colors, drag behavior, arrow/Home/End keys, and Escape/right-click/outside-click
+dismissal. Waybar's session-local package patch passes each block's actual logical
+allocation and monitor to the native GTK layer-shell popup; no text-width or
+connector offsets are guessed. Setter calls are serialized and coalesced, including
+the final value. Right-clicking volume toggles mute; scrolling either bar control
+changes it in 5% steps. Clicking battery opens the same adjacent power-mode
+chooser as OXWM on hosts with Intel power profiles; it never opens Settings.
+The official two-color NixOS SVG opens nwg-menu directly below the bar's top-left
+edge. The menu provides app categories, search, pinned favorites and session
+controls. Its scoped package fix includes upstream's category files and uniformly
+sized symbolic navigation/session icons, including Home and Downloads. Menus, settings and slider labels use JetBrainsMono Nerd Font. The
+tray is omitted; Bluetooth controls remain in Settings. Workspace
+switches update the bar without a central popup.
 The session uses Dunst, the existing Ghostty service, Blueman where supported,
 text clipboard history, the host wallpaper and swayidle's suspend/lock handling.
 `blix-wayland-session.target` owns these helpers and stops them on exit. Picom,
 XRandR hotplug, xss-lock and the X11 clipboard daemon stay with the X11 target.
-Firefox and Ghostty can use Wayland; Xfe runs through Xwayland. Windows are
-opaque, without the X11 Picom effects.
+Firefox, Ghostty and Thunar can use Wayland. Labwc requests server decorations
+and forces titlebars with minimize, maximize and close controls; drag the
+titlebar to move, double-click to maximize, or right-click for window actions.
+Titlebar padding and title fonts are compact. Applications that draw their own
+client decorations can retain their headers.
+Ghostty starts with server decorations and 85% background opacity only in the
+Wayland session. The panel remains fully opaque. Labwc does not
+provide global window opacity or Picom-style effects for arbitrary applications;
+transparency requires application support. Existing Ghostty processes need a
+new session to pick up these launch options.
 
-Outputs initially use their native advertised modes. Use Super+S to experiment
-with scale and layout; these interactive changes last for the session. XRandR
-connector names, mirror policies and scaling are not reused as Wayland output
+Outputs use their native advertised modes. Zen declares 175% scaling for its
+Wayland eDP-1 panel in `hosts/zen/display.nix`; other hosts retain their defaults.
+`blix.wayland.outputs` owns host-specific Wayland scale preferences, applied at
+session startup. Super+S opens the regular Blix Settings app with a Wayland
+interface: sidebar navigation, native audio/network/Bluetooth/power controls,
+per-output scaling, panel brightness and Night Light. A session-specific Gammastep
+service uses the Wayland gamma-control protocol; saved intensity and enable state
+are shared with X11. Layout, resolution and refresh-rate
+editing open wdisplays; theme and fonts open nwg-look. Wayland display changes
+last for the session. The unsupported X11 input and display-timeout controls
+are hidden in this session. XRandR connector names, mirror policies and scaling are not reused as Wayland output
 configuration. Blix Settings' X11 display/appearance controls and the
 USB-keyboard-specific Xorg modifier swap do not configure labwc. No global
 Alt/Super swap is applied to other keyboards.
 
-Validation includes a headless labwc startup using the generated XML, Wayland
-output discovery and a screenshot. This does not verify physical GPU/display,
-input, suspend locking or portal screen sharing. After activating the matching
-host configuration, try the session from a TTY and inspect failures with
-`journalctl --user -b -u 'blix-wayland-*' -u dunst.service`.
+Validation includes headless labwc startup, generated XML, output discovery,
+mock-device slider writes, real GTK pointer events and a virtual-pointer click on
+the patched Waybar to verify its exported anchor geometry. Basic Zen scaling,
+bar/menu placement and settings rendering were observed physically on 2026-11-05.
+Broader device input, suspend locking and portal screen sharing remain unverified.
+Inspect failures with `journalctl --user -b -u 'blix-wayland-*' -u dunst.service`.
+
+Shared appearance in `home/przvl/appearance.nix` selects Tokyo Night Dark for
+GTK 3/4 and a matching Qt 5/6 Fusion palette, with JetBrainsMono Nerd Font.
+Ghostty, Neovim, btop, bat, lazygit, Xfe, Firefox chrome, notifications and Blix Settings use
+the same palette. Applications with their own embedded interface themes may
+need their own theme selection. Restart applications after changing toolkit
+themes; Qt platform integration is inherited by a new login session.
 
 ## Adding a host
 

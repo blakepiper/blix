@@ -1,5 +1,5 @@
 # Parallel floating Wayland environment for workstation compositions.
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, blixSettings, ... }:
 let
   target = "blix-wayland-session.target";
   xml = lib.escapeXML;
@@ -8,6 +8,57 @@ let
   execute = command: ''<action name="Execute" command="${xml command}" />'';
   launcher = "${pkgs.fuzzel}/bin/fuzzel";
   lock = "${pkgs.swaylock}/bin/swaylock -f -c 1a1b26";
+  settings = "${blixSettings}/bin/blix-settings";
+  panel = pkgs.waybar.overrideAttrs (old: {
+    patches = (old.patches or []) ++ [ ../../../packaging/waybar/0001-popup-anchor.patch ];
+  });
+  popupTools = pkgs.writeText "blix-wayland-slider-tools.json" (builtins.toJSON {
+    wpctl = "${pkgs.wireplumber}/bin/wpctl";
+    brightnessctl = "${pkgs.brightnessctl}/bin/brightnessctl";
+    powerMode = "${blixSettings}/bin/blix-settings-apply";
+  });
+  popup = pkgs.writeShellApplication {
+    name = "blix-wayland-slider";
+    runtimeInputs = [ (pkgs.python3.withPackages (ps: [ ps.pygobject3 ps.pycairo ])) ];
+    text = ''
+      export GI_TYPELIB_PATH="${lib.makeSearchPath "lib/girepository-1.0" (map lib.getLib [ pkgs.gtk3 pkgs.gtk-layer-shell pkgs.glib pkgs.gobject-introspection pkgs.pango pkgs.harfbuzz pkgs.atk pkgs.gdk-pixbuf ])}''${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
+      exec python3 ${../config/labwc/slider.py} ${popupTools} "$@"
+    '';
+  };
+  appMenu = pkgs.nwg-menu.overrideAttrs (old: {
+    patches = (old.patches or []) ++ [ ../../../packaging/nwg-menu/0001-consistent-icons.patch ];
+    # The pinned package omits upstream's category data from its install phase.
+    postInstall = (old.postInstall or "") + ''
+      cp -r desktop-directories "$out/share/desktop-directories"
+    '';
+    preFixup = (old.preFixup or "") + ''
+      gappsWrapperArgs+=(--prefix XDG_DATA_DIRS : "${pkgs.adwaita-icon-theme}/share")
+    '';
+  });
+  menu = pkgs.writeShellApplication {
+    name = "blix-wayland-menu";
+    runtimeInputs = [ appMenu ];
+    text = ''
+      export XDG_DATA_DIRS="${blixSettings}/share:${pkgs.thunar}/share:''${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+      exec nwg-menu -ha left -va top -mt 0 -ml 0 -isl 24 -iss 16 -padding 1 -k \
+        -fm ${pkgs.thunar}/bin/thunar \
+        -term ${config.home.sessionVariables.TERMINAL} \
+        -cmd-lock '${lock}' \
+        -cmd-logout '${pkgs.labwc}/bin/labwc --exit' \
+        -cmd-restart '${pkgs.systemd}/bin/systemctl reboot' \
+        -cmd-shutdown '${pkgs.systemd}/bin/systemctl poweroff'
+    '';
+  };
+  ghostty = pkgs.writeShellApplication {
+    name = "blix-session-ghostty";
+    text = ''
+      extra=()
+      if [[ ''${XDG_SESSION_TYPE:-} == wayland ]]; then
+        extra=(--window-decoration=server --background-opacity=0.85 --background-opacity-cells=true)
+      fi
+      exec ${lib.getExe config.programs.ghostty.package} --gtk-single-instance=true --initial-window=false "''${extra[@]}"
+    '';
+  };
   screenshot = pkgs.writeShellApplication {
     name = "blix-wayland-screenshot";
     runtimeInputs = [ pkgs.grim pkgs.slurp pkgs.wl-clipboard pkgs.coreutils ];
@@ -49,13 +100,16 @@ let
       exec 9>"$XDG_RUNTIME_DIR/blix-labwc.lock"
       flock -n 9 || { echo 'labwc is already running.' >&2; exit 1; }
       export XDG_CURRENT_DESKTOP=labwc XDG_SESSION_DESKTOP=labwc XDG_SESSION_TYPE=wayland
+      XDG_SESSION_ID=$(loginctl show-session self -p Id --value)
+      [[ -n $XDG_SESSION_ID ]] || { echo 'No local logind session found.' >&2; exit 1; }
+      export XDG_SESSION_ID
       export MOZ_ENABLE_WAYLAND=1
       unset DISPLAY WAYLAND_DISPLAY MOZ_USE_XINPUT2
       cleanup() {
         systemctl --user stop ${target} || true
         systemctl --user stop xdg-desktop-portal.service xdg-desktop-portal-wlr.service xdg-desktop-portal-gtk.service || true
-        dbus-update-activation-environment --systemd WAYLAND_DISPLAY= DISPLAY= XDG_CURRENT_DESKTOP= XDG_SESSION_DESKTOP= XDG_SESSION_TYPE= MOZ_ENABLE_WAYLAND= || true
-        systemctl --user unset-environment WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE MOZ_ENABLE_WAYLAND
+        dbus-update-activation-environment --systemd WAYLAND_DISPLAY= DISPLAY= XDG_CURRENT_DESKTOP= XDG_SESSION_DESKTOP= XDG_SESSION_TYPE= XDG_SESSION_ID= MOZ_ENABLE_WAYLAND= || true
+        systemctl --user unset-environment WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE XDG_SESSION_ID MOZ_ENABLE_WAYLAND
       }
       trap cleanup EXIT
       # Keep the lock in this launcher, not in compositor-launched clients.
@@ -68,7 +122,7 @@ let
     text = ''
       # labwc now knows its Wayland and Xwayland socket names.
       dbus-update-activation-environment --systemd \
-        WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE MOZ_ENABLE_WAYLAND
+        WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE XDG_SESSION_ID MOZ_ENABLE_WAYLAND
       systemctl --user stop xdg-desktop-portal.service xdg-desktop-portal-wlr.service xdg-desktop-portal-gtk.service
       systemctl --user start ${target}
     '';
@@ -80,7 +134,8 @@ let
 in
 {
   home.packages = with pkgs; [
-    start screenshot clipboard fuzzel wdisplays wlr-randr wl-clipboard cliphist
+    start screenshot clipboard menu fuzzel wdisplays wlr-randr wl-clipboard cliphist
+    thunar nwg-look
   ];
 
   xdg.configFile = {
@@ -91,17 +146,24 @@ in
     "labwc/rc.xml".text = ''
       <?xml version="1.0"?>
       <labwc_config>
-        <core><gap>6</gap></core>
+        <core><gap>6</gap><decoration>server</decoration></core>
         <placement><policy>cascade</policy></placement>
         <focus><followMouse>no</followMouse></focus>
-        <theme><cornerRadius>0</cornerRadius><font name="JetBrainsMono Nerd Font" size="12" /></theme>
-        <desktops><names>${lib.concatMapStrings (i: "<name>${toString i}</name>") (lib.range 1 9)}</names></desktops>
+        <theme>
+          <cornerRadius>0</cornerRadius><font name="JetBrainsMono Nerd Font" size="12" />
+          <font place="ActiveWindow" name="JetBrainsMono Nerd Font" size="10" />
+          <font place="InactiveWindow" name="JetBrainsMono Nerd Font" size="10" />
+          <titlebar><layout>icon:iconify,max,close</layout><showTitle>yes</showTitle></titlebar>
+          <maximizedDecoration>titlebar</maximizedDecoration>
+        </theme>
+        <windowRules><windowRule identifier="*" serverDecoration="yes" /></windowRules>
+        <desktops><popupTime>0</popupTime><names>${lib.concatMapStrings (i: "<name>${toString i}</name>") (lib.range 1 9)}</names></desktops>
         <keyboard>
           <repeatRate>50</repeatRate><repeatDelay>200</repeatDelay>
           ${bind "W-Return" (execute config.home.sessionVariables.TERMINAL)}
           ${bind "W-space" (execute launcher)}
           ${bind "W-d" (execute launcher)}
-          ${bind "W-f" (execute "${pkgs.xfe}/bin/xfe")}
+          ${bind "W-f" (execute "${pkgs.thunar}/bin/thunar")}
           ${bind "W-b" (execute config.home.sessionVariables.BROWSER)}
           ${bind "W-q" (action "Close")}
           ${bind "W-S-q" (action "Exit")}
@@ -122,7 +184,9 @@ in
             bind "W-C-S-${direction}" ''<action name="MoveToOutput" direction="${lib.toLower direction}" wrap="yes" />''
           ) [ "Left" "Right" "Up" "Down" ]}
           ${bind "W-l" (execute lock)}
-          ${bind "W-s" (execute "${pkgs.wdisplays}/bin/wdisplays")}
+          ${bind "W-S-l" (execute config.blix.power.suspendCommand)}
+          ${bind "XF86Sleep" (execute config.blix.power.suspendCommand)}
+          ${bind "W-s" (execute "${settings}")}
           ${bind "W-v" (execute "${clipboard}/bin/blix-wayland-clipboard")}
           ${bind "W-S-s" (execute "${screenshot}/bin/blix-wayland-screenshot")}
           ${bind "Print" (execute "${screenshot}/bin/blix-wayland-screenshot --full")}
@@ -153,32 +217,61 @@ in
         </libinput>
       </labwc_config>
     '';
-    "labwc/themerc".text = ''
+    "labwc/themerc-override".text = ''
       border.width: 2
-      window.active.border.color: #98c379
-      window.inactive.border.color: #444444
+      window.titlebar.padding.height: 1
+      window.active.border.color: #7aa2f7
+      window.inactive.border.color: #414868
       window.active.title.bg.color: #1a1b26
-      window.active.label.text.color: #bbbbbb
+      window.active.label.text.color: #c0caf5
+      window.active.button.unpressed.image.color: #c0caf5
       window.inactive.title.bg.color: #1a1b26
-      window.inactive.label.text.color: #777777
+      window.inactive.label.text.color: #565f89
+      window.inactive.button.unpressed.image.color: #565f89
     '';
     "waybar/config".text = builtins.toJSON {
       layer = "top";
       position = "top";
       height = 28;
-      modules-left = [ "custom/logo" "ext/workspaces" ];
+      modules-left = [ "image#logo" "ext/workspaces" ];
       modules-right = lib.optional config.blix.hardware.hasBattery "battery"
         ++ [ "pulseaudio" ]
         ++ lib.optional config.blix.hardware.hasBacklight "backlight"
-        ++ [ "memory" "cpu" "clock" "tray" ];
-      "custom/logo" = { format = ""; tooltip = false; };
+        ++ [ "memory" "cpu" "clock" ];
+      "image#logo" = {
+        path = "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
+        size = 22;
+        # This Waybar version otherwise reloads a static image every millisecond.
+        interval = "once";
+        tooltip-format = "Applications, settings and session";
+        on-click = "${menu}/bin/blix-wayland-menu";
+      };
       "ext/workspaces" = { format = "{name}"; on-click = "activate"; };
       clock.format = "{:%a, %b %d - %H:%M}";
       cpu.format = "CPU: {usage}%";
       memory.format = "Ram: {used:0.1f}/{total:0.1f} GB";
-      battery.format = "{capacity}%";
-      pulseaudio = { format = "Vol {volume}%"; format-muted = "Vol muted"; };
-      backlight.format = "Bri {percent}%";
+      battery = {
+        format = "Bat: {capacity}%";
+        format-charging = "Bat: {capacity}% +";
+        tooltip-format-charging = "Charging · {capacity}%\n{timeTo}";
+      } // lib.optionalAttrs config.blix.hardware.hasPowerProfiles {
+        on-click = "${popup}/bin/blix-wayland-slider power";
+        blix-popup-anchor = true;
+      };
+      pulseaudio = {
+        format = "Vol {volume}%"; format-muted = "Vol muted";
+        on-click = "${popup}/bin/blix-wayland-slider volume";
+        blix-popup-anchor = true;
+        on-click-right = "${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle";
+        scroll-step = 5;
+      };
+      backlight = {
+        format = "Bri {percent}%";
+        on-click = "${popup}/bin/blix-wayland-slider brightness";
+        blix-popup-anchor = true;
+        on-scroll-up = "${pkgs.brightnessctl}/bin/brightnessctl --class=backlight set +5%";
+        on-scroll-down = "${pkgs.brightnessctl}/bin/brightnessctl --class=backlight --min-value=1 set 5%-";
+      };
     };
     "waybar/style.css".text = ''
       * {
@@ -189,7 +282,8 @@ in
         border-radius: 0;
       }
       window#waybar { background: #1a1b26; color: #bbbbbb; }
-      #custom-logo { color: #9fe3c4; padding: 0 10px; }
+      #image.logo { padding: 0 10px; }
+      #image.logo:hover, #pulseaudio:hover, #backlight:hover, #battery:hover { background: #34324a; }
       #workspaces button {
         color: #bbbbbb;
         background: transparent;
@@ -212,14 +306,28 @@ in
       #battery { color: #a6da95; }
       #pulseaudio { color: #8aadf4; }
       #backlight { color: #eed49f; }
-      #memory { color: #c6a0f6; box-shadow: inset 0 -1px #c6a0f6; }
-      #cpu { color: #ed8796; box-shadow: inset 0 -1px #ed8796; }
-      #clock { color: #cad3f5; box-shadow: inset 0 -1px #cad3f5; }
+      #memory { color: #c6a0f6; }
+      #cpu { color: #ed8796; }
+      #clock { color: #cad3f5; }
+    '';
+    "nwg-panel/menu-start.css".text = ''
+      * { font-family: "JetBrainsMono Nerd Font", monospace; font-size: 13px; color: #c0caf5; }
+      window { background: #1a1b26; color: #c0caf5; border: 1px solid #292e42; }
+      list, row { background: transparent; }
+      row { padding: 4px 6px; }
+      row:hover { background: #292e42; }
+      #outer-box { padding: 12px; }
+      button { background-image: none; background: transparent; color: #c0caf5; border: none; box-shadow: none; min-width: 26px; min-height: 26px; padding: 6px; }
+      button:hover { background: #292e42; }
+      entry { background: #16161e; color: #c0caf5; padding: 9px; border: 1px solid #414868; border-radius: 6px; }
     '';
     # The same terminal instance belongs to whichever desktop is running.
     "systemd/user/app-com.mitchellh.ghostty.service.d/wayland-session.conf".text = ''
       [Unit]
       PartOf=${target}
+      [Service]
+      ExecStart=
+      ExecStart=${ghostty}/bin/blix-session-ghostty
     '';
   };
 
@@ -227,16 +335,41 @@ in
     Description = "Blix labwc Wayland session services";
     Wants = [ "dunst.service" "app-com.mitchellh.ghostty.service"
       "blix-wayland-panel.service" "blix-wayland-lock.service"
-      "blix-wayland-clipboard.service" "blix-wayland-wallpaper.service" ]
-      ++ lib.optional config.services.blueman-applet.enable "blueman-applet.service";
+      "blix-wayland-clipboard.service" "blix-wayland-wallpaper.service"
+      "blix-wayland-nightlight.service" ]
+      ++ lib.optional config.services.blueman-applet.enable "blueman-applet.service"
+      ++ lib.optional (config.blix.wayland.outputs != {}) "blix-wayland-outputs.service";
   };
   systemd.user.services = {
     blueman-applet = lib.mkIf config.services.blueman-applet.enable {
       Unit.PartOf = [ target ];
     };
-    blix-wayland-panel = service "Blix Wayland panel" "${pkgs.waybar}/bin/waybar";
+    blix-wayland-panel = service "Blix Wayland panel" "${panel}/bin/waybar";
+    blix-wayland-outputs = lib.mkIf (config.blix.wayland.outputs != {}) {
+      Unit = { Description = "Blix Wayland output scaling"; PartOf = [ target ]; };
+      Service = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        ExecStart = map (name:
+          "${pkgs.wlr-randr}/bin/wlr-randr --output ${name} --scale ${toString config.blix.wayland.outputs.${name}.scale}"
+        ) (builtins.attrNames config.blix.wayland.outputs);
+      };
+    };
     blix-wayland-lock = service "Lock Wayland on suspend and logind lock requests"
       "${pkgs.swayidle}/bin/swayidle -w before-sleep '${lock}' lock '${lock}'";
+    blix-wayland-nightlight = {
+      Unit = {
+        Description = "Blix Wayland night light";
+        PartOf = [ target ];
+        ConditionEnvironment = "WAYLAND_DISPLAY";
+      };
+      Service = {
+        Type = "exec";
+        ExecStart = "${blixSettings}/bin/blix-settings-apply nightlight";
+        # Disconnecting restores the original gamma tables on Wayland. A separate
+        # reset client stays alive holding gamma control and delays later starts.
+      };
+    };
     blix-wayland-clipboard = service "Wayland text clipboard history"
       "${pkgs.wl-clipboard}/bin/wl-paste --type text --watch ${pkgs.cliphist}/bin/cliphist store";
     blix-wayland-wallpaper = service "Blix Wayland wallpaper"

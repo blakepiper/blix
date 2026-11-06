@@ -11,11 +11,12 @@ def main(gui=True):
     parser.add_argument("action", nargs="?", choices=["display-hotplug", "apply-session", "watch-input", "display-preview", "prepare-picom", "nightlight", "power-mode"])
     parser.add_argument("profile", nargs="?", choices=["performance", "balanced", "power-saver"])
     parser.add_argument("--demo", action="store_true", help="Preview the interface with simulated devices; changes stay in memory")
+    parser.add_argument("--page", choices=["display", "audio", "network", "bluetooth", "power", "input", "shortcuts", "about"])
     args = parser.parse_args()
     try:
         if gui:
             from ui import Application
-            sys.exit(Application(demo=args.demo).run([sys.argv[0]]))
+            sys.exit(Application(demo=args.demo).run([sys.argv[0]] + ([args.page] if args.page else [])))
         if args.action == "display-hotplug":
             sys.exit(apply_saved_display())
         elif args.action == "apply-session":

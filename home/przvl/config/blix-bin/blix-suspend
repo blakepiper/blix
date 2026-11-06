@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euo pipefail
+mode=${1:-}
+
+fail() {
+  echo "$*" >&2
+  if [[ $mode != --check ]]; then
+    notify-send --urgency=critical 'Could not suspend' "$*" || true
+  fi
+  exit 1
+}
+
+[[ $# == 0 || ( $# == 1 && $1 == --check ) ]] || {
+  echo 'Usage: blix-suspend [--check]' >&2
+  exit 2
+}
+
+if systemctl --user is-active --quiet blix-wayland-session.target; then
+  locker=blix-wayland-lock.service
+elif systemctl --user is-active --quiet blix-session.target; then
+  locker=blix-lock.service
+else
+  fail 'Start a Blix desktop session before suspending.'
+fi
+systemctl --user is-active --quiet "$locker" || fail 'The session lock service is not running.'
+pid=$(systemctl --user show "$locker" --property=MainPID --value)
+[[ $pid =~ ^[1-9][0-9]*$ ]] || fail 'The session lock service has no running process.'
+
+# Both xss-lock and swayidle hold a delay inhibitor until their locker is ready.
+# Refuse a manual suspend when that protection has not been established.
+if ! busctl --timeout=5 --json=short call org.freedesktop.login1 /org/freedesktop/login1 \
+    org.freedesktop.login1.Manager ListInhibitors |
+    jq -e --argjson pid "$pid" '.data[0][] | select(.[5] == $pid and .[3] == "delay" and (.[0] | split(":") | index("sleep")))' >/dev/null; then
+  fail 'The session lock service has not acquired its sleep inhibitor.'
+fi
+if ! busctl --timeout=5 --json=short call org.freedesktop.login1 /org/freedesktop/login1 \
+    org.freedesktop.login1.Manager CanSuspend |
+    jq -e '.data[0] == "yes" or .data[0] == "challenge"' >/dev/null; then
+  fail 'Suspend is not available on this system.'
+fi
+if [[ ${1:-} == --check ]]; then
+  echo 'Suspend is available and the session lock inhibitor is ready.'
+  exit 0
+fi
+exec systemctl suspend

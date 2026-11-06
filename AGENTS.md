@@ -74,8 +74,19 @@ scope and risk rules in the Validation section.
 - `modules/desktop/labwc.nix` enables the parallel experimental Wayland session
   only in laptop and desktop profiles. `home/przvl/environments/labwc.nix` owns
   `startlabwc`, floating-window shortcuts and the separate Wayland session target.
+  Blix Settings supplies session-aware Wayland controls and styling in
+  `packaging/blix-settings/src/`; host display modules set `blix.wayland.outputs`
+  for Wayland scale preferences. Its app menu uses nwg-menu below the opaque bar;
+  `packaging/nwg-menu/0001-consistent-icons.patch` fixes symbolic icon sizing.
+  The Wayland Night Light unit uses Gammastep's gamma-control backend and shares
+  saved preferences with the separate X11 unit.
+  `home/przvl/config/labwc/slider.py` mirrors the OXWM bar sliders with native
+  layer-shell windows; `packaging/waybar/0001-popup-anchor.patch` exports each
+  clicked block's allocation only for those controls. Keep this patch scoped
+  to the Wayland session's panel package.
   The phone keeps X11. XRandR settings and X11 helper services do not configure
-  labwc; physical Wayland verification remains pending.
+  labwc. Basic Zen scaling, topbar and settings rendering were observed on
+  2026-11-05; broader input, suspend and portal verification remains pending.
 - `modules/desktop/` supplies the optional X11/OXWM session, desktop services,
   fonts and system utilities. Profiles select it explicitly.
 - `modules/common/machine.nix` declares typed machine capabilities and passes
@@ -85,6 +96,10 @@ scope and risk rules in the Validation section.
   policy; `x11.nix` composes input policy for the desktop environment.
   `keyboards/mechanical.nix` owns the USB-specific Cmd/Super mapping; modifier
   swaps must never be applied to every keyboard.
+- `modules/hardware/suspend.nix` enables workstation suspend and is selected by
+  laptop/desktop profiles; the phone keeps its separate policy.
+  `home/przvl/programs/power.nix` owns the shared workstation suspend launcher
+  and desktop entry, with `blix-suspend` checking the session lock inhibitor.
 - `modules/hardware/power-profiles/intel.nix` supplies reusable Intel HWP/TLP
   power profiles and tlp-pd, explicitly imported by Zen and T490. Host modules
   own charge limits, initial mode and CPU-policy exceptions. The battery popup
@@ -130,6 +145,8 @@ scope and risk rules in the Validation section.
   Workstations and the small phone bootstrap retain their existing login behavior.
 - `home/przvl/environments/oxwm.nix` composes reusable X11 user services, helpers,
   packages and desktop settings. It does not select the browser or terminal.
+- `home/przvl/appearance.nix` owns the shared Tokyo Night GTK/Qt theme, Nerd
+  fonts and Xfe color merge; application modules own their native palettes.
 - `home/przvl/config/` owns the Blix-derived OXWM, Picom, Xfe, Neovim,
   Neofetch, and helper-script configuration.
 - `home/przvl/hardware/` declares typed user capabilities and display options;
@@ -144,6 +161,7 @@ scope and risk rules in the Validation section.
 - `modules/desktop/steam.nix` supplies the optional Steam environment and OXWM
   Steam-game focus workaround selected by Zen and Desktop. Their home modules
   import `home/przvl/programs/steam.nix` for the Super+G launcher.
+  The Steam home module also supplies a Games-only desktop-entry override.
   Shared Picom rules keep Steam games opaque and allow eligible fullscreen games
   to bypass composition.
 - `hosts/desktop/gpu.nix` enables Neofetch GPU reporting and supplies the

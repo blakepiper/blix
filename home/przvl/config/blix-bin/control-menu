@@ -9,6 +9,9 @@ choice=$(printf 'Lock\nSuspend\nReboot\nLog Out\nMonitors Off\nPower Off\n' | dm
 case $choice in
   Lock) blix-lock ;;
   Suspend)
+    if [[ -n ${BLIX_SUSPEND_COMMAND:-} ]]; then
+      exec "$BLIX_SUSPEND_COMMAND"
+    fi
     blix-lock
     # logind's PrepareForSleep event reaches xss-lock even for suspends requested
     # outside this menu. -l holds the delay inhibitor until XSecureLock is ready.

@@ -1,14 +1,14 @@
-# Dark Xfe colors. Other preferences remain user-owned.
+# Tokyo Night colors. Other preferences remain user-owned.
 [SETTINGS]
-basecolor=#343434
-bordercolor=DimGray
-backcolor=#242424
-forecolor=#d7d7d7
-listforecolor=#d7d7d7
-listbackcolor=#242424
-highlightcolor=#454545
-selbackcolor=#31567c
-selforecolor=#ffffff
-scrollbarcolor=#484848
-pbarcolor=#31567c
-attentioncolor=#ff0000
+basecolor=#1a1b26
+bordercolor=#414868
+backcolor=#16161e
+forecolor=#c0caf5
+listforecolor=#c0caf5
+listbackcolor=#1a1b26
+highlightcolor=#292e42
+selbackcolor=#33467c
+selforecolor=#c0caf5
+scrollbarcolor=#414868
+pbarcolor=#7aa2f7
+attentioncolor=#f7768e

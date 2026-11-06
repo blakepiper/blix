@@ -2,6 +2,7 @@
 { ... }:
 
 {
+  blix.wayland.outputs."eDP-1".scale = 1.75;
   blix.display = {
     primaryOutput = "eDP-1";
     externalOutput = "HDMI-1";

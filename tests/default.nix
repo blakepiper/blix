@@ -9,6 +9,7 @@ in
   environment-composition = import ./environment-composition.nix { inherit lib pkgs fixture; };
   phone-hardware = import ./phone-hardware.nix { inherit lib pkgs phone phoneBootstrap; };
   labwc = import ./labwc.nix { inherit lib pkgs fixture; };
+  suspend = import ./suspend.nix { inherit pkgs; };
   session-settings = import ./session-settings.nix { inherit pkgs fixture; };
   clipboard = import ./clipboard.nix { inherit pkgs fixture; };
   notifications = import ./notifications.nix { inherit pkgs fixture; };

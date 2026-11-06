@@ -112,6 +112,7 @@ in
     export CM_SELECTIONS=clipboard
     export CM_MAX_CLIPS=100
     export CM_OWN_CLIPBOARD=0
+    export BLIX_SUSPEND_COMMAND=${lib.escapeShellArg (config.blix.power.suspendCommand or "")}
 ${lib.concatStringsSep "\n" (lib.mapAttrsToList (name: value:
   "    export ${name}=${lib.escapeShellArg value}"
 ) displayEnvironment)}

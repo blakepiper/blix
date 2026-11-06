@@ -30,9 +30,6 @@
     memoryPercent = 25;
   };
 
-  # Use firmware/kernel sleep-state selection; do not assume ACPI S3 support.
-  powerManagement.enable = true;
-
   # NVIDIA's suspend VT switch needs Xorg to respond. Freezing user.slice
   # first deadlocks before S3 entry (observed with the 595 open driver).
   systemd.services.systemd-suspend.environment.SYSTEMD_SLEEP_FREEZE_USER_SESSIONS = "false";

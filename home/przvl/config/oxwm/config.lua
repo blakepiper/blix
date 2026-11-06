@@ -205,6 +205,11 @@ oxwm.key.bind({}, "Print", oxwm.spawn("screenshot-region --full"))
 oxwm.key.bind({ "Mod1" }, "Print", oxwm.spawn("screenshot-region --window"))
 oxwm.key.bind({ mod }, "V", oxwm.spawn("clipboard-history"))
 oxwm.key.bind({ mod }, "L", oxwm.spawn("blix-lock"))
+local suspend_command = os.getenv("BLIX_SUSPEND_COMMAND")
+if suspend_command and suspend_command ~= "" then
+  oxwm.key.bind({}, "XF86Sleep", oxwm.spawn(suspend_command))
+  oxwm.key.bind({ mod, "Shift" }, "L", oxwm.spawn(suspend_command))
+end
 oxwm.key.bind({ mod, "Shift" }, "Space", oxwm.spawn("control-menu"))
 oxwm.key.bind({}, "XF86AudioRaiseVolume", oxwm.spawn("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"))
 oxwm.key.bind({}, "XF86AudioLowerVolume", oxwm.spawn("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"))

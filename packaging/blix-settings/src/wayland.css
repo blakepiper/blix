@@ -1,0 +1,33 @@
+/* Session-local refinements for the Wayland settings interface. */
+window { background: #1a1b26; color: #c0caf5; }
+window, button, entry, combobox, spinbutton {
+  font-family: "JetBrainsMono Nerd Font", monospace;
+  font-size: 13px;
+}
+.sidebar { background: #16161e; border-right: 1px solid #2a303d; }
+.sidebar row { padding: 13px 16px; border-left-width: 3px; }
+.sidebar row:selected { background: #292e42; border-left-color: #7aa2f7; color: #c0caf5; }
+.sidebar row:hover { background: #242b38; }
+.page-title { font-size: 28px; font-weight: 700; color: #f0f4fa; }
+.subtitle { color: #a1adbf; font-size: 13px; }
+.dim { color: #9ba8bc; }
+.section-title { font-size: 14px; font-weight: 600; color: #edf3fb; }
+.card { background: #1f2335; border: 1px solid #292e42; border-radius: 10px; padding: 20px; }
+button { background: #2c3646; color: #e8eef8; border: 1px solid #43516a; border-radius: 6px; padding: 8px 14px; }
+button:hover { background: #394861; border-color: #5b7396; }
+button:active { background: #223c40; }
+button:focus { outline: 2px solid #7aa2f7; outline-offset: 2px; }
+button.suggested-action { background: #7aa2f7; color: #1a1b26; border-color: #7aa2f7; }
+button.suggested-action:hover { background: #8db0ff; }
+entry { background: #181e29; border: 1px solid #3b475d; border-radius: 6px; padding: 9px 10px; }
+entry:focus { border-color: #7aa2f7; }
+combobox button, spinbutton { background: #283344; border-radius: 6px; }
+switch { border-radius: 12px; background: #3a465a; }
+switch:checked { background: #7aa2f7; }
+switch slider { border-radius: 50%; background: #ecf4ff; }
+scale trough, scale highlight { border-radius: 3px; min-height: 5px; }
+scale highlight { background: #7aa2f7; }
+scale slider { border-radius: 50%; min-width: 16px; min-height: 16px; border: none; background: #c0caf5; }
+scale value { font-family: "JetBrainsMono Nerd Font", monospace; font-size: 12px; color: #c7d4e8; }
+.status { background: #213c35; border-top-color: #375d50; }
+dialog { background: #1f2335; }

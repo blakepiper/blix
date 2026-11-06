@@ -1,0 +1,40 @@
+--- a/src/AModule.cpp
++++ b/src/AModule.cpp
+@@ -6,6 +6,7 @@
+ #include <util/command.hpp>
+ 
+ #include "gdk/gdk.h"
++#include <gtk-layer-shell.h>
+ #include "gdkmm/cursor.h"
+ 
+ namespace waybar {
+@@ -186,6 +187,29 @@
+       format.clear();
+   }
+   if (!format.empty()) {
++    // Export the clicked module's logical geometry for native Blix popups.
++    // Query the actual widget allocation so text widths and output scale do not
++    // require hard-coded offsets in an external slider.
++    if (config_["blix-popup-anchor"].asBool()) {
++      auto* widget = GTK_WIDGET(event_box_.gobj());
++      auto* panel = gtk_widget_get_toplevel(widget);
++      int x = 0, y = 0;
++      gtk_widget_translate_coordinates(widget, panel, 0, 0, &x, &y);
++      auto* display = gtk_widget_get_display(panel);
++      auto* monitor = gtk_layer_get_monitor(GTK_WINDOW(panel));
++      int monitor_index = 0;
++      for (int i = 0; i < gdk_display_get_n_monitors(display); ++i) {
++        if (gdk_display_get_monitor(display, i) == monitor) {
++          monitor_index = i;
++          break;
++        }
++      }
++      format = fmt::format(
++          "BLIX_PANEL_CENTER={} BLIX_PANEL_WIDTH={} BLIX_PANEL_HEIGHT={} BLIX_PANEL_MONITOR={} {}",
++          x + gtk_widget_get_allocated_width(widget) / 2,
++          gtk_widget_get_allocated_width(panel), gtk_widget_get_allocated_height(panel),
++          monitor_index, format);
++    }
+     pid_children_.push_back(util::command::forkExec(format));
+   }
+   dp.emit();

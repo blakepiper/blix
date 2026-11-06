@@ -2,11 +2,13 @@ import array
 from concurrent.futures import ThreadPoolExecutor
 import json
 import math
+import os
 from pathlib import Path
 import re
 import subprocess
 import threading
 import time
+import xml.etree.ElementTree as ET
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -94,6 +96,10 @@ class Window(Gtk.ApplicationWindow):
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_icon_name("preferences-system")
         self.demo = Demo() if demo else None
+        self.wayland = core.is_wayland() and not demo
+        self.page_definitions = [page for page in PAGES if not (self.wayland and page[0] == "input")]
+        if self.wayland:
+            self.set_default_size(1000, 700)
         self.preferences = DemoPreferences() if demo else core.Preferences()
         self.defaults = self.demo.defaults if demo else core.defaults()
         self.executor = ThreadPoolExecutor(max_workers=3, thread_name_prefix="blix-settings")
@@ -133,10 +139,18 @@ class Window(Gtk.ApplicationWindow):
         provider = Gtk.CssProvider()
         provider.load_from_path(str(Path(__file__).with_name("style.css")))
         Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        if self.wayland:
+            provider = Gtk.CssProvider()
+            provider.load_from_path(str(Path(__file__).with_name("wayland.css")))
+            Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION + 1)
         Gtk.Settings.get_default().set_property("gtk-application-prefer-dark-theme", True)
         self.build_shell()
         self.initialize_radios()
-        for name, title, _, subtitle, _ in PAGES:
+        for name, title, _, subtitle, _ in self.page_definitions:
+            if self.wayland and name == "display":
+                subtitle = "Make your workspace comfortable — displays, brightness and appearance"
+            elif self.wayland and name == "shortcuts":
+                subtitle = "Keyboard shortcuts for your desktop"
             content = box(spacing=18)
             for method in (content.set_margin_top, content.set_margin_bottom, content.set_margin_start, content.set_margin_end):
                 method(24)
@@ -181,7 +195,7 @@ class Window(Gtk.ApplicationWindow):
         sidebar.pack_start(self.search, False, False, 0)
         self.sidebar = Gtk.ListBox()
         self.sidebar.set_selection_mode(Gtk.SelectionMode.SINGLE)
-        for name, title, icon, _, keywords in PAGES:
+        for name, title, icon, _, keywords in self.page_definitions:
             row = Gtk.ListBoxRow()
             row.page_name, row.keywords = name, (title + " " + keywords).lower()
             content = box(False, 12)
@@ -368,6 +382,12 @@ class Window(Gtk.ApplicationWindow):
         self.stack.set_visible_child_name(self.page)
         self.refresh()
 
+    def select_page(self, name):
+        for row in self.sidebar.get_children():
+            if row.page_name == name:
+                self.sidebar.select_row(row)
+                break
+
     def key_pressed(self, _, event):
         control = event.state & Gdk.ModifierType.CONTROL_MASK
         if control and event.keyval == Gdk.KEY_f:
@@ -483,7 +503,7 @@ class Window(Gtk.ApplicationWindow):
         if hasattr(self, "text_size"):
             dpi = state.get("dpi")
             self.text_size.set_text(f"{dpi / 96 * 100:g}% ({dpi:g} DPI)" if dpi else "Default")
-        if not self.saving_transparency:
+        if not self.wayland and not self.saving_transparency:
             self.syncing = True
             try:
                 self.transparency_switch.set_active(state["transparency"])
@@ -501,6 +521,9 @@ class Window(Gtk.ApplicationWindow):
             self.build_input(value["devices"], value["keyboard"])
 
     def build_display(self, available):
+        if self.wayland:
+            self.build_wayland_display(available)
+            return
         body = self.clear("display")
         for child in self.display_footer.get_children():
             self.display_footer.remove(child)
@@ -511,20 +534,7 @@ class Window(Gtk.ApplicationWindow):
         self.row(appearance, "Window transparency", self.transparency_switch,
                  "On uses the usual window opacity. Off makes every window fully opaque.")
         self.connect_control(self.transparency_switch, "notify::active", lambda *_: self.save_transparency())
-        nightlight = core.nightlight_settings(self.preferences)
-        card = self.card(body, "Night light")
-        self.nightlight_switch = Gtk.Switch(active=nightlight["enabled"])
-        self.nightlight_intensity = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 100, 1)
-        self.nightlight_intensity.set_value(nightlight["intensity"])
-        self.nightlight_intensity.set_size_request(220, -1)
-        self.nightlight_intensity.set_digits(0)
-        self.row(card, "Night light", self.nightlight_switch, "Warm display colors at any time. Off restores normal colors.")
-        self.row(card, "Intensity (%)", self.nightlight_intensity, "0 is neutral; 100 is the warmest setting.")
-        self.nightlight_apply = button("Apply intensity", self.save_nightlight)
-        card.pack_start(self.nightlight_apply, False, False, 0)
-        for control in (self.nightlight_switch, self.nightlight_intensity, self.nightlight_apply):
-            control.set_sensitive(not self.saving_nightlight)
-        self.connect_control(self.nightlight_switch, "notify::active", lambda *_: self.save_nightlight())
+        self.build_nightlight(body)
         connected = [item for item in available if item["connected"] and item["modes"]]
         if not connected:
             body.pack_start(label("No connected displays were found."), False, False, 0)
@@ -606,6 +616,67 @@ class Window(Gtk.ApplicationWindow):
         self.dirty_display = False
         body.show_all()
         self.display_footer.show_all()
+
+    def build_nightlight(self, body):
+        nightlight = core.nightlight_settings(self.preferences)
+        card = self.card(body, "Night light")
+        self.nightlight_switch = Gtk.Switch(active=nightlight["enabled"])
+        self.nightlight_intensity = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 100, 1)
+        self.nightlight_intensity.set_value(nightlight["intensity"])
+        self.nightlight_intensity.set_size_request(220, -1)
+        self.nightlight_intensity.set_digits(0)
+        self.row(card, "Night light", self.nightlight_switch, "Warm display colors at any time. Off restores normal colors.")
+        self.row(card, "Intensity (%)", self.nightlight_intensity, "0 is neutral; 100 is the warmest setting.")
+        self.nightlight_apply = button("Apply intensity", self.save_nightlight)
+        card.pack_start(self.nightlight_apply, False, False, 0)
+        for control in (self.nightlight_switch, self.nightlight_intensity, self.nightlight_apply):
+            control.set_sensitive(not self.saving_nightlight)
+        self.connect_control(self.nightlight_switch, "notify::active", lambda *_: self.save_nightlight())
+
+    def build_wayland_display(self, available):
+        body = self.clear("display")
+        for child in self.display_footer.get_children():
+            self.display_footer.remove(child)
+        self.build_nightlight(body)
+        for output in available:
+            if not output.get("enabled"):
+                continue
+            title = " ".join(filter(None, [output.get("make"), output.get("model")])) or output["name"]
+            card = self.card(body, title)
+            mode = next((mode for mode in output.get("modes", []) if mode.get("current")), None)
+            if mode:
+                self.row(card, "Resolution", label(f'{mode["width"]} × {mode["height"]}  ·  {mode["refresh"]:g} Hz', "dim"))
+            current = output.get("scale", 1)
+            values = sorted(set([1, 1.25, 1.5, 1.75, 2, 2.5, 3, current]))
+            scale = combo([(str(float(value)), f"{value * 100:g}%") for value in values], str(float(current)))
+            self.row(card, "Scale", scale, "Larger values make text, apps and controls easier to see.")
+            self.connect_control(scale, "changed", lambda widget, name=output["name"]:
+                                 self.change_wayland_scale(name, widget.get_active_id()))
+        if not any(output.get("enabled") for output in available):
+            body.pack_start(label("No active displays found.", "dim"), False, False, 0)
+        card = self.card(body, "Monitor layout")
+        self.row(card, "Arrange displays", button("Open display editor", lambda: self.attempt(lambda: core.launch("wdisplays"))),
+                 "Position monitors, choose a resolution or change the refresh rate.")
+        if self.defaults.get("capabilities", {}).get("hasBacklight"):
+            card = self.card(body, "Brightness")
+            scale = self.brightness_slider = slider(1, 100, percent=True)
+            scale.set_sensitive(False)
+            scale.set_draw_value(False)
+            self.track_slider(scale, "brightness")
+            self.row(card, "Built-in display", scale)
+            self.connect_control(scale, "value-changed", lambda widget: self.defer_slider("brightness", lambda value=round(widget.get_value()): self.command(
+                "brightnessctl", "--class=backlight", "--min-value=1", "set", f"{value}%")))
+        card = self.card(body, "Appearance")
+        self.row(card, "Theme & fonts", button("Customize appearance", lambda: self.attempt(lambda: core.launch("nwg-look"))),
+                 "Choose colors, icons and fonts for GTK applications.")
+        self.dirty_display = False
+        body.show_all()
+
+    def change_wayland_scale(self, name, scale):
+        if not scale:
+            return
+        self.run(lambda: core.set_wayland_scale(name, scale),
+                 lambda *_: (self.invalidate("display"), self.refresh()))
 
     def save_nightlight(self):
         if self.saving_nightlight:
@@ -1097,6 +1168,9 @@ class Window(Gtk.ApplicationWindow):
         self.power_mode_card.pack_start(self.power_mode_status, False, False, 0)
         self.battery_card = self.card(body, "Battery")
         card = self.card(body, "Screen")
+        if self.wayland:
+            card.set_no_show_all(True)
+            card.hide()
         self.blank_minutes = spin(0, 0, 1440)
         self.blank_minutes.set_digits(2)
         self.blank_minutes.set_sensitive(False)
@@ -1124,7 +1198,7 @@ class Window(Gtk.ApplicationWindow):
     def update_power(self, state):
         self.update_power_profiles(state.get("power_profiles", {"available": False}))
         self.update_batteries(state["batteries"])
-        if not self.saving_blank:
+        if not self.wayland and not self.saving_blank:
             self.blank_minutes.set_sensitive(True)
             self.blank_restore.set_sensitive(True)
             if not self.dirty_blank:
@@ -1224,6 +1298,16 @@ class Window(Gtk.ApplicationWindow):
             self.demo.calls.append(("session", "suspend" if suspend else "lock"))
             return
         def apply():
+            if suspend and self.defaults.get("suspendCommand"):
+                result = subprocess.run([self.defaults["suspendCommand"]], capture_output=True, text=True, timeout=15)
+                if result.returncode:
+                    raise SettingsError(result.stderr.strip() or "Suspend could not be started.")
+                return
+            if self.wayland:
+                self.command("swaylock", "-f", "-c", "1a1b26")
+                if suspend:
+                    self.command("systemctl", "suspend")
+                return
             lock = self.defaults.get("lockCommand")
             if not lock:
                 raise SettingsError("Activate the Blix configuration before using session controls.")
@@ -1356,7 +1440,21 @@ class Window(Gtk.ApplicationWindow):
         card = self.card(body)
         search = Gtk.SearchEntry(placeholder_text="Filter shortcuts…")
         card.pack_start(search, False, False, 0)
-        shortcuts = core.shortcut_reference(None if self.demo else self.defaults.get("shortcutsFile"))
+        if self.wayland:
+            shortcuts = []
+            try:
+                root = ET.parse(Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "labwc/rc.xml").getroot()
+                for binding in root.findall("keyboard/keybind"):
+                    action = binding.find("action")
+                    if action is not None:
+                        command = action.get("command", "")
+                        title = Path(command.split()[0]).name if command else action.get("name", "")
+                        detail = action.get("to") or action.get("direction", "")
+                        shortcuts.append((binding.get("key", "").replace("W-", "Super + ").replace("S-", "Shift + "), f"{title} {detail}".strip()))
+            except (OSError, ET.ParseError):
+                pass
+        else:
+            shortcuts = core.shortcut_reference(None if self.demo else self.defaults.get("shortcutsFile"))
         shortcuts += [("Ctrl + F", "Search settings (in this app)"), ("F5", "Refresh devices (in this app)"),
                       ("Escape", "Clear search / close settings")]
         rows = []
@@ -1405,7 +1503,7 @@ class Window(Gtk.ApplicationWindow):
 class Application(Gtk.Application):
     def __init__(self, demo=False):
         super().__init__(application_id="org.blix.Settings.Preview" if demo else "org.blix.Settings",
-                         flags=Gio.ApplicationFlags.FLAGS_NONE)
+                         flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE)
         self.demo = demo
         self.window = None
 
@@ -1413,6 +1511,13 @@ class Application(Gtk.Application):
         if self.window is None or self.window.closed:
             self.window = Window(self, self.demo)
         self.window.present()
+
+    def do_command_line(self, command_line):
+        self.activate()
+        arguments = command_line.get_arguments()
+        if len(arguments) > 1:
+            self.window.select_page(arguments[1])
+        return 0
 
     def do_shutdown(self):
         if self.window:

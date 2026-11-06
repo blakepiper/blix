@@ -1,0 +1,10 @@
+--- a/src/config/lua.zig
++++ b/src/config/lua.zig
+@@ -1484,6 +1484,7 @@
+         .{ "F11", 0xffc8 },
+         .{ "F12", 0xffc9 },
+         .{ "Print", 0xff61 },
++        .{ "XF86Sleep", 0x1008ff2f },
+         .{ "XF86AudioRaiseVolume", 0x1008ff13 },
+         .{ "XF86AudioLowerVolume", 0x1008ff11 },
+         .{ "XF86AudioMute", 0x1008ff12 },

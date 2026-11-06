@@ -2,7 +2,7 @@
 { lib, pkgs, ... }:
 
 {
-  imports = [ ../modules/common ../modules/desktop ../modules/desktop/labwc.nix ../modules/boot/uefi.nix ];
+  imports = [ ../modules/common ../modules/desktop ../modules/desktop/labwc.nix ../modules/hardware/suspend.nix ../modules/boot/uefi.nix ];
 
   boot.kernelPackages = lib.mkDefault pkgs.linuxPackages_latest;
 
