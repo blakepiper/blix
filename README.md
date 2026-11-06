@@ -373,7 +373,7 @@ preferences. It does not change hardware or saved settings.
 
 ## Starting the session
 
-On Zen and T490, log into a local TTY as `przvl`, then run:
+On Zen, T490 and Desktop, log into a local TTY as `przvl`, then run:
 
 ```sh
 startx
@@ -424,6 +424,65 @@ window/tab/frame lifecycle, browser restarts and Picom's rendered opacity.
 
 To leave the session, exit OXWM or use the configured lock/power controls and
 return to the TTY.
+
+## Experimental Wayland session
+
+Workstation profiles also select `modules/desktop/labwc.nix` and
+`home/przvl/environments/labwc.nix`. From a local TTY, run `startlabwc` instead
+of `startx`. Exit the current desktop first; the two sessions share user services
+and are intended to run one at a time. Super+Shift+Q exits labwc back to the TTY;
+`startx` then starts the existing OXWM environment again. The phone retains its
+X11 session and does not select labwc.
+
+Labwc starts with floating, cascading windows and nine numbered workspaces.
+The bindings follow OXWM where the operations translate; tiling-layout commands
+are omitted. Workspaces span the Wayland desktop rather than OXWM's per-monitor
+tags. Sending a window to another workspace does not follow it.
+
+| Shortcut | Action |
+| --- | --- |
+| Super+Enter | Ghostty |
+| Super+Space / Super+D | Fuzzel application launcher |
+| Super+F / Super+B | Xfe / Firefox |
+| Super+Q | Close window |
+| Super+M | Toggle maximized size |
+| Super+Shift+F | Toggle fullscreen |
+| Super+Shift+Left/Right/Up/Down | Toggle snapping to that half of the screen |
+| Super+P | Restore snapped/maximized window to floating size |
+| Super+1–9 | Switch workspace |
+| Super+Shift+1–9 | Send window to workspace |
+| Super+Tab | Previous numbered workspace, wrapping |
+| Super+arrows / Alt+Tab | Cycle window focus |
+| Super+Ctrl+arrows | Focus another output |
+| Super+Ctrl+Shift+arrows | Move window to another output |
+| Super+left/right mouse drag | Move / resize window |
+| Super+L | Lock with swaylock |
+| Super+S | Wayland display settings (wdisplays) |
+| Super+V | Clipboard history |
+| Super+Shift+S / Print | Region / whole-desktop screenshot, saved and copied |
+| Super+Shift+Q | Exit to TTY |
+
+Volume, media and laptop brightness keys are also configured. Waybar provides
+window buttons, volume, CPU, RAM, battery where applicable, a clock and a tray.
+The session uses Dunst, the existing Ghostty service, Blueman where supported,
+text clipboard history, the host wallpaper and swayidle's suspend/lock handling.
+`blix-wayland-session.target` owns these helpers and stops them on exit. Picom,
+XRandR hotplug, xss-lock and the X11 clipboard daemon stay with the X11 target.
+Firefox and Ghostty can use Wayland; Xfe runs through Xwayland. Windows are
+opaque, without the X11 Picom effects.
+
+Outputs initially use their native advertised modes. Use Super+S to experiment
+with scale and layout; these interactive changes last for the session. XRandR
+connector names, mirror policies and scaling are not reused as Wayland output
+configuration. Blix Settings' X11 display/appearance controls and the
+USB-keyboard-specific Xorg modifier swap do not configure labwc. No global
+Alt/Super swap is applied to other keyboards.
+
+Validation includes a headless labwc startup using the generated XML, Wayland
+output discovery and a screenshot. This does not verify physical GPU/display,
+input, suspend locking or portal screen sharing. After activating the matching
+host configuration, try the session from a TTY and inspect failures with
+`journalctl --user -b -u 'blix-wayland-*' -u dunst.service`.
 
 ## Adding a host
 

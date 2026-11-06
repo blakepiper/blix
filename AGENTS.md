@@ -71,6 +71,11 @@ scope and risk rules in the Validation section.
 - `modules/common/default.nix` aggregates the shared system foundation: boot,
   locale, Nix, networking, users, command-line packages, capabilities and Home
   Manager integration. It does not select a desktop or user applications.
+- `modules/desktop/labwc.nix` enables the parallel experimental Wayland session
+  only in laptop and desktop profiles. `home/przvl/environments/labwc.nix` owns
+  `startlabwc`, floating-window shortcuts and the separate Wayland session target.
+  The phone keeps X11. XRandR settings and X11 helper services do not configure
+  labwc; physical Wayland verification remains pending.
 - `modules/desktop/` supplies the optional X11/OXWM session, desktop services,
   fonts and system utilities. Profiles select it explicitly.
 - `modules/common/machine.nix` declares typed machine capabilities and passes

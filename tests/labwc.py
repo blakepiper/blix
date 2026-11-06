@@ -1,0 +1,40 @@
+import os
+from pathlib import Path
+import subprocess
+import time
+import xml.etree.ElementTree as ET
+
+root = ET.parse('config/rc.xml').getroot()
+keys = {binding.attrib['key']: binding.find('action')
+        for binding in root.findall('keyboard/keybind')}
+assert keys['W-q'].attrib['name'] == 'Close'
+assert keys['W-S-f'].attrib['name'] == 'ToggleFullscreen'
+assert keys['W-m'].attrib['name'] == 'ToggleMaximize'
+assert keys['W-S-Left'].attrib['direction'] == 'left'
+for number in range(1, 10):
+    assert keys[f'W-{number}'].attrib['to'] == str(number)
+    assert keys[f'W-S-{number}'].attrib['follow'] == 'no'
+assert not root.findall('windowRules/windowRule/action')  # no forced tiling
+with open('labwc.log', 'w+') as log:
+    process = subprocess.Popen(['labwc', '-d', '-C', str(Path('config').resolve())],
+                               stdout=log, stderr=log)
+    try:
+        for _ in range(100):
+            sockets = list(Path(os.environ['XDG_RUNTIME_DIR']).glob('wayland-*'))
+            sockets = [socket for socket in sockets if not socket.name.endswith('.lock')]
+            if sockets:
+                break
+            assert process.poll() is None, 'labwc exited during startup'
+            time.sleep(0.1)
+        assert sockets, 'labwc did not expose a Wayland socket'
+        os.environ['WAYLAND_DISPLAY'] = sockets[0].name
+        subprocess.run(['wlr-randr'], check=True)
+        subprocess.run(['grim', 'headless.png'], check=True)
+        assert Path('headless.png').stat().st_size > 0
+    finally:
+        process.terminate()
+        process.wait(timeout=10)
+        log.seek(0)
+        output = log.read()
+        print(output)
+    assert '[ERROR]' not in output and 'Unknown' not in output, output

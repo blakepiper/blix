@@ -8,6 +8,7 @@
     ./appearance.nix
     ./programs
     ./environments/oxwm.nix
+    ./environments/labwc.nix
   ];
 
   home.packages = with pkgs; [ xfe mpv ];

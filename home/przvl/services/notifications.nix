@@ -1,4 +1,4 @@
-{ lib, ... }:
+{ config, lib, ... }:
 
 {
   services.dunst = {
@@ -33,7 +33,8 @@
   systemd.user.services.dunst = {
     Unit = {
       After = lib.mkForce [ "blix-lock.service" ];
-      PartOf = lib.mkForce [ "blix-session.target" ];
+      PartOf = lib.mkForce ([ "blix-session.target" ]
+        ++ lib.optional (config.systemd.user.targets ? blix-wayland-session) "blix-wayland-session.target");
     };
     Install.WantedBy = [ "blix-session.target" ];
   };

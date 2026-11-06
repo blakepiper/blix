@@ -11,7 +11,7 @@ in
 assert home.services.dunst.enable;
 assert home.dconf.settings."org/blueman/general".notification-daemon;
 assert builtins.elem "dunst.service" home.systemd.user.targets.blix-session.Unit.Wants;
-assert home.systemd.user.services.dunst.Unit.PartOf == [ "blix-session.target" ];
+assert home.systemd.user.services.dunst.Unit.PartOf == [ "blix-session.target" "blix-wayland-session.target" ];
 pkgs.runCommand "notification-checks" {
   nativeBuildInputs = [ python pkgs.dbus pkgs.xvfb pkgs.dunst ];
   FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ pkgs.dejavu_fonts ]; };
