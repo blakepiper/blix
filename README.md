@@ -446,7 +446,7 @@ tags. Sending a window to another workspace does not follow it.
 | Super+F / Super+B | Xfe / Firefox |
 | Super+Q | Close window |
 | Super+M | Toggle maximized size |
-| Super+Shift+F | Toggle fullscreen |
+| Super+Shift+F | Toggle maximized size (keep the bar visible) |
 | Super+Shift+Left/Right/Up/Down | Toggle snapping to that half of the screen |
 | Super+P | Restore snapped/maximized window to floating size |
 | Super+1–9 | Switch workspace |
@@ -463,7 +463,8 @@ tags. Sending a window to another workspace does not follow it.
 | Super+Shift+Q | Exit to TTY |
 
 Volume, media and laptop brightness keys are also configured. Waybar provides
-window buttons, volume, CPU, RAM, battery where applicable, a clock and a tray.
+numbered workspaces and OXWM-style status colors, separators and RAM/CPU/clock
+underlines, plus volume, brightness and battery where applicable, and a tray.
 The session uses Dunst, the existing Ghostty service, Blueman where supported,
 text clipboard history, the host wallpaper and swayidle's suspend/lock handling.
 `blix-wayland-session.target` owns these helpers and stops them on exit. Picom,

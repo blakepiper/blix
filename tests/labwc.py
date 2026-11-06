@@ -8,7 +8,7 @@ root = ET.parse('config/rc.xml').getroot()
 keys = {binding.attrib['key']: binding.find('action')
         for binding in root.findall('keyboard/keybind')}
 assert keys['W-q'].attrib['name'] == 'Close'
-assert keys['W-S-f'].attrib['name'] == 'ToggleFullscreen'
+assert keys['W-S-f'].attrib['name'] == 'ToggleMaximize'
 assert keys['W-m'].attrib['name'] == 'ToggleMaximize'
 assert keys['W-S-Left'].attrib['direction'] == 'left'
 for number in range(1, 10):

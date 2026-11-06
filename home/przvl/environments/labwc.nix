@@ -95,7 +95,7 @@ in
         <placement><policy>cascade</policy></placement>
         <focus><followMouse>no</followMouse></focus>
         <theme><cornerRadius>0</cornerRadius><font name="JetBrainsMono Nerd Font" size="12" /></theme>
-        <desktops><number>9</number></desktops>
+        <desktops><names>${lib.concatMapStrings (i: "<name>${toString i}</name>") (lib.range 1 9)}</names></desktops>
         <keyboard>
           <repeatRate>50</repeatRate><repeatDelay>200</repeatDelay>
           ${bind "W-Return" (execute config.home.sessionVariables.TERMINAL)}
@@ -105,7 +105,7 @@ in
           ${bind "W-b" (execute config.home.sessionVariables.BROWSER)}
           ${bind "W-q" (action "Close")}
           ${bind "W-S-q" (action "Exit")}
-          ${bind "W-S-f" (action "ToggleFullscreen")}
+          ${bind "W-S-f" (action "ToggleMaximize")}
           ${bind "W-m" (action "ToggleMaximize")}
           ${bind "W-p" (action "UnSnap")}
           ${bind "W-Tab" ''<action name="GoToDesktop" to="left" />''}
@@ -166,22 +166,55 @@ in
       layer = "top";
       position = "top";
       height = 28;
-      modules-left = [ "wlr/taskbar" ];
-      modules-right = [ "pulseaudio" "cpu" "memory" ]
-        ++ lib.optional config.blix.hardware.hasBattery "battery" ++ [ "clock" "tray" ];
-      "wlr/taskbar" = { format = "{title}"; "on-click" = "activate"; "on-click-middle" = "close"; };
-      clock.format = "{:%a %b %d  %H:%M}";
-      cpu.format = "CPU {usage}%";
-      memory.format = "RAM {percentage}%";
-      battery.format = "BAT {capacity}%";
-      pulseaudio.format = "VOL {volume}%";
+      modules-left = [ "custom/logo" "ext/workspaces" ];
+      modules-right = lib.optional config.blix.hardware.hasBattery "battery"
+        ++ [ "pulseaudio" ]
+        ++ lib.optional config.blix.hardware.hasBacklight "backlight"
+        ++ [ "memory" "cpu" "clock" "tray" ];
+      "custom/logo" = { format = ""; tooltip = false; };
+      "ext/workspaces" = { format = "{name}"; on-click = "activate"; };
+      clock.format = "{:%a, %b %d - %H:%M}";
+      cpu.format = "CPU: {usage}%";
+      memory.format = "Ram: {used:0.1f}/{total:0.1f} GB";
+      battery.format = "{capacity}%";
+      pulseaudio = { format = "Vol {volume}%"; format-muted = "Vol muted"; };
+      backlight.format = "Bri {percent}%";
     };
     "waybar/style.css".text = ''
-      * { font-family: "JetBrainsMono Nerd Font"; font-size: 13px; }
+      * {
+        font-family: "JetBrainsMono Nerd Font";
+        font-size: 10pt;
+        min-height: 0;
+        border: none;
+        border-radius: 0;
+      }
       window#waybar { background: #1a1b26; color: #bbbbbb; }
-      #clock, #cpu, #memory, #battery, #pulseaudio, #tray { padding: 0 10px; }
-      #taskbar button { color: #bbbbbb; border-radius: 0; }
-      #taskbar button.active { border-bottom: 2px solid #98c379; }
+      #custom-logo { color: #9fe3c4; padding: 0 10px; }
+      #workspaces button {
+        color: #bbbbbb;
+        background: transparent;
+        padding: 0 8px;
+        box-shadow: none;
+        text-shadow: none;
+      }
+      #workspaces button.active {
+        color: #9fe3c4;
+        box-shadow: inset 0 -2px #d7ffe8;
+      }
+      #workspaces button.urgent { color: #f7768e; }
+      #workspaces button:hover { background: #34324a; }
+      #clock, #cpu, #memory, #battery, #pulseaudio, #backlight, #tray {
+        padding: 0 10px;
+        margin: 3px 0;
+        border-left: 1px solid #6e738d;
+      }
+      .modules-right > widget:first-child > * { border-left: none; }
+      #battery { color: #a6da95; }
+      #pulseaudio { color: #8aadf4; }
+      #backlight { color: #eed49f; }
+      #memory { color: #c6a0f6; box-shadow: inset 0 -1px #c6a0f6; }
+      #cpu { color: #ed8796; box-shadow: inset 0 -1px #ed8796; }
+      #clock { color: #cad3f5; box-shadow: inset 0 -1px #cad3f5; }
     '';
     # The same terminal instance belongs to whichever desktop is running.
     "systemd/user/app-com.mitchellh.ghostty.service.d/wayland-session.conf".text = ''
