@@ -2,6 +2,23 @@
 { config, osConfig, lib, pkgs, blixSettings, labwcIconData, labwcExtraBarModules, ... }:
 let
   target = "blix-wayland-session.target";
+  display = config.blix.display;
+  manageOutputs = display.primaryOutput != null;
+  outputSettings = pkgs.writeText "blix-wayland-outputs.json" (builtins.toJSON {
+    primary = display.primaryOutput;
+    external = if config.blix.wayland.externalOutputs != [] then config.blix.wayland.externalOutputs
+      else lib.optional (display.externalOutput != null) display.externalOutput
+        ++ display.additionalExternalOutputs;
+    inherit (display) layout;
+    mode = display.mirrorMode;
+    rate = display.mirrorRate;
+    scales = lib.mapAttrs (_: value: value.scale) config.blix.wayland.outputs;
+  });
+  outputManager = pkgs.writeShellApplication {
+    name = "blix-wayland-outputs";
+    runtimeInputs = [ pkgs.python3 pkgs.wlr-randr pkgs.systemd ];
+    text = "exec python3 ${../hardware/wayland-outputs.py} ${outputSettings}";
+  };
   xml = lib.escapeXML;
   bind = key: action: ''<keybind key="${key}">${action}</keybind>'';
   action = name: ''<action name="${name}" />'';
@@ -461,16 +478,21 @@ in
       "blix-wayland-clipboard.service" "blix-wayland-wallpaper.service"
       "blix-wayland-nightlight.service" ]
       ++ lib.optional config.services.blueman-applet.enable "blueman-applet.service"
-      ++ lib.optional (config.blix.wayland.outputs != {}) "blix-wayland-outputs.service";
+      ++ lib.optional (manageOutputs || config.blix.wayland.outputs != {}) "blix-wayland-outputs.service";
   };
   systemd.user.services = {
     blueman-applet = lib.mkIf config.services.blueman-applet.enable {
       Unit.PartOf = [ target ];
     };
     blix-wayland-panel = service "Blix Wayland panel" "${panel}/bin/waybar";
-    blix-wayland-outputs = lib.mkIf (config.blix.wayland.outputs != {}) {
-      Unit = { Description = "Blix Wayland output scaling"; PartOf = [ target ]; };
-      Service = {
+    blix-wayland-outputs = lib.mkIf (manageOutputs || config.blix.wayland.outputs != {}) {
+      Install.WantedBy = [ target ];
+      Unit = { Description = "Blix Wayland display layout and scaling"; PartOf = [ target ]; };
+      Service = if manageOutputs then {
+        ExecStart = "${outputManager}/bin/blix-wayland-outputs";
+        Restart = "on-failure";
+        RestartSec = 2;
+      } else {
         Type = "oneshot";
         RemainAfterExit = true;
         ExecStart = map (name:

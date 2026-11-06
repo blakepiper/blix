@@ -66,6 +66,8 @@ pkgs.runCommand "labwc-session-checks" {
   QT_QPA_PLATFORM_PLUGIN_PATH = "${pkgs.qt6.qtbase}/${pkgs.qt6.qtbase.qtPluginPrefix}/platforms";
   DUNST_COMMAND = home.systemd.user.services.dunst.Service.ExecStart;
 } ''
+  python3 ${./wayland-outputs-headless.py} ${../home/przvl/hardware/wayland-outputs.py}
+  python3 ${./wayland-outputs.py} ${../home/przvl/hardware/wayland-outputs.py}
   export HOME="$TMPDIR/home" XDG_RUNTIME_DIR="$TMPDIR/runtime"
   mkdir -p "$HOME" "$XDG_RUNTIME_DIR" config
   chmod 700 "$XDG_RUNTIME_DIR"

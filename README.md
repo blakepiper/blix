@@ -560,21 +560,26 @@ provide global window opacity or Picom-style effects for arbitrary applications;
 transparency requires application support. Existing Ghostty processes need a
 new session to pick up these launch options.
 
-Outputs use their native advertised modes. Zen declares 175% scaling for its
-Wayland eDP-1 panel in `hosts/zen/display.nix`; other hosts retain their defaults.
-`blix.wayland.outputs` owns host-specific Wayland scale preferences, applied at
-session startup. Super+S opens the regular Blix Settings app with a Wayland
+Laptop labwc sessions reuse the host's primary connector, external connector
+patterns (`blix.wayland.externalOutputs` for DRM naming) and mirror resolution
+at login and DRM hotplug. Mirroring selects each output's highest advertised
+refresh rate at the chosen common resolution and uses the same scale on both
+outputs. Undocked panels return to their preferred mode. Zen uses 175% scaling
+and T490 uses 125%; `blix.wayland.outputs` owns these Wayland scale preferences.
+The output service waits for DRM events without idle polling.
+Super+S opens the regular Blix Settings app with a Wayland
 interface: sidebar navigation, native audio/network/Bluetooth/power controls,
 per-output scaling, panel brightness and Night Light. A session-specific Gammastep
 service uses the Wayland gamma-control protocol; saved intensity and enable state
 are shared with X11. Layout, resolution and refresh-rate
 editing open wdisplays; theme and fonts open nwg-look. Wayland display changes
-last for the session. The unsupported X11 input and display-timeout controls
-are hidden in this session. XRandR connector names, mirror policies and scaling are not reused as Wayland output
-configuration. Blix Settings' X11 display/appearance controls do not configure
-labwc. Labwc enables natural scrolling for its non-touch mouse category as well
+last for the session, with host defaults reapplied on dock hotplug. The unsupported X11 input and display-timeout controls
+are hidden in this session. XRandR helpers remain confined to X11. Blix
+Settings' X11 display/appearance controls do not configure labwc. Labwc enables natural scrolling for its non-touch mouse category as well
 as touchpads. The USB-scoped mechanical keyboard hwdb mapping works in both
-sessions; no global Alt/Super swap is applied to other keyboards.
+sessions; no global Alt/Super swap is applied to other keyboards. After first
+activating a changed hwdb mapping, reconnect the USB keyboard so the kernel
+receives the new keycodes.
 
 Validation includes headless labwc startup, generated XML, output discovery,
 mock-device slider writes, real GTK pointer events and a virtual-pointer click on

@@ -78,7 +78,9 @@ scope and risk rules in the Validation section.
   X11 retains its preloaded instance.
   Blix Settings supplies session-aware Wayland controls and styling in
   `packaging/blix-settings/src/`; host display modules set `blix.wayland.outputs`
-  for Wayland scale preferences. Its app menu uses nwg-menu below the opaque bar;
+  for Wayland scale preferences. The labwc output service reuses host connector
+  patterns and mirror defaults at login and DRM hotplug; it restores the
+  preferred panel mode when undocked. Its app menu uses nwg-menu below the opaque bar;
   `packaging/nwg-menu/0001-consistent-icons.patch` fixes symbolic icon sizing.
   `home/przvl/environments/labwc-icons.nix` supplies the retro Firefox logo for
   titlebars, launchers, GTK/Qt lookup and notifications through a Wayland-only
