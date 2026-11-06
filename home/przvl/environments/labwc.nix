@@ -222,7 +222,7 @@ in
           <maximizedDecoration>titlebar</maximizedDecoration>
         </theme>
         <windowRules><windowRule identifier="*" serverDecoration="yes" /></windowRules>
-        <desktops><popupTime>0</popupTime><names>${lib.concatMapStrings (i: "<name>${toString i}</name>") (lib.range 1 5)}</names></desktops>
+        <desktops><popupTime>0</popupTime><names>${lib.concatMapStrings (i: "<name>${toString i}</name>") (lib.range 1 9)}</names></desktops>
         <keyboard>
           <repeatRate>50</repeatRate><repeatDelay>200</repeatDelay>
           ${bind "W-Return" (execute config.home.sessionVariables.TERMINAL)}
@@ -244,7 +244,7 @@ in
           ${lib.concatMapStringsSep "\n" (i:
             bind "W-${toString i}" ''<action name="GoToDesktop" to="${toString i}" />'' +
             bind "W-S-${toString i}" ''<action name="SendToDesktop" to="${toString i}" follow="no" />''
-          ) (lib.range 1 5)}
+          ) (lib.range 1 9)}
           ${lib.concatMapStringsSep "\n" (direction:
             bind "W-${direction}" (action (if builtins.elem direction [ "Left" "Up" ] then "PreviousWindowImmediate" else "NextWindowImmediate")) +
             bind "W-S-${direction}" ''<action name="ToggleSnapToEdge" direction="${lib.toLower direction}" />'' +

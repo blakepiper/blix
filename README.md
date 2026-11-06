@@ -462,7 +462,7 @@ and are intended to run one at a time. Super+Shift+Q exits labwc back to the TTY
 `startx` then starts the existing OXWM environment again. The phone retains its
 X11 session and does not select labwc.
 
-Labwc starts with floating, cascading windows and five numbered workspaces.
+Labwc starts with floating, cascading windows and nine numbered workspaces.
 The bindings follow OXWM where the operations translate; tiling-layout commands
 are omitted. Workspaces span the Wayland desktop rather than OXWM's per-monitor
 tags. Sending a window to another workspace does not follow it.
@@ -478,8 +478,8 @@ tags. Sending a window to another workspace does not follow it.
 | Super+Shift+F | Toggle maximized size (keep the bar visible) |
 | Super+Shift+Left/Right/Up/Down | Toggle snapping to that half of the screen |
 | Super+P | Restore snapped/maximized window to floating size |
-| Super+1–5 | Switch workspace |
-| Super+Shift+1–5 | Send window to workspace |
+| Super+1–9 | Switch workspace |
+| Super+Shift+1–9 | Send window to workspace |
 | Super+Tab | Previous numbered workspace, wrapping |
 | Super+arrows / Alt+Tab | Cycle window focus |
 | Super+Ctrl+arrows | Focus another output |

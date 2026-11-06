@@ -17,10 +17,13 @@ assert keys['XF86Sleep'].attrib['command'].endswith('/bin/blix-suspend')
 assert keys['W-S-l'].attrib['command'] == keys['XF86Sleep'].attrib['command']
 assert root.findtext('desktops/popupTime') == '0'
 assert root.findtext('core/decoration') == 'server'
-assert [node.text for node in root.findall('desktops/names/name')] == list('12345')
-assert 'W-6' not in keys and 'W-S-6' not in keys
-for number in range(1, 6):
+assert [node.text for node in root.findall('desktops/names/name')] == list('123456789')
+assert 'W-0' not in keys and 'W-S-0' not in keys
+for number in range(1, 10):
+    assert keys[f'W-{number}'].attrib['name'] == 'GoToDesktop'
     assert keys[f'W-{number}'].attrib['to'] == str(number)
+    assert keys[f'W-S-{number}'].attrib['name'] == 'SendToDesktop'
+    assert keys[f'W-S-{number}'].attrib['to'] == str(number)
     assert keys[f'W-S-{number}'].attrib['follow'] == 'no'
 assert not root.findall('windowRules/windowRule/action')  # no forced tiling
 with open('labwc.log', 'w+') as log:
