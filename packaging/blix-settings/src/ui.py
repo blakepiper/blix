@@ -1304,7 +1304,7 @@ class Window(Gtk.ApplicationWindow):
                     raise SettingsError(result.stderr.strip() or "Suspend could not be started.")
                 return
             if self.wayland:
-                self.command("swaylock", "-f", "-c", "1a1b26")
+                self.command("gtklock", "--daemonize")
                 if suspend:
                     self.command("systemctl", "suspend")
                 return

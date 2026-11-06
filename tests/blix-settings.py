@@ -551,6 +551,16 @@ class WifiTests(unittest.TestCase):
 
 
 class GuiTests(unittest.TestCase):
+    def test_wayland_lock_uses_styled_locker(self):
+        from types import SimpleNamespace
+        from ui import Window
+        commands = []
+        control = SimpleNamespace(demo=None, wayland=True, defaults={},
+                                  command=lambda *args: commands.append(args),
+                                  run=lambda callback: callback())
+        Window.session_action(control, False)
+        self.assertEqual(commands, [("gtklock", "--daemonize")])
+
     @classmethod
     def setUpClass(cls):
         read_fd, write_fd = os.pipe()

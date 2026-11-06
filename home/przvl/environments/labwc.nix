@@ -1,5 +1,5 @@
 # Parallel floating Wayland environment for workstation compositions.
-{ config, lib, pkgs, blixSettings, ... }:
+{ config, osConfig, lib, pkgs, blixSettings, ... }:
 let
   target = "blix-wayland-session.target";
   xml = lib.escapeXML;
@@ -7,7 +7,7 @@ let
   action = name: ''<action name="${name}" />'';
   execute = command: ''<action name="Execute" command="${xml command}" />'';
   launcher = "${pkgs.fuzzel}/bin/fuzzel";
-  lock = "${pkgs.swaylock}/bin/swaylock -f -c 1a1b26";
+  lock = "${pkgs.gtklock}/bin/gtklock --daemonize";
   settings = "${blixSettings}/bin/blix-settings";
   panel = pkgs.waybar.overrideAttrs (old: {
     patches = (old.patches or []) ++ [ ../../../packaging/waybar/0001-popup-anchor.patch ];
@@ -183,11 +183,22 @@ let
 in
 {
   home.packages = with pkgs; [
-    start screenshot clipboard menu controlMenu wallpaper fuzzel wdisplays wlr-randr wl-clipboard cliphist
+    start screenshot clipboard menu controlMenu wallpaper gtklock fuzzel wdisplays wlr-randr wl-clipboard cliphist
     fileManager nwg-look
   ];
 
   xdg.configFile = {
+    "gtklock/config.ini".text = ''
+      [main]
+      gtk-theme=Adwaita
+      layout=${config.xdg.configFile."gtklock/layout.ui".source}
+      style=${config.xdg.configFile."gtklock/style.css".source}
+    '';
+    "gtklock/layout.ui".text = builtins.replaceStrings
+      [ "@identity@" ]
+      [ (xml "${config.home.username}@${osConfig.networking.hostName}") ]
+      (builtins.readFile ../config/labwc/lock.ui);
+    "gtklock/style.css".source = ../config/labwc/lock.css;
     "labwc/autostart" = {
       executable = true;
       text = "#!${pkgs.bash}/bin/bash\nexec ${autostart}/bin/blix-labwc-autostart\n";

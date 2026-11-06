@@ -482,7 +482,7 @@ tags. Sending a window to another workspace does not follow it.
 | Super+Ctrl+arrows | Focus another output |
 | Super+Ctrl+Shift+arrows | Move window to another output |
 | Super+left/right mouse drag | Move / resize window |
-| Super+L | Lock with swaylock |
+| Super+L | Lock with gtklock |
 | Super+Shift+L / Sleep key | Lock and suspend |
 | Super+S | Blix Settings |
 | Super+V | Clipboard history |
@@ -508,6 +508,9 @@ tray is omitted; Bluetooth controls remain in Settings. Workspace
 switches update the bar without a central popup.
 The session uses Dunst, the existing Ghostty service, Blueman where supported,
 text clipboard history, the host wallpaper and swayidle's suspend/lock handling.
+The Wayland locker is gtklock with a black background and compact white
+monospace password prompt, matching OXWM's xsecurelock style. Super+L, the menus, Blix Settings and suspend
+locking use that same form.
 In Thunar, right-click one image and choose **Set as wallpaper**. An owned copy
 in `~/.local/state/blix/wallpaper` (or `$XDG_STATE_HOME/blix/wallpaper`) overrides
 the host default on subsequent Wayland logins, even if the source image moves.

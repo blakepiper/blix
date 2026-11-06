@@ -9,6 +9,8 @@ let
   wants = home.systemd.user.targets.blix-wayland-session.Unit.Wants;
 in
 assert laptop.config.programs.labwc.enable;
+assert laptop.config.security.pam.services ? gtklock;
+assert !(phone.config.security.pam.services ? gtklock);
 assert laptop.config.services.xserver.windowManager.oxwm.enable;
 assert !phone.config.programs.labwc.enable;
 assert !(phone.config.home-manager.users.przvl.systemd.user.targets ? blix-wayland-session);
@@ -18,6 +20,11 @@ pkgs.runCommand "labwc-session-checks" {
   nativeBuildInputs = [ pkgs.labwc (pkgs.python3.withPackages (ps: [ ps.pygobject3 ps.pycairo ])) pkgs.dbus pkgs.wlr-randr pkgs.wlrctl pkgs.grim ];
   GI_TYPELIB_PATH = lib.makeSearchPath "lib/girepository-1.0" (map lib.getLib [ pkgs.gtk3 pkgs.gtk-layer-shell pkgs.glib pkgs.gobject-introspection pkgs.pango pkgs.harfbuzz pkgs.atk pkgs.gdk-pixbuf ]);
   FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ pkgs.dejavu_fonts ]; };
+  LOCK_LAYOUT = home.xdg.configFile."gtklock/layout.ui".source;
+  LOCK_STYLE = home.xdg.configFile."gtklock/style.css".source;
+  LOCK_CONFIG = home.xdg.configFile."gtklock/config.ini".source;
+  LOCK_COMMAND = "${pkgs.gtklock}/bin/gtklock";
+  LOCK_TEST = ./wayland-lock.py;
   SLIDER_SOURCE = ../home/przvl/config/labwc/slider.py;
   SLIDER_TEST = ./wayland-sliders.py;
   PANEL_COMMAND = home.systemd.user.services.blix-wayland-panel.Service.ExecStart;
@@ -34,5 +41,6 @@ pkgs.runCommand "labwc-session-checks" {
   export XKB_CONFIG_ROOT=${pkgs.xkeyboard_config}/share/X11/xkb
   unset DISPLAY WAYLAND_DISPLAY DBUS_SESSION_BUS_ADDRESS
   dbus-run-session --config-file=${pkgs.dbus}/share/dbus-1/session.conf -- python3 ${./labwc.py}
-  touch "$out"
+  mkdir "$out"
+  cp lock-form.png locked.png "$out/"
 ''

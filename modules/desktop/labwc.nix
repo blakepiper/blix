@@ -2,4 +2,5 @@
 { ... }:
 {
   programs.labwc.enable = true;
+  security.pam.services.gtklock = { };
 }

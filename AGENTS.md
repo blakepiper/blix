@@ -89,6 +89,8 @@ scope and risk rules in the Validation section.
   layer-shell windows; `packaging/waybar/0001-popup-anchor.patch` exports each
   clicked block's allocation only for those controls. Keep this patch scoped
   to the Wayland session's panel package.
+  The Wayland lock screen uses gtklock with a compact xsecurelock-style form in
+  `home/przvl/config/labwc/lock.{ui,css}`; this module supplies its PAM service.
   The phone keeps X11. XRandR settings and X11 helper services do not configure
   labwc. Basic Zen scaling, topbar and settings rendering were observed on
   2026-11-05; broader input, suspend and portal verification remains pending.

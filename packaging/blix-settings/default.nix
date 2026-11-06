@@ -1,7 +1,7 @@
 { lib, stdenvNoCC, python3, gtk3, gobject-introspection, wrapGAppsHook3
 , networkmanager, networkmanagerapplet, pulseaudio, xrandr, xinput, xset, xrdb
 , brightnessctl, systemd, gammastep, adwaita-icon-theme, libnotify
-, withWayland ? false, wlr-randr, wdisplays, nwg-look, swaylock }:
+, withWayland ? false, wlr-randr, wdisplays, nwg-look, gtklock }:
 
 let
   python = python3.withPackages (ps: [ ps.pygobject3 ps.pycairo ps.dbus-python ]);
@@ -23,7 +23,7 @@ let
     wlr-randr = "${wlr-randr}/bin/wlr-randr";
     wdisplays = "${wdisplays}/bin/wdisplays";
     nwg-look = "${nwg-look}/bin/nwg-look";
-    swaylock = "${swaylock}/bin/swaylock";
+    gtklock = "${gtklock}/bin/gtklock";
   };
 in
 stdenvNoCC.mkDerivation {
