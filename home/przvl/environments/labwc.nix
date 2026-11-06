@@ -306,7 +306,7 @@ in
       layer = "top";
       position = "top";
       height = 28;
-      modules-left = [ "image#logo" "ext/workspaces" "wlr/taskbar" ];
+      modules-left = [ "image#logo" "wlr/taskbar" ];
       modules-right = lib.optional config.blix.hardware.hasBattery "battery"
         ++ [ "pulseaudio" ]
         ++ lib.optional config.blix.hardware.hasBacklight "backlight"
@@ -319,7 +319,6 @@ in
         tooltip-format = "Applications, settings and session";
         on-click = "${menu}/bin/blix-wayland-menu";
       };
-      "ext/workspaces" = { format = "{name}"; on-click = "activate"; };
       "wlr/taskbar" = {
         format = "{icon} {title:.24}";
         icon-size = 18;
@@ -376,19 +375,6 @@ in
       window#waybar { background: #1a1b26; color: #bbbbbb; }
       #image.logo { padding: 0 10px; }
       #image.logo:hover, #pulseaudio:hover, #backlight:hover, #battery:hover { background: #34324a; }
-      #workspaces button {
-        color: #bbbbbb;
-        background: transparent;
-        padding: 0 8px;
-        box-shadow: none;
-        text-shadow: none;
-      }
-      #workspaces button.active {
-        color: #9fe3c4;
-        box-shadow: inset 0 -2px #d7ffe8;
-      }
-      #workspaces button.urgent { color: #f7768e; }
-      #workspaces button:hover { background: #34324a; }
       #taskbar { margin-left: 8px; }
       #taskbar button {
         background: transparent;

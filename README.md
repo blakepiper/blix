@@ -493,7 +493,7 @@ tags. Sending a window to another workspace does not follow it.
 | Super+Shift+Q | Exit to TTY |
 
 Volume, media and laptop brightness keys are also configured. The compact,
-opaque Waybar provides numbered workspaces and colored status labels without
+opaque Waybar provides window buttons and colored status labels without
 RAM/CPU/clock underlines. Battery status is labeled, with a `+` while charging, full or plugged in at a charge limit. Clicking volume or brightness
 opens an OXWM-style slider below the clicked block: the same 240×82 content,
 colors, drag behavior, arrow/Home/End keys, and Escape/right-click/outside-click
@@ -507,9 +507,9 @@ The official two-color NixOS SVG opens nwg-menu directly below the bar's top-lef
 edge. The menu provides app categories, search, pinned favorites and session
 controls. Its scoped package fix includes upstream's category files and uniformly
 sized symbolic navigation/session icons, including Home and Downloads. Menus, settings and slider labels use JetBrainsMono Nerd Font. The
-tray is omitted; Bluetooth controls remain in Settings. Workspace
-switches update the bar without a central popup.
-Application icons with short window titles beside the workspaces keep every window reachable, including
+tray is omitted; Bluetooth controls remain in Settings. Workspace numbers are
+hidden from the bar; keyboard workspace shortcuts remain available.
+Application icons with short window titles beside the app menu keep every window reachable, including
 minimized windows and windows on other outputs. Hover to see the window title;
 click to restore or raise it, or to minimize the active window. Minimized icons
 have an amber underline; the active window has a pale green underline.
