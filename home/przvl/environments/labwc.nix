@@ -25,6 +25,13 @@ let
       exec python3 ${../config/labwc/slider.py} ${popupTools} "$@"
     '';
   };
+  fileManager = pkgs.thunar.overrideAttrs (old: {
+    patches = (old.patches or []) ++ [ ../../../packaging/thunar/0001-labwc-wallpaper.patch ];
+    postPatch = (old.postPatch or "") + ''
+      substituteInPlace plugins/thunar-wallpaper/twp-provider.c \
+        --replace-fail '@blix-wallpaper@' '${wallpaper}/bin/blix-wayland-wallpaper'
+    '';
+  });
   appMenu = pkgs.nwg-menu.overrideAttrs (old: {
     patches = (old.patches or []) ++ [ ../../../packaging/nwg-menu/0001-consistent-icons.patch ];
     # The pinned package omits upstream's category data from its install phase.
@@ -39,14 +46,56 @@ let
     name = "blix-wayland-menu";
     runtimeInputs = [ appMenu ];
     text = ''
-      export XDG_DATA_DIRS="${blixSettings}/share:${pkgs.thunar}/share:''${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+      export XDG_DATA_DIRS="${blixSettings}/share:${fileManager}/share:''${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
       exec nwg-menu -ha left -va top -mt 0 -ml 0 -isl 24 -iss 16 -padding 1 -k \
-        -fm ${pkgs.thunar}/bin/thunar \
+        -fm ${fileManager}/bin/thunar \
         -term ${config.home.sessionVariables.TERMINAL} \
         -cmd-lock '${lock}' \
         -cmd-logout '${pkgs.labwc}/bin/labwc --exit' \
         -cmd-restart '${pkgs.systemd}/bin/systemctl reboot' \
         -cmd-shutdown '${pkgs.systemd}/bin/systemctl poweroff'
+    '';
+  };
+  controlMenu = pkgs.writeShellApplication {
+    name = "blix-wayland-control-menu";
+    runtimeInputs = [ pkgs.fuzzel pkgs.systemd pkgs.wlopm pkgs.coreutils ];
+    text = ''
+      confirm() {
+        local answer
+        answer=$(printf 'No\nYes\n' | fuzzel --dmenu --prompt "$1 ") || return 1
+        [[ $answer == Yes ]]
+      }
+      choice=$(printf 'Lock\nSuspend\nReboot\nLog Out\nMonitors Off\nPower Off\n' | fuzzel --dmenu --prompt 'Control: ') || exit 0
+      case $choice in
+        Lock) exec ${lock} ;;
+        Suspend) exec ${config.blix.power.suspendCommand} ;;
+        Reboot) if confirm 'Reboot?'; then systemctl reboot; fi ;;
+        'Log Out') if confirm 'Log out? Unsaved work may be lost.'; then ${pkgs.labwc}/bin/labwc --exit; fi ;;
+        'Monitors Off') sleep 0.2; wlopm --off '*' ;;
+        'Power Off') if confirm 'Power off?'; then systemctl poweroff; fi ;;
+      esac
+    '';
+  };
+  wallpaper = pkgs.writeShellApplication {
+    name = "blix-wayland-wallpaper";
+    runtimeInputs = [ pkgs.coreutils pkgs.systemd ];
+    text = ''
+      state="''${XDG_STATE_HOME:-$HOME/.local/state}/blix/wallpaper"
+      if [[ ''${1:-} == --set ]]; then
+        [[ $# == 2 && -f $2 && -r $2 ]] || { echo 'Choose a readable image.' >&2; exit 1; }
+        mkdir -p "$(dirname "$state")"
+        # Keep an owned copy so renaming or removing the source does not reset it.
+        temporary=$(mktemp "''${state}.XXXXXX")
+        cp -- "$2" "$temporary"
+        mv -f -- "$temporary" "$state"
+        systemctl --user restart blix-wayland-wallpaper.service
+        exit 0
+      fi
+      image=${lib.escapeShellArg (if config.blix.display.wallpaper == null then "" else config.blix.display.wallpaper)}
+      [[ ! -r $state ]] || image=$state
+      args=(-c '#1a1b26')
+      [[ ! -r $image ]] || args+=(-i "$image" -m fill)
+      exec ${pkgs.swaybg}/bin/swaybg "''${args[@]}"
     '';
   };
   ghostty = pkgs.writeShellApplication {
@@ -134,8 +183,8 @@ let
 in
 {
   home.packages = with pkgs; [
-    start screenshot clipboard menu fuzzel wdisplays wlr-randr wl-clipboard cliphist
-    thunar nwg-look
+    start screenshot clipboard menu controlMenu wallpaper fuzzel wdisplays wlr-randr wl-clipboard cliphist
+    fileManager nwg-look
   ];
 
   xdg.configFile = {
@@ -150,7 +199,7 @@ in
         <placement><policy>cascade</policy></placement>
         <focus><followMouse>no</followMouse></focus>
         <theme>
-          <cornerRadius>0</cornerRadius><font name="JetBrainsMono Nerd Font" size="12" />
+          <icon>Blix</icon><cornerRadius>0</cornerRadius><font name="JetBrainsMono Nerd Font" size="12" />
           <font place="ActiveWindow" name="JetBrainsMono Nerd Font" size="10" />
           <font place="InactiveWindow" name="JetBrainsMono Nerd Font" size="10" />
           <titlebar><layout>icon:iconify,max,close</layout><showTitle>yes</showTitle></titlebar>
@@ -162,8 +211,9 @@ in
           <repeatRate>50</repeatRate><repeatDelay>200</repeatDelay>
           ${bind "W-Return" (execute config.home.sessionVariables.TERMINAL)}
           ${bind "W-space" (execute launcher)}
+          ${bind "W-S-space" (execute "${controlMenu}/bin/blix-wayland-control-menu")}
           ${bind "W-d" (execute launcher)}
-          ${bind "W-f" (execute "${pkgs.thunar}/bin/thunar")}
+          ${bind "W-f" (execute "${fileManager}/bin/thunar")}
           ${bind "W-b" (execute config.home.sessionVariables.BROWSER)}
           ${bind "W-q" (action "Close")}
           ${bind "W-S-q" (action "Exit")}
@@ -219,7 +269,12 @@ in
     '';
     "labwc/themerc-override".text = ''
       border.width: 2
+      # Maximized icon center: 8px padding + 26px / 2 = 21px,
+      # matching the panel logo: 10px padding + 22px / 2 = 21px.
+      window.titlebar.padding.width: 8
       window.titlebar.padding.height: 1
+      window.button.width: 26
+      window.button.height: 26
       window.active.border.color: #7aa2f7
       window.inactive.border.color: #414868
       window.active.title.bg.color: #1a1b26
@@ -253,6 +308,10 @@ in
       battery = {
         format = "Bat: {capacity}%";
         format-charging = "Bat: {capacity}% +";
+        format-plugged = "Bat: {capacity}% +";
+        format-full = "Bat: {capacity}% +";
+        format-not-charging = "Bat: {capacity}% +";
+        interval = 5;
         tooltip-format-charging = "Charging · {capacity}%\n{timeTo}";
       } // lib.optionalAttrs config.blix.hardware.hasPowerProfiles {
         on-click = "${popup}/bin/blix-wayland-slider power";
@@ -310,6 +369,24 @@ in
       #cpu { color: #ed8796; }
       #clock { color: #cad3f5; }
     '';
+    "fuzzel/fuzzel.ini".text = ''
+      [main]
+      font=JetBrainsMono Nerd Font:size=12
+      prompt="Apps: "
+      width=48
+      lines=12
+      [colors]
+      background=1a1b26ff
+      text=c0caf5ff
+      match=7dcfffff
+      selection=292e42ff
+      selection-text=c0caf5ff
+      selection-match=7aa2f7ff
+      border=7aa2f7ff
+      [border]
+      width=2
+      radius=0
+    '';
     "nwg-panel/menu-start.css".text = ''
       * { font-family: "JetBrainsMono Nerd Font", monospace; font-size: 13px; color: #c0caf5; }
       window { background: #1a1b26; color: #c0caf5; border: 1px solid #292e42; }
@@ -329,6 +406,22 @@ in
       ExecStart=
       ExecStart=${ghostty}/bin/blix-session-ghostty
     '';
+  };
+
+  xdg.dataFile = {
+    "icons/Blix/index.theme".text = ''
+      [Icon Theme]
+      Name=Blix
+      Inherits=Adwaita,hicolor
+      Directories=scalable/apps
+      [scalable/apps]
+      Size=48
+      Type=Scalable
+      MinSize=16
+      MaxSize=512
+      Context=Applications
+    '';
+    "icons/Blix/scalable/apps/firefox.svg".source = ../config/labwc/icons/firefox.svg;
   };
 
   systemd.user.targets.blix-wayland-session.Unit = {
@@ -373,7 +466,6 @@ in
     blix-wayland-clipboard = service "Wayland text clipboard history"
       "${pkgs.wl-clipboard}/bin/wl-paste --type text --watch ${pkgs.cliphist}/bin/cliphist store";
     blix-wayland-wallpaper = service "Blix Wayland wallpaper"
-      ("${pkgs.swaybg}/bin/swaybg -c '#1a1b26'" + lib.optionalString (config.blix.display.wallpaper != null)
-        " -i ${lib.escapeShellArg config.blix.display.wallpaper} -m fill");
+      "${wallpaper}/bin/blix-wayland-wallpaper";
   };
 }

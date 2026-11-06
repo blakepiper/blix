@@ -467,7 +467,8 @@ tags. Sending a window to another workspace does not follow it.
 | Shortcut | Action |
 | --- | --- |
 | Super+Enter | Ghostty |
-| Super+Space / Super+D | Fuzzel application launcher |
+| Super+Space / Super+D | Tokyo Night Fuzzel application launcher |
+| Super+Shift+Space | Control menu: lock, suspend, reboot, logout, monitors off, power off |
 | Super+F / Super+B | Thunar / Firefox |
 | Super+Q | Close window |
 | Super+M | Toggle maximized size |
@@ -490,7 +491,7 @@ tags. Sending a window to another workspace does not follow it.
 
 Volume, media and laptop brightness keys are also configured. The compact,
 opaque Waybar provides numbered workspaces and colored status labels without
-RAM/CPU/clock underlines. Battery status is labeled, with a `+` while charging. Clicking volume or brightness
+RAM/CPU/clock underlines. Battery status is labeled, with a `+` while charging, full or plugged in at a charge limit. Clicking volume or brightness
 opens an OXWM-style slider below the clicked block: the same 240×82 content,
 colors, drag behavior, arrow/Home/End keys, and Escape/right-click/outside-click
 dismissal. Waybar's session-local package patch passes each block's actual logical
@@ -507,12 +508,21 @@ tray is omitted; Bluetooth controls remain in Settings. Workspace
 switches update the bar without a central popup.
 The session uses Dunst, the existing Ghostty service, Blueman where supported,
 text clipboard history, the host wallpaper and swayidle's suspend/lock handling.
+In Thunar, right-click one image and choose **Set as wallpaper**. An owned copy
+in `~/.local/state/blix/wallpaper` (or `$XDG_STATE_HOME/blix/wallpaper`) overrides
+the host default on subsequent Wayland logins, even if the source image moves.
+The session's scoped Thunar patch connects its existing wallpaper menu item to
+this setter; custom actions remain user-owned.
 `blix-wayland-session.target` owns these helpers and stops them on exit. Picom,
 XRandR hotplug, xss-lock and the X11 clipboard daemon stay with the X11 target.
 Firefox, Ghostty and Thunar can use Wayland. Labwc requests server decorations
 and forces titlebars with minimize, maximize and close controls; drag the
 titlebar to move, double-click to maximize, or right-click for window actions.
-Titlebar padding and title fonts are compact. Applications that draw their own
+Titlebar padding and title fonts are compact. Maximized titlebar icons share the
+panel logo's horizontal center. Labwc's Blix icon theme uses the original
+2004–2009 Firefox logo (including 2005); its source is recorded beside the asset.
+Firefox selects the system titlebar and disables its X11-only video-title marker
+in Wayland, restoring the extension when returning to X11. Applications that draw their own
 client decorations can retain their headers.
 Ghostty starts with server decorations and 85% background opacity only in the
 Wayland session. The panel remains fully opaque. Labwc does not

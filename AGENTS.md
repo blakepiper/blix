@@ -78,6 +78,11 @@ scope and risk rules in the Validation section.
   `packaging/blix-settings/src/`; host display modules set `blix.wayland.outputs`
   for Wayland scale preferences. Its app menu uses nwg-menu below the opaque bar;
   `packaging/nwg-menu/0001-consistent-icons.patch` fixes symbolic icon sizing.
+  Labwc's local Blix icon theme supplies the retro Firefox titlebar logo;
+  Fuzzel themes the app, clipboard and Super+Shift+Space Control menus. Thunar's
+  existing wallpaper item is connected by `packaging/thunar/0001-labwc-wallpaper.patch`
+  to a setter that saves an owned image under the user's Blix state and restarts
+  the Wayland wallpaper unit; host wallpaper settings remain defaults.
   The Wayland Night Light unit uses Gammastep's gamma-control backend and shares
   saved preferences with the separate X11 unit.
   `home/przvl/config/labwc/slider.py` mirrors the OXWM bar sliders with native

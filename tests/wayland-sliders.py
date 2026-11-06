@@ -53,6 +53,8 @@ else:
     tools = {name: str(fake) for name in ("wpctl", "brightnessctl", "powerMode")}
     for kind, initial in (("volume", 40), ("brightness", 70)):
         popup = Popup(kind, tools, {"center": 600, "width": 1280, "height": 28, "monitor": 0})
+        assert popup.fixed.child_get_property(popup.area, 'x') == 479
+        assert popup.fixed.child_get_property(popup.area, 'y') == 34
         pump()
         assert popup.value == initial
         assert popup.left == 479 and popup.top == 34, (popup.left, popup.top)

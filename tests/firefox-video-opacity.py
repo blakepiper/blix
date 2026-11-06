@@ -69,6 +69,8 @@ with tempfile.TemporaryDirectory(prefix="blix-video-opacity-") as directory:
     sock.close()
     env = os.environ | {
         "MOZ_ENABLE_WAYLAND": "0",
+        "XDG_SESSION_TYPE": "x11",
+        "WAYLAND_DISPLAY": "",
         "XDG_CACHE_HOME": str(root / "cache"),
         "XDG_CONFIG_HOME": str(root / "config"),
         "XDG_RUNTIME_DIR": str(root / "runtime"),
@@ -258,6 +260,35 @@ with tempfile.TemporaryDirectory(prefix="blix-video-opacity-") as directory:
         api("DELETE", "/session/" + session)
         session = None
         print("PASS: persistent installation across Firefox restart with the same profile", flush=True)
+
+        # Reuse the same profile across sessions: disabling markers in Wayland
+        # must not leave the extension disabled when returning to X11. Xvfb
+        # still renders this browser; the session detection is what is tested.
+        for desktop in ("wayland", "x11"):
+            processes[-1].terminate()
+            processes[-1].wait(timeout=10)
+            env["XDG_SESSION_TYPE"] = desktop
+            processes.append(sp.Popen([geckodriver, "--allow-system-access", "--host", "127.0.0.1",
+                                       "--port", str(port), "--profile-root", directory],
+                                      stdout=log, stderr=log, env=env))
+            wait_for(ready, "WebDriver did not restart")
+            session = api("POST", "/session", {
+                "capabilities": {"alwaysMatch": capabilities}})["sessionId"]
+            navigate("/index.html")
+            def addon_active():
+                return script('''const done = arguments[arguments.length - 1];
+                    const { AddonManager } = ChromeUtils.importESModule("resource://gre/modules/AddonManager.sys.mjs");
+                    AddonManager.getAddonByID("video-opacity@blix.local").then(addon => done(addon?.isActive));
+                    ''', chrome=True, asynchronous=True)
+            wait_for(lambda: addon_active() == (desktop == "x11"), "Incorrect session marker state")
+            assert script('return Services.prefs.getIntPref("browser.tabs.inTitlebar");', chrome=True) == (0 if desktop == "wayland" else 2)
+            script("document.getElementById('video').play();")
+            marked(desktop == "x11")
+            time.sleep(0.5)
+            marked(desktop == "x11")
+            api("DELETE", "/session/" + session)
+            session = None
+        print("PASS: Wayland disables markers and uses system titlebar; X11 restores video markers", flush=True)
 
         # The production Picom configuration must turn the marker into actual
         # rendered opacity. Sample the composited X11 framebuffer, not a rule mock.

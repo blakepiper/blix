@@ -91,7 +91,11 @@ class Popup(Gtk.Window):
         self.area = Gtk.DrawingArea()
         self.area.set_size_request(242, self.popup_height)
         self.area.connect("draw", self.draw)
-        self.fixed.put(self.area, 0, 0)
+        # Place the child before the first frame; mapping at (0, 0) briefly
+        # painted the popup over the panel's application menu.
+        self.left = position(anchor["center"], anchor["width"])
+        self.top = anchor["height"] + 6
+        self.fixed.put(self.area, self.left, self.top)
         self.connect("size-allocate", self.reposition)
         self.timer = GLib.timeout_add(20, self.flush)
         self.show_all()
