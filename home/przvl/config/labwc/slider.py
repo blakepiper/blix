@@ -13,9 +13,11 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 gi.require_version("GtkLayerShell", "0.1")
 gi.require_version("PangoCairo", "1.0")
-from gi.repository import Gdk, GLib, Gtk, GtkLayerShell, Pango, PangoCairo
+from gi.repository import Gdk, Gio, GLib, Gtk, GtkLayerShell, Pango, PangoCairo
 
 PROFILES = [("performance", "Performance"), ("balanced", "Balanced"), ("power-saver", "Power Saver")]
+POWER_SERVICE = "org.freedesktop.UPower.PowerProfiles"
+POWER_PATH = "/org/freedesktop/UPower/PowerProfiles"
 
 def position(center, width):
     return max(0, min(center - 121, width - 242))
@@ -33,11 +35,15 @@ class Popup(Gtk.Window):
         self.active_choice = None
         self.choice_touched = False
         self.confirmed = False
-        self.query = None
-        self.next_query = 0
+        self.power_proxy = None
+        self.power_handlers = []
+        self.cancellable = Gio.Cancellable()
+        self.finished = False
         self.anchor = anchor
         self.dragging = False
         self.process = None
+        self.write_timer = None
+        self.child_watch = None
         self.last_write = 0
         self.applied = None
         self.error = False
@@ -51,6 +57,13 @@ class Popup(Gtk.Window):
             self.error = True
         self.applied = self.value
         self.setup_window(anchor)
+        if kind == "power":
+            # GIO loads the initial properties asynchronously and subscribes to
+            # changes. An idle chooser needs no timer or helper processes.
+            Gio.DBusProxy.new_for_bus(
+                Gio.BusType.SYSTEM, Gio.DBusProxyFlags.DO_NOT_AUTO_START, None,
+                POWER_SERVICE, POWER_PATH, POWER_SERVICE, self.cancellable,
+                self.power_connected)
 
     def read_slider(self):
         kind, tools = self.kind, self.tools
@@ -97,7 +110,6 @@ class Popup(Gtk.Window):
         self.top = anchor["height"] + 6
         self.fixed.put(self.area, self.left, self.top)
         self.connect("size-allocate", self.reposition)
-        self.timer = GLib.timeout_add(20, self.flush)
         self.show_all()
 
     def reposition(self, _, allocation):
@@ -148,8 +160,11 @@ class Popup(Gtk.Window):
 
     def set_value(self, value):
         if not self.error:
-            self.value = min(100, max(self.minimum, math.floor(value + 0.5)))
-            self.area.queue_draw()
+            value = min(100, max(self.minimum, math.floor(value + 0.5)))
+            if value != self.value:
+                self.value = value
+                self.area.queue_draw()
+                self.schedule_write()
 
     def pointer(self, x):
         self.set_value(self.minimum + (x - self.left - 19) * (100 - self.minimum) / 204)
@@ -183,7 +198,7 @@ class Popup(Gtk.Window):
         if self.kind == "power":
             _, y = self.coordinates(event)
             index = int((y - self.top - 33) // 32)
-            if 0 <= index < 3:
+            if 0 <= index < 3 and index != self.value:
                 self.choice_touched = True
                 self.value = index
                 self.area.queue_draw()
@@ -225,61 +240,83 @@ class Popup(Gtk.Window):
             return [self.tools["wpctl"], "set-volume", "-l", "1", "@DEFAULT_AUDIO_SINK@", f"{self.value}%"]
         return [self.tools["brightnessctl"], "--class=backlight", "--min-value=1", "set", f"{self.value}%"]
 
-    def flush(self):
-        if self.kind == "power":
-            return self.refresh_power()
-        if self.process:
-            code = self.process.poll()
-            if code is None:
-                return True
-            self.process = None
-            if code:
-                self.error = True
-                self.area.queue_draw()
-        if not self.error and self.value != self.applied and time.monotonic() - self.last_write >= 0.04:
+    def schedule_write(self):
+        if self.finished or self.error or self.process or self.write_timer or self.value == self.applied:
+            return
+        # Coalesce a drag, but never poll an idle slider or a running setter.
+        delay = max(1, math.ceil((self.last_write + 0.04 - time.monotonic()) * 1000))
+        self.write_timer = GLib.timeout_add(delay, self.write_value)
+
+    def write_value(self):
+        self.write_timer = None
+        if not self.error and self.value != self.applied:
             try:
                 self.process = subprocess.Popen(self.setter(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 self.applied = self.value
                 self.last_write = time.monotonic()
+                self.child_watch = GLib.child_watch_add(self.process.pid, self.write_finished)
             except OSError:
                 self.error = True
                 self.area.queue_draw()
-        return True
+        return False
+
+    def write_finished(self, pid, status):
+        self.child_watch = None
+        # GLib has reaped the child. Tell Popen so it never waits on a reused PID.
+        self.process.returncode = os.waitstatus_to_exitcode(status)
+        self.error = self.process.returncode != 0
+        self.process = None
+        if self.error:
+            self.area.queue_draw()
+        else:
+            self.schedule_write()
 
     def confirm_choice(self):
-        if 0 <= self.value < len(PROFILES):
+        if not self.error and 0 <= self.value < len(PROFILES):
             self.confirmed = True
             self.close()
 
-    def refresh_power(self):
-        if self.query:
-            code = self.query.poll()
-            if code is None:
-                return True
-            output, _ = self.query.communicate()
-            self.query = None
-            self.error = code != 0
-            self.active_choice = next((index for index, (value, _) in enumerate(PROFILES) if value == output.strip()), None) if not self.error else None
-            if not self.choice_touched:
-                self.value = self.active_choice if self.active_choice is not None else -1
-            self.area.queue_draw()
-            self.next_query = time.monotonic() + 1
-        if not self.query and time.monotonic() >= self.next_query:
-            try:
-                self.query = subprocess.Popen([self.tools["powerMode"], "power-mode"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            except OSError:
+    def power_connected(self, _, result):
+        try:
+            proxy = Gio.DBusProxy.new_for_bus_finish(result)
+        except GLib.Error:
+            if not self.finished:
                 self.error = True
                 self.area.queue_draw()
-                self.next_query = time.monotonic() + 1
-        return True
+            return
+        if self.finished:
+            return
+        self.power_proxy = proxy
+        self.power_handlers = [
+            proxy.connect("g-properties-changed", self.refresh_power),
+            proxy.connect("notify::g-name-owner", self.refresh_power),
+        ]
+        self.refresh_power()
+
+    def refresh_power(self, *_):
+        state = (self.active_choice, self.value, self.error)
+        active = self.power_proxy.get_cached_property("ActiveProfile")
+        active = active.unpack() if active is not None and self.power_proxy.get_name_owner() else None
+        self.active_choice = next((index for index, (value, _) in enumerate(PROFILES) if value == active), None)
+        self.error = self.active_choice is None
+        if not self.choice_touched:
+            self.value = self.active_choice if self.active_choice is not None else -1
+        if state != (self.active_choice, self.value, self.error):
+            self.area.queue_draw()
 
     def finish(self):
-        GLib.source_remove(self.timer)
+        self.finished = True
+        self.cancellable.cancel()
+        if self.write_timer:
+            GLib.source_remove(self.write_timer)
+            self.write_timer = None
+        if self.child_watch:
+            GLib.source_remove(self.child_watch)
+            self.child_watch = None
         if self.kind == "power":
-            if self.query:
-                if self.query.poll() is None:
-                    self.query.kill()
-                self.query.communicate()
+            if self.power_proxy:
+                for handler in self.power_handlers:
+                    self.power_proxy.disconnect(handler)
             if self.confirmed:
                 # The shared backend confirms and persists the choice; failures
                 # use its existing notification path. Dismissal never writes.
@@ -288,7 +325,7 @@ class Popup(Gtk.Window):
             return
         if self.process:
             try:
-                self.process.wait(timeout=5)
+                self.error = self.process.wait(timeout=5) != 0
             except subprocess.TimeoutExpired:
                 self.process.kill()
                 self.process.wait()

@@ -1,5 +1,5 @@
 # Parallel floating Wayland environment for workstation compositions.
-{ config, osConfig, lib, pkgs, blixSettings, ... }:
+{ config, osConfig, lib, pkgs, blixSettings, labwcIconData, ... }:
 let
   target = "blix-wayland-session.target";
   xml = lib.escapeXML;
@@ -46,7 +46,7 @@ let
     name = "blix-wayland-menu";
     runtimeInputs = [ appMenu ];
     text = ''
-      export XDG_DATA_DIRS="${blixSettings}/share:${fileManager}/share:''${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+      export XDG_DATA_DIRS="${labwcIconData}/share:${blixSettings}/share:${fileManager}/share:''${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
       exec nwg-menu -ha left -va top -mt 0 -ml 0 -isl 24 -iss 16 -padding 1 -k \
         -fm ${fileManager}/bin/thunar \
         -term ${config.home.sessionVariables.TERMINAL} \
@@ -153,12 +153,15 @@ let
       [[ -n $XDG_SESSION_ID ]] || { echo 'No local logind session found.' >&2; exit 1; }
       export XDG_SESSION_ID
       export MOZ_ENABLE_WAYLAND=1
+      original_data_dirs="''${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+      export XDG_DATA_DIRS="${labwcIconData}/share:$original_data_dirs"
       unset DISPLAY WAYLAND_DISPLAY MOZ_USE_XINPUT2
       cleanup() {
         systemctl --user stop ${target} || true
         systemctl --user stop xdg-desktop-portal.service xdg-desktop-portal-wlr.service xdg-desktop-portal-gtk.service || true
-        dbus-update-activation-environment --systemd WAYLAND_DISPLAY= DISPLAY= XDG_CURRENT_DESKTOP= XDG_SESSION_DESKTOP= XDG_SESSION_TYPE= XDG_SESSION_ID= MOZ_ENABLE_WAYLAND= || true
+        dbus-update-activation-environment --systemd WAYLAND_DISPLAY= DISPLAY= XDG_CURRENT_DESKTOP= XDG_SESSION_DESKTOP= XDG_SESSION_TYPE= XDG_SESSION_ID= MOZ_ENABLE_WAYLAND= XDG_DATA_DIRS="$original_data_dirs" || true
         systemctl --user unset-environment WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE XDG_SESSION_ID MOZ_ENABLE_WAYLAND
+        systemctl --user set-environment XDG_DATA_DIRS="$original_data_dirs"
       }
       trap cleanup EXIT
       # Keep the lock in this launcher, not in compositor-launched clients.
@@ -171,7 +174,7 @@ let
     text = ''
       # labwc now knows its Wayland and Xwayland socket names.
       dbus-update-activation-environment --systemd \
-        WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE XDG_SESSION_ID MOZ_ENABLE_WAYLAND
+        WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE XDG_SESSION_ID MOZ_ENABLE_WAYLAND XDG_DATA_DIRS
       systemctl --user stop xdg-desktop-portal.service xdg-desktop-portal-wlr.service xdg-desktop-portal-gtk.service
       systemctl --user start ${target}
     '';
@@ -182,6 +185,7 @@ let
   };
 in
 {
+  imports = [ ./labwc-icons.nix ];
   home.packages = with pkgs; [
     start screenshot clipboard menu controlMenu wallpaper gtklock fuzzel wdisplays wlr-randr wl-clipboard cliphist
     fileManager nwg-look
@@ -305,7 +309,7 @@ in
       modules-right = lib.optional config.blix.hardware.hasBattery "battery"
         ++ [ "pulseaudio" ]
         ++ lib.optional config.blix.hardware.hasBacklight "backlight"
-        ++ [ "memory" "cpu" "clock" ];
+        ++ [ "memory" "cpu_usage" "clock" ];
       "image#logo" = {
         path = "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
         size = 22;
@@ -315,16 +319,20 @@ in
         on-click = "${menu}/bin/blix-wayland-menu";
       };
       "ext/workspaces" = { format = "{name}"; on-click = "activate"; };
-      clock.format = "{:%a, %b %d - %H:%M}";
-      cpu.format = "CPU: {usage}%";
-      memory.format = "Ram: {used:0.1f}/{total:0.1f} GB";
+      clock = { format = "{:%a, %b %d - %H:%M}"; interval = 60; };
+      # This native module reads /proc/stat only. The generic cpu module also
+      # queries frequency on every core even when its format never displays it.
+      cpu_usage = { format = "CPU: {usage:3d}%"; interval = 10; };
+      memory = { format = "Ram: {used:0.1f}/{total:0.1f} GB"; interval = 30; };
       battery = {
         format = "Bat: {capacity}%";
         format-charging = "Bat: {capacity}% +";
         format-plugged = "Bat: {capacity}% +";
         format-full = "Bat: {capacity}% +";
         format-not-charging = "Bat: {capacity}% +";
-        interval = 5;
+        # Kernel events update charging/capacity immediately. This is only a
+        # fallback rescan, not the normal update path.
+        interval = 60;
         tooltip-format-charging = "Charging · {capacity}%\n{timeTo}";
       } // lib.optionalAttrs config.blix.hardware.hasPowerProfiles {
         on-click = "${popup}/bin/blix-wayland-slider power";
@@ -339,6 +347,8 @@ in
       };
       backlight = {
         format = "Bri {percent}%";
+        # Udev supplies changes; avoid re-enumerating devices every two seconds.
+        interval = 60;
         on-click = "${popup}/bin/blix-wayland-slider brightness";
         blix-popup-anchor = true;
         on-scroll-up = "${pkgs.brightnessctl}/bin/brightnessctl --class=backlight set +5%";
@@ -369,7 +379,7 @@ in
       }
       #workspaces button.urgent { color: #f7768e; }
       #workspaces button:hover { background: #34324a; }
-      #clock, #cpu, #memory, #battery, #pulseaudio, #backlight, #tray {
+      #clock, #cpu_usage, #memory, #battery, #pulseaudio, #backlight, #tray {
         padding: 0 10px;
         margin: 3px 0;
         border-left: 1px solid #6e738d;
@@ -379,11 +389,12 @@ in
       #pulseaudio { color: #8aadf4; }
       #backlight { color: #eed49f; }
       #memory { color: #c6a0f6; }
-      #cpu { color: #ed8796; }
+      #cpu_usage { color: #ed8796; }
       #clock { color: #cad3f5; }
     '';
     "fuzzel/fuzzel.ini".text = ''
       [main]
+      icon-theme=Blix
       font=JetBrainsMono Nerd Font:size=12
       prompt="Apps: "
       width=48
@@ -419,22 +430,6 @@ in
       ExecStart=
       ExecStart=${ghostty}/bin/blix-session-ghostty
     '';
-  };
-
-  xdg.dataFile = {
-    "icons/Blix/index.theme".text = ''
-      [Icon Theme]
-      Name=Blix
-      Inherits=Adwaita,hicolor
-      Directories=scalable/apps
-      [scalable/apps]
-      Size=48
-      Type=Scalable
-      MinSize=16
-      MaxSize=512
-      Context=Applications
-    '';
-    "icons/Blix/scalable/apps/firefox.svg".source = ../config/labwc/icons/firefox.svg;
   };
 
   systemd.user.targets.blix-wayland-session.Unit = {

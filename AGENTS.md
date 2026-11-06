@@ -78,7 +78,9 @@ scope and risk rules in the Validation section.
   `packaging/blix-settings/src/`; host display modules set `blix.wayland.outputs`
   for Wayland scale preferences. Its app menu uses nwg-menu below the opaque bar;
   `packaging/nwg-menu/0001-consistent-icons.patch` fixes symbolic icon sizing.
-  Labwc's local Blix icon theme supplies the retro Firefox titlebar logo;
+  `home/przvl/environments/labwc-icons.nix` supplies the retro Firefox logo for
+  titlebars, launchers, GTK/Qt lookup and notifications through a Wayland-only
+  icon/desktop-entry search overlay; its PNGs are rendered at build time.
   Fuzzel themes the app, clipboard and Super+Shift+Space Control menus. Thunar's
   existing wallpaper item is connected by `packaging/thunar/0001-labwc-wallpaper.patch`
   to a setter that saves an owned image under the user's Blix state and restarts
@@ -86,7 +88,11 @@ scope and risk rules in the Validation section.
   The Wayland Night Light unit uses Gammastep's gamma-control backend and shares
   saved preferences with the separate X11 unit.
   `home/przvl/config/labwc/slider.py` mirrors the OXWM bar sliders with native
-  layer-shell windows; `packaging/waybar/0001-popup-anchor.patch` exports each
+  layer-shell windows, edit-triggered coalesced writes and D-Bus power updates;
+  idle popups must not poll or launch refresh subprocesses. Waybar uses the
+  native `cpu_usage` module to avoid unused per-core frequency probes, and
+  battery/backlight events with slow fallback scans.
+  `packaging/waybar/0001-popup-anchor.patch` exports each
   clicked block's allocation only for those controls. Keep this patch scoped
   to the Wayland session's panel package.
   The Wayland lock screen uses gtklock with a compact xsecurelock-style form in

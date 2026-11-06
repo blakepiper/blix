@@ -1004,6 +1004,30 @@ class GuiTests(unittest.TestCase):
             self.assertTrue(widget.get_visible())
             self.assertTrue(widget.get_mapped())
 
+    def test_background_settings_stops_periodic_queries_and_refreshes_on_return(self):
+        # Xvfb has no window manager: control focus, while using real GTK map
+        # events and real GLib timers for the hide/show lifecycle.
+        with patch.object(self.window, "is_active", return_value=True), \
+             patch.object(self.window, "refresh", return_value=True) as refresh:
+            self.window.update_polling()
+            self.assertIsNotNone(self.window.poll)
+            with patch.object(self.window, "is_active", return_value=False):
+                self.window.update_polling()
+                self.assertIsNone(self.window.poll)
+                refresh.reset_mock()
+                self.pump(3.3)
+                refresh.assert_not_called()
+            self.window.update_polling()
+            self.assertIsNotNone(self.window.poll)
+            refresh.assert_called_once_with()
+            self.window.hide()
+            self.pump()
+            self.assertIsNone(self.window.poll)
+            self.window.show_all()
+            self.pump()
+            self.assertIsNotNone(self.window.poll)
+        self.window.update_polling()
+
     def test_audio_and_persisted_input_actions(self):
         self.page("audio")
         self.window.controls["sink"]["device"].set_active_id("headphones")

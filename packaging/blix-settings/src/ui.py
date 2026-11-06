@@ -104,6 +104,10 @@ class Window(Gtk.ApplicationWindow):
         self.defaults = self.demo.defaults if demo else core.defaults()
         self.executor = ThreadPoolExecutor(max_workers=3, thread_name_prefix="blix-settings")
         self.closed = False
+        self.poll = None
+        self.connect("notify::is-active", self.update_polling)
+        self.connect("map-event", self.update_polling)
+        self.connect("unmap-event", self.update_polling)
         self.syncing = False
         self.refreshing = set()
         self.revisions = {}
@@ -177,7 +181,18 @@ class Window(Gtk.ApplicationWindow):
         self.build_about()
         self.show_all()
         self.sidebar.select_row(self.sidebar.get_row_at_index(0))
-        self.poll = GLib.timeout_add_seconds(3, self.refresh)
+        self.update_polling()
+
+    def update_polling(self, *_):
+        # A Settings window behind a game should not keep spawning pactl,
+        # wlr-randr or other device queries. Explicit edits/events still refresh.
+        active = not self.closed and self.get_mapped() and self.is_active()
+        if active and self.poll is None:
+            self.refresh()
+            self.poll = GLib.timeout_add_seconds(3, self.refresh)
+        elif not active and self.poll is not None:
+            GLib.source_remove(self.poll)
+            self.poll = None
 
     def build_shell(self):
         root = box(spacing=0)
@@ -1485,7 +1500,9 @@ class Window(Gtk.ApplicationWindow):
         if self.closed:
             return False
         self.closed = True
-        GLib.source_remove(self.poll)
+        if self.poll is not None:
+            GLib.source_remove(self.poll)
+            self.poll = None
         for source in self.pending_sliders.values():
             GLib.source_remove(source)
         self.pending_sliders.clear()

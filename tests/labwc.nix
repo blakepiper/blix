@@ -13,6 +13,12 @@ let
   rc = pkgs.writeText "blix-labwc-rc.xml" home.xdg.configFile."labwc/rc.xml".text;
   theme = pkgs.writeText "blix-labwc-themerc" home.xdg.configFile."labwc/themerc-override".text;
   wants = home.systemd.user.targets.blix-wayland-session.Unit.Wants;
+  iconLookup = pkgs.runCommand "blix-qt-icon-lookup" {
+    nativeBuildInputs = [ pkgs.pkg-config ];
+    buildInputs = [ pkgs.qt6.qtbase ];
+  } ''
+    ${pkgs.stdenv.cc}/bin/c++ -fPIC ${./wayland-icon-lookup.cpp} $(pkg-config --cflags --libs Qt6Gui) -o "$out"
+  '';
 in
 assert laptop.config.programs.labwc.enable;
 assert pkgs.stdenv.hostPlatform.isx86 ->
@@ -27,7 +33,7 @@ assert !(phone.config.home-manager.users.przvl.systemd.user.targets ? blix-wayla
 assert !lib.any (unit: builtins.elem unit wants) [ "blix-session.target" "blix-picom.service" "blix-lock.service" "blix-display-hotplug.service" "blix-nightlight.service" ];
 assert builtins.elem "blix-wayland-nightlight.service" wants;
 pkgs.runCommand "labwc-session-checks" {
-  nativeBuildInputs = [ pkgs.labwc (pkgs.python3.withPackages (ps: [ ps.pygobject3 ps.pycairo ])) pkgs.dbus pkgs.wlr-randr pkgs.wlrctl pkgs.grim ];
+  nativeBuildInputs = [ pkgs.labwc (pkgs.python3.withPackages (ps: [ ps.pygobject3 ps.pycairo ])) pkgs.dbus pkgs.wlr-randr pkgs.wlrctl pkgs.grim pkgs.strace ];
   GI_TYPELIB_PATH = lib.makeSearchPath "lib/girepository-1.0" (map lib.getLib [ pkgs.gtk3 pkgs.gtk-layer-shell pkgs.glib pkgs.gobject-introspection pkgs.pango pkgs.harfbuzz pkgs.atk pkgs.gdk-pixbuf ]);
   FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ pkgs.dejavu_fonts ]; };
   LOCK_LAYOUT = home.xdg.configFile."gtklock/layout.ui".source;
@@ -38,7 +44,20 @@ pkgs.runCommand "labwc-session-checks" {
   SLIDER_SOURCE = ../home/przvl/config/labwc/slider.py;
   SLIDER_TEST = ./wayland-sliders.py;
   PANEL_COMMAND = home.systemd.user.services.blix-wayland-panel.Service.ExecStart;
+  PANEL_CONFIG = home.xdg.configFile."waybar/config".source;
+  PANEL_STYLE = home.xdg.configFile."waybar/style.css".source;
   PANEL_TEST = ./wayland-panel-anchor.py;
+  PANEL_PERFORMANCE_TEST = ./wayland-panel-performance.py;
+  ICON_TEST = ./wayland-icons.py;
+  ICON_DATA = home.xdg.dataFile."blix/wayland".source;
+  ICON_SOURCE = ../home/przvl/config/labwc/icons/firefox.svg;
+  ICON_FALLBACK = "${pkgs.adwaita-icon-theme}/share";
+  ICON_MODERN = "${home.programs.firefox.finalPackage}/share";
+  ICON_QT_TEST = iconLookup;
+  FUZZEL_CONFIG = home.xdg.configFile."fuzzel/fuzzel.ini".source;
+  FUZZEL_COMMAND = "${pkgs.fuzzel}/bin/fuzzel";
+  QT_QPA_PLATFORM_PLUGIN_PATH = "${pkgs.qt6.qtbase}/${pkgs.qt6.qtbase.qtPluginPrefix}/platforms";
+  DUNST_COMMAND = home.systemd.user.services.dunst.Service.ExecStart;
 } ''
   export HOME="$TMPDIR/home" XDG_RUNTIME_DIR="$TMPDIR/runtime"
   mkdir -p "$HOME" "$XDG_RUNTIME_DIR" config

@@ -37,6 +37,8 @@ with open('labwc.log', 'w+') as log:
         os.environ['GDK_BACKEND'] = 'wayland'
         subprocess.run(['python3', os.environ['SLIDER_TEST'], os.environ['SLIDER_SOURCE']], check=True)
         subprocess.run(['python3', os.environ['PANEL_TEST']], check=True)
+        subprocess.run(['python3', os.environ['PANEL_PERFORMANCE_TEST']], check=True)
+        subprocess.run(['python3', os.environ['ICON_TEST']], check=True)
         subprocess.run(['wlr-randr'], check=True)
         subprocess.run(['grim', 'headless.png'], check=True)
         assert Path('headless.png').stat().st_size > 0

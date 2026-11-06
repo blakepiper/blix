@@ -506,6 +506,15 @@ controls. Its scoped package fix includes upstream's category files and uniforml
 sized symbolic navigation/session icons, including Home and Downloads. Menus, settings and slider labels use JetBrainsMono Nerd Font. The
 tray is omitted; Bluetooth controls remain in Settings. Workspace
 switches update the bar without a central popup.
+The panel uses native usage-only CPU sampling every 10 seconds, memory every
+30 seconds and a minute-resolution clock. Battery and backlight changes arrive
+through kernel events, with a 60-second fallback scan. The static logo loads once;
+there are no periodic shell status commands or CPU-frequency probes. Sliders
+schedule work only after an edit and wait for setter completion without polling.
+The power chooser subscribes to D-Bus changes instead of repeatedly launching
+Settings. Blix Settings pauses periodic device queries while unfocused or hidden
+and refreshes when you return. The top-layer panel is hidden behind unobscured
+fullscreen windows by labwc, preserving the compositor's normal fullscreen path.
 The session uses Dunst, the existing Ghostty service, Blueman where supported,
 text clipboard history, the host wallpaper and swayidle's suspend/lock handling.
 The Wayland locker is gtklock with a black background and compact white
@@ -522,8 +531,13 @@ Firefox, Ghostty and Thunar can use Wayland. Labwc requests server decorations
 and forces titlebars with minimize, maximize and close controls; drag the
 titlebar to move, double-click to maximize, or right-click for window actions.
 Titlebar padding and title fonts are compact. Maximized titlebar icons share the
-panel logo's horizontal center. Labwc's Blix icon theme uses the original
-2004–2009 Firefox logo (including 2005); its source is recorded beside the asset.
+panel logo's horizontal center. `home/przvl/environments/labwc-icons.nix` supplies
+the original 2004–2009 Firefox logo (including 2005) for titlebars, Fuzzel,
+application menus, GTK/Qt icon lookup and Firefox notifications. Its source is
+recorded beside the asset. Exact-size icons are rendered during the Nix build.
+The Wayland launcher adds this icon/desktop-entry overlay to `XDG_DATA_DIRS`,
+including D-Bus/systemd-launched clients, and restores the previous search path
+on exit. The X11 session retains its normal icon lookup and notification rules.
 Firefox selects the system titlebar and disables its X11-only video-title marker
 in Wayland, restoring the extension when returning to X11. Applications that draw their own
 client decorations can retain their headers.
@@ -550,7 +564,10 @@ Alt/Super swap is applied to other keyboards.
 
 Validation includes headless labwc startup, generated XML, output discovery,
 mock-device slider writes, real GTK pointer events and a virtual-pointer click on
-the patched Waybar to verify its exported anchor geometry. Basic Zen scaling,
+the patched Waybar to verify its exported anchor geometry. It also checks
+serialized slow setters, idle power-query suppression, D-Bus service restarts,
+actual telemetry syscalls, fullscreen panel occlusion, GTK/Qt/desktop icon lookup
+and the Firefox notification icon. Basic Zen scaling,
 bar/menu placement and settings rendering were observed physically on 2026-11-05.
 Broader device input, suspend locking and portal screen sharing remain unverified.
 Inspect failures with `journalctl --user -b -u 'blix-wayland-*' -u dunst.service`.
