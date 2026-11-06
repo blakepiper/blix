@@ -320,7 +320,7 @@ in
       };
       "ext/workspaces" = { format = "{name}"; on-click = "activate"; };
       "wlr/taskbar" = {
-        format = "{icon}";
+        format = "{icon} {title:.24}";
         icon-size = 18;
         icon-theme = "Blix";
         # Keep minimized windows reachable even when their output changes.
@@ -328,11 +328,11 @@ in
         tooltip-format = "{title}";
         on-click = "minimize-raise";
       };
-      clock = { format = "{:%a, %b %d - %H:%M}"; interval = 60; };
+      clock = { format = "{:%H:%M}"; interval = 60; };
       # This native module reads /proc/stat only. The generic cpu module also
       # queries frequency on every core even when its format never displays it.
-      cpu_usage = { format = "CPU: {usage:3d}%"; interval = 10; };
-      memory = { format = "Ram: {used:0.1f}/{total:0.1f} GB"; interval = 30; };
+      cpu_usage = { format = "CPU: {usage}%"; interval = 10; };
+      memory = { format = "Ram: {used:0.1f}/{total:0.1f}"; interval = 30; };
       battery = {
         format = "Bat: {capacity}%";
         format-charging = "Bat: {capacity}% +";

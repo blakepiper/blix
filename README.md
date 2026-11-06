@@ -506,12 +506,13 @@ controls. Its scoped package fix includes upstream's category files and uniforml
 sized symbolic navigation/session icons, including Home and Downloads. Menus, settings and slider labels use JetBrainsMono Nerd Font. The
 tray is omitted; Bluetooth controls remain in Settings. Workspace
 switches update the bar without a central popup.
-Application icons beside the workspaces keep every window reachable, including
+Application icons with short window titles beside the workspaces keep every window reachable, including
 minimized windows and windows on other outputs. Hover to see the window title;
 click to restore or raise it, or to minimize the active window. Minimized icons
 have an amber underline; the active window has a pale green underline.
 The panel uses native usage-only CPU sampling every 10 seconds, memory every
-30 seconds and a minute-resolution clock. Battery and backlight changes arrive
+30 seconds and a time-only, minute-resolution clock. CPU percentages have no
+numeric padding, and the memory label omits the GB suffix. Battery and backlight changes arrive
 through kernel events, with a 60-second fallback scan. The static logo loads once;
 there are no periodic shell status commands or CPU-frequency probes. Sliders
 schedule work only after an edit and wait for setter completion without polling.
