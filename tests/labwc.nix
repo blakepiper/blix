@@ -48,6 +48,7 @@ pkgs.runCommand "labwc-session-checks" {
   PANEL_STYLE = home.xdg.configFile."waybar/style.css".source;
   PANEL_TEST = ./wayland-panel-anchor.py;
   PANEL_PERFORMANCE_TEST = ./wayland-panel-performance.py;
+  TASKBAR_TEST = ./wayland-taskbar.py;
   ICON_TEST = ./wayland-icons.py;
   ICON_DATA = home.xdg.dataFile."blix/wayland".source;
   ICON_SOURCE = ../home/przvl/config/labwc/icons/firefox.svg;

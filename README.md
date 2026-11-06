@@ -459,7 +459,7 @@ and are intended to run one at a time. Super+Shift+Q exits labwc back to the TTY
 `startx` then starts the existing OXWM environment again. The phone retains its
 X11 session and does not select labwc.
 
-Labwc starts with floating, cascading windows and nine numbered workspaces.
+Labwc starts with floating, cascading windows and five numbered workspaces.
 The bindings follow OXWM where the operations translate; tiling-layout commands
 are omitted. Workspaces span the Wayland desktop rather than OXWM's per-monitor
 tags. Sending a window to another workspace does not follow it.
@@ -475,8 +475,8 @@ tags. Sending a window to another workspace does not follow it.
 | Super+Shift+F | Toggle maximized size (keep the bar visible) |
 | Super+Shift+Left/Right/Up/Down | Toggle snapping to that half of the screen |
 | Super+P | Restore snapped/maximized window to floating size |
-| Super+1–9 | Switch workspace |
-| Super+Shift+1–9 | Send window to workspace |
+| Super+1–5 | Switch workspace |
+| Super+Shift+1–5 | Send window to workspace |
 | Super+Tab | Previous numbered workspace, wrapping |
 | Super+arrows / Alt+Tab | Cycle window focus |
 | Super+Ctrl+arrows | Focus another output |
@@ -506,6 +506,10 @@ controls. Its scoped package fix includes upstream's category files and uniforml
 sized symbolic navigation/session icons, including Home and Downloads. Menus, settings and slider labels use JetBrainsMono Nerd Font. The
 tray is omitted; Bluetooth controls remain in Settings. Workspace
 switches update the bar without a central popup.
+Application icons beside the workspaces keep every window reachable, including
+minimized windows and windows on other outputs. Hover to see the window title;
+click to restore or raise it, or to minimize the active window. Minimized icons
+have an amber underline; the active window has a pale green underline.
 The panel uses native usage-only CPU sampling every 10 seconds, memory every
 30 seconds and a minute-resolution clock. Battery and backlight changes arrive
 through kernel events, with a 60-second fallback scan. The static logo loads once;

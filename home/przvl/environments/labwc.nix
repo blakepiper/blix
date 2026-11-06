@@ -221,7 +221,7 @@ in
           <maximizedDecoration>titlebar</maximizedDecoration>
         </theme>
         <windowRules><windowRule identifier="*" serverDecoration="yes" /></windowRules>
-        <desktops><popupTime>0</popupTime><names>${lib.concatMapStrings (i: "<name>${toString i}</name>") (lib.range 1 9)}</names></desktops>
+        <desktops><popupTime>0</popupTime><names>${lib.concatMapStrings (i: "<name>${toString i}</name>") (lib.range 1 5)}</names></desktops>
         <keyboard>
           <repeatRate>50</repeatRate><repeatDelay>200</repeatDelay>
           ${bind "W-Return" (execute config.home.sessionVariables.TERMINAL)}
@@ -243,7 +243,7 @@ in
           ${lib.concatMapStringsSep "\n" (i:
             bind "W-${toString i}" ''<action name="GoToDesktop" to="${toString i}" />'' +
             bind "W-S-${toString i}" ''<action name="SendToDesktop" to="${toString i}" follow="no" />''
-          ) (lib.range 1 9)}
+          ) (lib.range 1 5)}
           ${lib.concatMapStringsSep "\n" (direction:
             bind "W-${direction}" (action (if builtins.elem direction [ "Left" "Up" ] then "PreviousWindowImmediate" else "NextWindowImmediate")) +
             bind "W-S-${direction}" ''<action name="ToggleSnapToEdge" direction="${lib.toLower direction}" />'' +
@@ -305,7 +305,7 @@ in
       layer = "top";
       position = "top";
       height = 28;
-      modules-left = [ "image#logo" "ext/workspaces" ];
+      modules-left = [ "image#logo" "ext/workspaces" "wlr/taskbar" ];
       modules-right = lib.optional config.blix.hardware.hasBattery "battery"
         ++ [ "pulseaudio" ]
         ++ lib.optional config.blix.hardware.hasBacklight "backlight"
@@ -319,6 +319,15 @@ in
         on-click = "${menu}/bin/blix-wayland-menu";
       };
       "ext/workspaces" = { format = "{name}"; on-click = "activate"; };
+      "wlr/taskbar" = {
+        format = "{icon}";
+        icon-size = 18;
+        icon-theme = "Blix";
+        # Keep minimized windows reachable even when their output changes.
+        all-outputs = true;
+        tooltip-format = "{title}";
+        on-click = "minimize-raise";
+      };
       clock = { format = "{:%a, %b %d - %H:%M}"; interval = 60; };
       # This native module reads /proc/stat only. The generic cpu module also
       # queries frequency on every core even when its format never displays it.
@@ -379,6 +388,18 @@ in
       }
       #workspaces button.urgent { color: #f7768e; }
       #workspaces button:hover { background: #34324a; }
+      #taskbar { margin-left: 8px; }
+      #taskbar button {
+        background: transparent;
+        padding: 0 8px;
+        box-shadow: none;
+      }
+      #taskbar button.active { box-shadow: inset 0 -2px #d7ffe8; }
+      #taskbar button.minimized {
+        background: #292e42;
+        box-shadow: inset 0 -2px #e0af68;
+      }
+      #taskbar button:hover { background: #34324a; }
       #clock, #cpu_usage, #memory, #battery, #pulseaudio, #backlight, #tray {
         padding: 0 10px;
         margin: 3px 0;
