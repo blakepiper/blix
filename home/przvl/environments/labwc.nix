@@ -37,9 +37,14 @@ let
   });
   popup = pkgs.writeShellApplication {
     name = "blix-wayland-slider";
-    runtimeInputs = [ (pkgs.python3.withPackages (ps: [ ps.pygobject3 ps.pycairo ])) ];
+    runtimeInputs = [ pkgs.glib (pkgs.python3.withPackages (ps: [ ps.pygobject3 ps.pycairo ])) ];
     text = ''
       export GI_TYPELIB_PATH="${lib.makeSearchPath "lib/girepository-1.0" (map lib.getLib [ pkgs.gtk3 pkgs.gtk-layer-shell pkgs.glib pkgs.gobject-introspection pkgs.pango pkgs.harfbuzz pkgs.atk pkgs.gdk-pixbuf ])}''${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
+      if [[ ''${1:-} != --daemon ]]; then
+        exec gdbus call --session --dest org.blix.BarPopups --object-path /org/blix/BarPopups \
+          --method org.blix.BarPopups.Toggle "$1" \
+          "$BLIX_PANEL_CENTER" "$BLIX_PANEL_WIDTH" "$BLIX_PANEL_HEIGHT" "$BLIX_PANEL_MONITOR" >/dev/null
+      fi
       exec python3 ${../config/labwc/slider.py} ${popupTools} "$@"
     '';
   };
@@ -51,7 +56,7 @@ let
     '';
   });
   appMenu = pkgs.nwg-menu.overrideAttrs (old: {
-    patches = (old.patches or []) ++ [ ../../../packaging/nwg-menu/0001-consistent-icons.patch ];
+    patches = (old.patches or []) ++ [ ../../../packaging/nwg-menu/0001-consistent-icons.patch ../../../packaging/nwg-menu/0002-resident-menu.patch ];
     # The pinned package omits upstream's category data from its install phase.
     postInstall = (old.postInstall or "") + ''
       cp -r desktop-directories "$out/share/desktop-directories"
@@ -65,13 +70,13 @@ let
     runtimeInputs = [ appMenu ];
     text = ''
       export XDG_DATA_DIRS="${labwcIconData}/share:${blixSettings}/share:${fileManager}/share:''${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
-      exec nwg-menu -ha left -va top -mt 0 -ml 0 -isl 24 -iss 16 -padding 1 -k \
+      exec nwg-menu -resident -ha left -va top -mt 0 -ml 0 -isl 24 -iss 16 -padding 1 -k \
         -fm ${fileManager}/bin/thunar \
         -term ${config.home.sessionVariables.TERMINAL} \
         -cmd-lock '${lock}' \
         -cmd-logout '${pkgs.labwc}/bin/labwc --exit' \
         -cmd-restart '${pkgs.systemd}/bin/systemctl reboot' \
-        -cmd-shutdown '${pkgs.systemd}/bin/systemctl poweroff'
+        -cmd-shutdown '${pkgs.systemd}/bin/systemctl poweroff' "$@"
     '';
   };
   controlMenu = pkgs.writeShellApplication {
@@ -291,6 +296,11 @@ in
         </keyboard>
         <mouse>
           <default />
+          <context name="Root">
+            <mousebind button="Left" action="Press"><action name="None" /></mousebind>
+            <mousebind button="Middle" action="Press"><action name="None" /></mousebind>
+            <mousebind button="Right" action="Press"><action name="None" /></mousebind>
+          </context>
           <context name="Frame">
             <mousebind button="W-Left" action="Drag"><action name="Move" /></mousebind>
             <mousebind button="W-Right" action="Drag"><action name="Resize" /></mousebind>
@@ -339,7 +349,7 @@ in
         # This Waybar version otherwise reloads a static image every millisecond.
         interval = "once";
         tooltip-format = "Applications, settings and session";
-        on-click = "${menu}/bin/blix-wayland-menu";
+        on-click = "${pkgs.systemd}/bin/systemctl --user kill --kill-whom=main --signal=USR1 blix-wayland-menu.service";
       };
       "wlr/taskbar" = {
         format = "{icon} {title:.24}";
@@ -474,7 +484,7 @@ in
   systemd.user.targets.blix-wayland-session.Unit = {
     Description = "Blix labwc Wayland session services";
     Wants = [ "dunst.service"
-      "blix-wayland-panel.service" "blix-wayland-lock.service"
+      "blix-wayland-panel.service" "blix-wayland-menu.service" "blix-wayland-sliders.service" "blix-wayland-lock.service"
       "blix-wayland-clipboard.service" "blix-wayland-wallpaper.service"
       "blix-wayland-nightlight.service" ]
       ++ lib.optional config.services.blueman-applet.enable "blueman-applet.service"
@@ -484,7 +494,24 @@ in
     blueman-applet = lib.mkIf config.services.blueman-applet.enable {
       Unit.PartOf = [ target ];
     };
-    blix-wayland-panel = service "Blix Wayland panel" "${panel}/bin/waybar";
+    blix-wayland-menu = lib.recursiveUpdate
+      (service "Warm Wayland application menu" "${menu}/bin/blix-wayland-menu")
+      { Install.WantedBy = [ target ]; Unit.X-Restart-Triggers = [ "${config.home.path}" ]; };
+    blix-wayland-sliders = lib.recursiveUpdate
+      (service "Warm Wayland panel controls" "${popup}/bin/blix-wayland-slider --daemon")
+      {
+        Install.WantedBy = [ target ];
+        Service = { Type = "dbus"; BusName = "org.blix.BarPopups"; };
+      };
+    blix-wayland-panel = lib.recursiveUpdate
+      (service "Blix Wayland panel" "${panel}/bin/waybar")
+      {
+        Unit.After = [ "blix-wayland-menu.service" "blix-wayland-sliders.service" ];
+        Unit.X-Restart-Triggers = [
+          config.xdg.configFile."waybar/config".source
+          config.xdg.configFile."waybar/style.css".source
+        ];
+      };
     blix-wayland-outputs = lib.mkIf (manageOutputs || config.blix.wayland.outputs != {}) {
       Install.WantedBy = [ target ];
       Unit = { Description = "Blix Wayland display layout and scaling"; PartOf = [ target ]; };

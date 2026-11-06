@@ -81,7 +81,8 @@ scope and risk rules in the Validation section.
   for Wayland scale preferences. The labwc output service reuses host connector
   patterns and mirror defaults at login and DRM hotplug; it restores the
   preferred panel mode when undocked. Its app menu uses nwg-menu below the opaque bar;
-  `packaging/nwg-menu/0001-consistent-icons.patch` fixes symbolic icon sizing.
+  `packaging/nwg-menu/0001-consistent-icons.patch` fixes symbolic icon sizing;
+  `0002-resident-menu.patch` adds hidden startup and native-signal toggling.
   `home/przvl/environments/labwc-icons.nix` supplies the retro Firefox logo for
   titlebars, launchers, GTK/Qt lookup and notifications through a Wayland-only
   icon/desktop-entry search overlay; its PNGs are rendered at build time.
@@ -93,8 +94,10 @@ scope and risk rules in the Validation section.
   saved preferences with the separate X11 unit.
   `home/przvl/config/labwc/slider.py` mirrors the OXWM bar sliders with native
   layer-shell windows, edit-triggered coalesced writes and D-Bus power updates;
-  idle popups must not poll or launch refresh subprocesses. Waybar uses the
-  native `cpu_usage` module to avoid unused per-core frequency probes, and
+  idle popups must not poll or launch refresh subprocesses. The session-owned
+  menu and slider services keep GTK warm; clicks use native signal/D-Bus IPC,
+  and slider reads/final writes must not block the resident GTK loop.
+  Waybar uses the native `cpu_usage` module to avoid unused per-core frequency probes, and
   battery/backlight events with slow fallback scans.
   `packaging/waybar/0001-popup-anchor.patch` exports each
   clicked block's allocation only for those controls. Keep this patch scoped

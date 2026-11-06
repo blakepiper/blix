@@ -1,0 +1,247 @@
+--- a/main.go
++++ b/main.go
+@@ -102,6 +102,38 @@
+ )
+ 
+ // Flags
++var resident = flag.Bool("resident", false, "keep the menu warm, hidden until SIGUSR1")
++var menuWindow, backgroundWindow *gtk.Window
++
++func dismissMenu() {
++	if !*resident {
++		gtk.MainQuit()
++		return
++	}
++	cancelClose()
++	menuWindow.Hide()
++	if backgroundWindow != nil {
++		backgroundWindow.Hide()
++	}
++}
++
++func toggleMenu() {
++	if menuWindow.GetVisible() {
++		dismissMenu()
++		return
++	}
++	clearSearchResult()
++	restoreButtonBox()
++	searchEntry.SetText("")
++	pinnedListBox.UnselectAll()
++	if backgroundWindow != nil {
++		backgroundWindow.ShowAll()
++	}
++	menuWindow.ShowAll()
++	backButton.Hide()
++	searchEntry.GrabFocus()
++}
++
+ var cssFileName = flag.String("s", "menu-start.css", "Styling: css file name")
+ var targetOutput = flag.String("o", "", "name of the Output to display the menu on")
+ var displayVersion = flag.Bool("v", false, "display Version information")
+@@ -141,16 +173,20 @@
+ 		os.Exit(0)
+ 	}
+ 
+-	// Gentle SIGTERM handler thanks to reiki4040 https://gist.github.com/reiki4040/be3705f307d3cd136e85
+-	signalChan := make(chan os.Signal, 1)
+-	signal.Notify(signalChan, syscall.SIGTERM)
++	// Run signal callbacks on GTK's main thread, also queuing early clicks.
++	signalChan := make(chan os.Signal, 8)
++	signal.Notify(signalChan, syscall.SIGTERM, syscall.SIGUSR1)
+ 	go func() {
+-		for {
+-			s := <-signalChan
+-			if s == syscall.SIGTERM {
+-				println("SIGTERM received, bye bye!")
+-				gtk.MainQuit()
+-			}
++		for s := range signalChan {
++			request := s
++			glib.IdleAdd(func() bool {
++				if request == syscall.SIGTERM {
++					gtk.MainQuit()
++				} else if *resident {
++					toggleMenu()
++				}
++				return false
++			})
+ 		}
+ 	}()
+ 
+@@ -239,6 +275,7 @@
+ 		log.Fatal("Unable to create window:", err)
+ 	}
+ 
++	menuWindow = win
+ 	layershell.InitForWindow(win)
+ 
+ 	var output2mon map[string]*gdk.Monitor
+@@ -276,6 +313,8 @@
+ 
+ 	layershell.SetKeyboardMode(win, layershell.LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND)
+ 
++	win.Connect("map-event", func() { log.Debug("Resident menu mapped") })
++	win.Connect("unmap-event", func() { log.Debug("Resident menu hidden") })
+ 	win.Connect("destroy", func() {
+ 		gtk.MainQuit()
+ 	})
+@@ -290,7 +329,7 @@
+ 				searchEntry.SetText("")
+ 			} else {
+ 				if resultWindow == nil || !resultWindow.GetVisible() {
+-					gtk.MainQuit()
++					dismissMenu()
+ 				} else {
+ 					clearSearchResult()
+ 				}
+@@ -302,7 +341,7 @@
+ 	win.Connect("leave-notify-event", func() {
+ 		if *autohide {
+ 			src = glib.TimeoutAdd(uint(1000), func() bool {
+-				gtk.MainQuit()
++				dismissMenu()
+ 				return false
+ 			})
+ 		}
+@@ -371,7 +410,12 @@
+ 
+ 	//win.SetSizeRequest(0, *windowHeigth)
+ 
+-	win.ShowAll()
++	// Warm GTK and child widgets without mapping the menu at login.
++	outerBox.ShowAll()
++	win.Realize()
++	if !*resident {
++		win.Show()
++	}
+ 
+ 	backButton.Hide()
+ 
+--- a/uicomponents.go
++++ b/uicomponents.go
+@@ -195,7 +195,7 @@
+ 			categoriesListBox.SelectRow(row)
+ 			listBox := setUpCategoryListBox(listCategory)
+ 			if resultWindow != nil {
+-				resultWindow.Destroy()
++				resultWindow.Destroy(); resultWindow = nil
+ 			}
+ 			resultWindow, _ = gtk.ScrolledWindowNew(nil, nil)
+ 			resultWindow.SetPolicy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+@@ -222,7 +222,7 @@
+ 			//categoriesListBox.SelectRow(row)
+ 			listBox := setUpCategoryListBox(listCategory)
+ 			if resultWindow != nil {
+-				resultWindow.Destroy()
++				resultWindow.Destroy(); resultWindow = nil
+ 			}
+ 			resultWindow, _ = gtk.ScrolledWindowNew(nil, nil)
+ 			resultWindow.SetPolicy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+@@ -386,7 +386,7 @@
+ func setUpFileSearchResult() *gtk.ListBox {
+ 	listBox, _ := gtk.ListBoxNew()
+ 	if fileSearchResultWindow != nil {
+-		fileSearchResultWindow.Destroy()
++		fileSearchResultWindow.Destroy(); fileSearchResultWindow = nil
+ 	}
+ 	fileSearchResultWindow, _ = gtk.ScrolledWindowNew(nil, nil)
+ 	fileSearchResultWindow.SetPolicy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+@@ -440,7 +440,7 @@
+ 			backButton.Show()
+ 
+ 			if resultWindow != nil {
+-				resultWindow.Destroy()
++				resultWindow.Destroy(); resultWindow = nil
+ 			}
+ 			resultListBox = setUpCategorySearchResult(phrase)
+ 			if resultListBox.GetChildren().Length() == 0 {
+@@ -449,7 +449,7 @@
+ 
+ 			if len(phrase) > 2 {
+ 				if fileSearchResultWindow != nil {
+-					fileSearchResultWindow.Destroy()
++					fileSearchResultWindow.Destroy(); fileSearchResultWindow = nil
+ 				}
+ 				fileSearchResultListBox = setUpFileSearchResult()
+ 				for key := range userDirsMap {
+@@ -462,7 +462,7 @@
+ 				}
+ 			} else {
+ 				if fileSearchResultWindow != nil {
+-					fileSearchResultWindow.Destroy()
++					fileSearchResultWindow.Destroy(); fileSearchResultWindow = nil
+ 				}
+ 			}
+ 
+@@ -727,7 +727,7 @@
+ 
+ func restoreButtonBox() {
+ 	if confirmationBox != nil {
+-		confirmationBox.Destroy()
++		confirmationBox.Destroy(); confirmationBox = nil
+ 	}
+ 	if !buttonBox.IsVisible() {
+ 		buttonBox.Show()
+@@ -736,10 +736,10 @@
+ 
+ func clearSearchResult() {
+ 	if resultWindow != nil {
+-		resultWindow.Destroy()
++		resultWindow.Destroy(); resultWindow = nil
+ 	}
+ 	if fileSearchResultWindow != nil {
+-		fileSearchResultWindow.Destroy()
++		fileSearchResultWindow.Destroy(); fileSearchResultWindow = nil
+ 	}
+ 	if userDirsListBox != nil {
+ 		userDirsListBox.ShowAll()
+@@ -761,6 +761,7 @@
+ 		log.Fatal("Unable to create background window:", err)
+ 	}
+ 
++	backgroundWindow = win
+ 	win.SetProperty("name", "bcg-window")
+ 
+ 	layershell.InitForWindow(win)
+@@ -782,12 +783,14 @@
+ 	gtk.AddProviderForScreen(screen, cssProvider, gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+ 
+ 	win.Connect("touch-event", func() {
+-		gtk.MainQuit()
++		dismissMenu()
+ 	})
+ 
+ 	win.Connect("button-release-event", func() {
+-		gtk.MainQuit()
+-	})
+-
+-	win.ShowAll()
+-}
++		dismissMenu()
++	})
++
++	if !*resident {
++		win.ShowAll()
++	}
++}
+--- a/tools.go
++++ b/tools.go
+@@ -628,7 +628,7 @@
+ 	go cmd.Run()
+ 
+ 	glib.TimeoutAdd(uint(150), func() bool {
+-		gtk.MainQuit()
++		dismissMenu()
+ 		return false
+ 	})
+ }
+@@ -638,7 +638,7 @@
+ 	go cmd.Run()
+ 
+ 	glib.TimeoutAdd(uint(150), func() bool {
+-		gtk.MainQuit()
++		dismissMenu()
+ 		return false
+ 	})
+ }

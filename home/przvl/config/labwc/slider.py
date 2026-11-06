@@ -24,8 +24,12 @@ def position(center, width):
 
 
 class Popup(Gtk.Window):
-    def __init__(self, kind, tools, anchor):
+    def __init__(self, kind, tools, anchor, on_close=None):
         super().__init__(title="Blix bar slider")
+        self.on_close = on_close
+        self.read_process = None
+        self.read_timeout = None
+        self.loading = kind != "power"
         self.tools = tools
         self.kind = kind
         self.label = {"volume": "Volume", "brightness": "Brightness", "monitor-brightness": "Brightness", "power": "Power mode"}[kind]
@@ -47,16 +51,11 @@ class Popup(Gtk.Window):
         self.last_write = 0
         self.applied = None
         self.error = False
-        try:
-            if kind == "power":
-                self.value = -1
-            else:
-                self.read_slider()
-        except (OSError, ValueError, IndexError, subprocess.SubprocessError):
-            self.value = self.minimum
-            self.error = True
+        self.value = -1 if kind == "power" else self.minimum
         self.applied = self.value
         self.setup_window(anchor)
+        if kind != "power":
+            self.start_read()
         if kind == "power":
             # GIO loads the initial properties asynchronously and subscribes to
             # changes. An idle chooser needs no timer or helper processes.
@@ -65,19 +64,61 @@ class Popup(Gtk.Window):
                 POWER_SERVICE, POWER_PATH, POWER_SERVICE, self.cancellable,
                 self.power_connected)
 
-    def read_slider(self):
-        kind, tools = self.kind, self.tools
-        if kind == "monitor-brightness":
-            result = subprocess.run([tools["monitorBrightness"]], capture_output=True, text=True, check=True, timeout=5)
-            value = float(result.stdout.strip().rstrip("%"))
+    def start_read(self):
+        if self.kind == "monitor-brightness":
+            args = [self.tools["monitorBrightness"]]
+        elif self.kind == "volume":
+            args = [self.tools["wpctl"], "get-volume", "@DEFAULT_AUDIO_SINK@"]
         else:
-            args = [tools["wpctl"], "get-volume", "@DEFAULT_AUDIO_SINK@"] if kind == "volume" else [
-                tools["brightnessctl"], "--class=backlight", "--machine-readable"]
-            result = subprocess.run(args, capture_output=True, text=True, check=True, timeout=5)
-            value = float(result.stdout.split()[1]) * 100 if kind == "volume" else float(result.stdout.split(",")[3].rstrip("%"))
-        if not math.isfinite(value):
-            raise ValueError("Invalid device value")
-        self.value = min(100, max(self.minimum, math.floor(value + 0.5)))
+            args = [self.tools["brightnessctl"], "--class=backlight", "--machine-readable"]
+        try:
+            self.read_process = Gio.Subprocess.new(args, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE)
+            self.read_timeout = GLib.timeout_add(5000, self.read_expired)
+            self.read_process.communicate_utf8_async(None, self.cancellable, self.read_ready)
+        except GLib.Error:
+            self.loading = False
+            self.error = True
+            self.area.queue_draw()
+
+    def read_expired(self):
+        self.read_timeout = None
+        if self.read_process:
+            self.read_process.force_exit()
+        return False
+
+    def read_ready(self, process, result):
+        if self.read_timeout:
+            GLib.source_remove(self.read_timeout)
+            self.read_timeout = None
+        self.read_process = None
+        try:
+            _, output, _ = process.communicate_utf8_finish(result)
+            if not process.get_successful():
+                raise ValueError("Could not read device")
+            if self.kind == "monitor-brightness":
+                value = float(output.strip().rstrip("%"))
+            elif self.kind == "volume":
+                value = float(output.split()[1]) * 100
+            else:
+                value = float(output.split(",")[3].rstrip("%"))
+            if not math.isfinite(value):
+                raise ValueError("Invalid device value")
+            value = min(100, max(self.minimum, math.floor(value + 0.5)))
+            if not self.finished:
+                self.value = self.applied = value
+        except (GLib.Error, ValueError, IndexError):
+            if not self.finished:
+                self.error = True
+        if not self.finished:
+            self.loading = False
+            self.area.queue_draw()
+
+    def destroyed(self, *_):
+        self.finish()
+        if self.on_close:
+            self.on_close(self)
+        elif Gtk.main_level():
+            Gtk.main_quit()
 
     def setup_window(self, anchor):
         GtkLayerShell.init_for_window(self)
@@ -97,7 +138,7 @@ class Popup(Gtk.Window):
         provider.load_from_data(b"window { background: transparent; }")
         self.get_style_context().add_provider(provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         self.connect("draw", self.clear_background)
-        self.connect("destroy", lambda *_: Gtk.main_quit() if Gtk.main_level() else None)
+        self.connect("destroy", self.destroyed)
         self.connect("key-press-event", self.key)
         self.add_events(Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.BUTTON_RELEASE_MASK | Gdk.EventMask.POINTER_MOTION_MASK)
         self.connect("button-press-event", self.press)
@@ -151,8 +192,8 @@ class Popup(Gtk.Window):
                 if self.active_choice == index:
                     rect(19, y + 11, 8, 8, self.accent)
             return False
-        text(19, 11, f"{self.label} unavailable" if self.error else f"{self.label} {self.value}%")
-        if self.error:
+        text(19, 11, f"{self.label} …" if self.loading else f"{self.label} unavailable" if self.error else f"{self.label} {self.value}%")
+        if self.error or self.loading:
             return False
         filled = round((self.value - self.minimum) * 204 / (100 - self.minimum))
         rect(19, 47, 204, 4, "444444")
@@ -163,7 +204,7 @@ class Popup(Gtk.Window):
         return False
 
     def set_value(self, value):
-        if not self.error:
+        if not self.error and not self.loading:
             value = min(100, max(self.minimum, math.floor(value + 0.5)))
             if value != self.value:
                 self.value = value
@@ -274,6 +315,9 @@ class Popup(Gtk.Window):
         self.process = None
         if self.error:
             self.area.queue_draw()
+        elif self.finished:
+            if self.value != self.applied:
+                self.write_value()
         else:
             self.schedule_write()
 
@@ -311,12 +355,20 @@ class Popup(Gtk.Window):
             self.area.queue_draw()
 
     def finish(self):
+        if self.finished:
+            return
         self.finished = True
+        if self.read_timeout:
+            GLib.source_remove(self.read_timeout)
+            self.read_timeout = None
+        if self.read_process:
+            self.read_process.force_exit()
+            self.read_process = None
         self.cancellable.cancel()
         if self.write_timer:
             GLib.source_remove(self.write_timer)
             self.write_timer = None
-        if self.child_watch:
+        if self.child_watch and not self.on_close:
             GLib.source_remove(self.child_watch)
             self.child_watch = None
         if self.kind == "power":
@@ -329,6 +381,12 @@ class Popup(Gtk.Window):
                 subprocess.Popen([self.tools["powerMode"], "power-mode", PROFILES[self.value][0]],
                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
             return
+        if self.on_close:
+            # A resident GTK loop must never wait for a setter when dismissed.
+            # The child watch finishes any final coalesced edit in order.
+            if not self.process and not self.error and not self.loading and self.value != self.applied:
+                self.write_value()
+            return
         if self.process:
             try:
                 self.error = self.process.wait(timeout=5) != 0
@@ -336,15 +394,56 @@ class Popup(Gtk.Window):
                 self.process.kill()
                 self.process.wait()
                 return
-        if not self.error and self.value != self.applied:
+        if not self.loading and not self.error and self.value != self.applied:
             subprocess.run(self.setter(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
+
+
+class PopupService:
+    """One session-scoped GTK process; clicks are small native D-Bus calls."""
+    name = "org.blix.BarPopups"
+    path = "/org/blix/BarPopups"
+    interface = """<node><interface name="org.blix.BarPopups">
+      <method name="Toggle"><arg type="s" direction="in"/>
+        <arg type="i" direction="in"/><arg type="i" direction="in"/>
+        <arg type="i" direction="in"/><arg type="i" direction="in"/>
+      </method></interface></node>"""
+
+    def __init__(self, tools):
+        self.tools = tools
+        self.popup = None
+        self.connection = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+        info = Gio.DBusNodeInfo.new_for_xml(self.interface)
+        self.registration = self.connection.register_object(self.path, info.interfaces[0], self.call, None, None)
+        self.owner = Gio.bus_own_name_on_connection(self.connection, self.name,
+            Gio.BusNameOwnerFlags.NONE, None, lambda *_: Gtk.main_quit())
+
+    def closed(self, popup):
+        if self.popup is popup:
+            self.popup = None
+
+    def call(self, connection, sender, path, interface, method, parameters, invocation):
+        kind, center, width, height, monitor = parameters.unpack()
+        if kind not in ("volume", "brightness", "monitor-brightness", "power") or width <= 0 or height < 0 or monitor < 0:
+            invocation.return_dbus_error("org.blix.BarPopups.Invalid", "Invalid panel control or anchor")
+            return
+        previous = self.popup
+        if previous:
+            previous.close()
+        if not previous or previous.kind != kind or previous.anchor["monitor"] != monitor:
+            self.popup = Popup(kind, self.tools, dict(center=center, width=width, height=height, monitor=monitor), self.closed)
+        invocation.return_value(None)
 
 
 if __name__ == "__main__":
     tools = json.loads(Path(sys.argv[1]).read_text())
-    if sys.argv[2] not in ("volume", "brightness", "monitor-brightness", "power"):
-        raise SystemExit("Choose volume, brightness, monitor-brightness or power")
-    anchor = {key: int(os.environ[f"BLIX_PANEL_{key.upper()}"]) for key in ("center", "width", "height", "monitor")}
-    popup = Popup(sys.argv[2], tools, anchor)
-    Gtk.main()
-    popup.finish()
+    if sys.argv[2] == "--daemon":
+        Gtk.init([])
+        service = PopupService(tools)
+        Gtk.main()
+    else:
+        if sys.argv[2] not in ("volume", "brightness", "monitor-brightness", "power"):
+            raise SystemExit("Choose volume, brightness, monitor-brightness or power")
+        anchor = {key: int(os.environ[f"BLIX_PANEL_{key.upper()}"]) for key in ("center", "width", "height", "monitor")}
+        popup = Popup(sys.argv[2], tools, anchor)
+        Gtk.main()
+        popup.finish()

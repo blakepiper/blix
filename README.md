@@ -560,6 +560,12 @@ provide global window opacity or Picom-style effects for arbitrary applications;
 transparency requires application support. Existing Ghostty processes need a
 new session to pick up these launch options.
 
+The panel's application menu and slider controls are kept warm by session-owned
+services; clicks use native signal/D-Bus requests instead of restarting GTK.
+Sliders show immediately and read hardware asynchronously, with no idle
+polling. The application menu refreshes when the Home Manager application set
+changes. Wallpaper clicks do not open a menu.
+
 Laptop labwc sessions reuse the host's primary connector, external connector
 patterns (`blix.wayland.externalOutputs` for DRM naming) and mirror resolution
 at login and DRM hotplug. Mirroring selects each output's highest advertised

@@ -50,6 +50,7 @@ with open('labwc.log', 'w+') as log:
         subprocess.run(['wlr-randr'], check=True)
         subprocess.run(['grim', 'headless.png'], check=True)
         assert Path('headless.png').stat().st_size > 0
+        subprocess.run(['python3', os.environ['LATENCY_TEST']], check=True)
         # Last: keep the synthetic compositor locked until it exits.
         subprocess.run(['python3', os.environ['LOCK_TEST']], check=True)
     finally:

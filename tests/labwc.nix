@@ -49,6 +49,9 @@ pkgs.runCommand "labwc-session-checks" {
   LOCK_TEST = ./wayland-lock.py;
   SLIDER_SOURCE = ../home/przvl/config/labwc/slider.py;
   SLIDER_TEST = ./wayland-sliders.py;
+  MENU_COMMAND = home.systemd.user.services.blix-wayland-menu.Service.ExecStart;
+  POPUP_COMMAND = home.systemd.user.services.blix-wayland-sliders.Service.ExecStart;
+  LATENCY_TEST = ./wayland-panel-latency.py;
   PANEL_COMMAND = home.systemd.user.services.blix-wayland-panel.Service.ExecStart;
   PANEL_CONFIG = home.xdg.configFile."waybar/config".source;
   PANEL_STYLE = home.xdg.configFile."waybar/style.css".source;
