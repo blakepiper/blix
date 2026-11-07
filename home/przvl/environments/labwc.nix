@@ -369,6 +369,8 @@ in
       memory = { format = "Ram: {used:0.1f}/{total:0.1f}"; interval = 30; };
       battery = {
         format = "Bat: {capacity}%";
+        format-discharging = "Bat: {capacity}% {time}";
+        format-time = "{H}h{M}m";
         format-charging = "Bat: {capacity}% +";
         format-plugged = "Bat: {capacity}% +";
         format-full = "Bat: {capacity}% +";
