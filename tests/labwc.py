@@ -8,6 +8,8 @@ root = ET.parse('config/rc.xml').getroot()
 keys = {binding.attrib['key']: binding.find('action')
         for binding in root.findall('keyboard/keybind')}
 assert keys['W-S-space'].attrib['command'].endswith('/bin/blix-wayland-control-menu')
+assert keys['W-S-b'].attrib['name'] == 'Execute'
+assert keys['W-S-b'].attrib['command'] == keys['W-b'].attrib['command'] + ' --private-window'
 assert root.findtext('theme/icon') == 'Blix'
 assert keys['W-q'].attrib['name'] == 'Close'
 assert keys['W-S-f'].attrib['name'] == 'ToggleMaximize'

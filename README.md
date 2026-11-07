@@ -475,6 +475,7 @@ tags. Sending a window to another workspace does not follow it.
 | Super+Space / Super+D | Tokyo Night Fuzzel application launcher |
 | Super+Shift+Space | Control menu: lock, suspend, reboot, logout, monitors off, power off |
 | Super+F / Super+B | Thunar / Firefox |
+| Super+Shift+B | Firefox private browsing window |
 | Super+Q | Close window |
 | Super+M | Toggle maximized size |
 | Super+Shift+F | Toggle maximized size (keep the bar visible) |

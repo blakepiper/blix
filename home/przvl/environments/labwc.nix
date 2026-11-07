@@ -255,6 +255,7 @@ in
           ${bind "W-d" (execute launcher)}
           ${bind "W-f" (execute "${fileManager}/bin/thunar")}
           ${bind "W-b" (execute config.home.sessionVariables.BROWSER)}
+          ${bind "W-S-b" (execute "${config.home.sessionVariables.BROWSER} --private-window")}
           ${lib.optionalString osConfig.programs.steam.enable
             (bind "W-g" (execute "${osConfig.programs.steam.package}/bin/steam"))}
           ${bind "W-q" (action "Close")}
