@@ -182,6 +182,7 @@ let
       unset DISPLAY WAYLAND_DISPLAY MOZ_USE_XINPUT2
       cleanup() {
         systemctl --user stop ${target} || true
+        systemctl --user stop graphical-session.target || true
         systemctl --user stop xdg-desktop-portal.service xdg-desktop-portal-wlr.service xdg-desktop-portal-gtk.service || true
         dbus-update-activation-environment --systemd WAYLAND_DISPLAY= DISPLAY= XDG_CURRENT_DESKTOP= XDG_SESSION_DESKTOP= XDG_SESSION_TYPE= XDG_SESSION_ID= MOZ_ENABLE_WAYLAND= XDG_DATA_DIRS="$original_data_dirs" || true
         systemctl --user unset-environment WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE XDG_SESSION_ID MOZ_ENABLE_WAYLAND
@@ -484,7 +485,10 @@ in
 
   systemd.user.targets.blix-wayland-session.Unit = {
     Description = "Blix labwc Wayland session services";
+    BindsTo = [ "graphical-session.target" ];
+    After = [ "graphical-session.target" ];
     Wants = [ "dunst.service"
+      "blix-wayland-polkit.service"
       "blix-wayland-panel.service" "blix-wayland-menu.service" "blix-wayland-sliders.service" "blix-wayland-lock.service"
       "blix-wayland-clipboard.service" "blix-wayland-wallpaper.service"
       "blix-wayland-nightlight.service" ]
@@ -492,6 +496,8 @@ in
       ++ lib.optional (manageOutputs || config.blix.wayland.outputs != {}) "blix-wayland-outputs.service";
   };
   systemd.user.services = {
+    blix-wayland-polkit = service "Graphical authorization for the Wayland session"
+      "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1";
     blueman-applet = lib.mkIf config.services.blueman-applet.enable {
       Unit.PartOf = [ target ];
     };

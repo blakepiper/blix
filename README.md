@@ -464,6 +464,11 @@ and are intended to run one at a time. Super+Shift+Q exits labwc back to the TTY
 `startx` then starts the existing OXWM environment again. The phone retains its
 X11 session and does not select labwc.
 
+The Wayland session owns `graphical-session.target`, allowing desktop portals
+to start for screen sharing and application integration. A session-owned Polkit
+agent supplies graphical administrator authentication prompts. Both lifecycles
+end when labwc exits.
+
 Labwc starts with floating, cascading windows and nine numbered workspaces.
 The bindings follow OXWM where the operations translate; tiling-layout commands
 are omitted. Workspaces span the Wayland desktop rather than OXWM's per-monitor

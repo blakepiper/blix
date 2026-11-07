@@ -35,6 +35,12 @@ assert !phone.config.programs.labwc.enable;
 assert !(phone.config.home-manager.users.przvl.systemd.user.targets ? blix-wayland-session);
 assert !lib.any (unit: builtins.elem unit wants) [ "blix-session.target" "blix-picom.service" "blix-lock.service" "blix-display-hotplug.service" "blix-nightlight.service" ];
 assert builtins.elem "blix-wayland-nightlight.service" wants;
+assert builtins.elem "blix-wayland-polkit.service" wants;
+assert builtins.elem "graphical-session.target"
+  home.systemd.user.targets.blix-wayland-session.Unit.BindsTo;
+assert builtins.elem "graphical-session.target"
+  home.systemd.user.targets.blix-wayland-session.Unit.After;
+assert home.systemd.user.services.blix-wayland-polkit.Unit.PartOf == [ "blix-wayland-session.target" ];
 assert !(builtins.elem "app-com.mitchellh.ghostty.service" wants);
 assert builtins.elem "app-com.mitchellh.ghostty.service"
   home.systemd.user.targets.blix-session.Unit.Wants;
