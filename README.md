@@ -555,7 +555,7 @@ provide global window opacity or Picom-style effects for arbitrary applications;
 transparency requires application support. Existing Ghostty processes need a
 new session to pick up these launch options.
 
-Outputs use their native advertised modes. Zen declares 175% scaling for its
+Outputs use their native advertised modes. Zen declares 200% scaling for its
 Wayland eDP-1 panel in `hosts/zen/display.nix`; other hosts retain their defaults.
 `blix.wayland.outputs` owns host-specific Wayland scale preferences, applied at
 session startup. Super+S opens the regular Blix Settings app with a Wayland
