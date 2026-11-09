@@ -63,6 +63,12 @@ let
         xfconf-query -c xfce4-keyboard-shortcuts -p "/xfwm4/custom/<Super>$number" -r 2>/dev/null || true
         xfconf-query -c xfce4-keyboard-shortcuts -p "/xfwm4/custom/<Super><Shift>$number" -r 2>/dev/null || true
       done
+    '' + lib.optionalString (config.blix.xfce.displayScale != null) ''
+      while IFS= read -r property; do
+        if [[ $property == /Default/*/Scale ]]; then
+          xfconf-query -c displays -p "$property" -s ${toString config.blix.xfce.displayScale}
+        fi
+      done < <(xfconf-query -c displays -l)
     '' + lib.optionalString (config.blix.xfce.windowScalingFactor != null) ''
       xfconf-query -c xsettings -p /Gdk/WindowScalingFactor -n -t int \
         -s ${toString config.blix.xfce.windowScalingFactor}
@@ -71,14 +77,21 @@ let
         -s ${lib.escapeShellArg "Sans Bold ${toString (6 * config.blix.xfce.windowScalingFactor)}"}
     '';
   };
-  refreshWorkspaceOne = pkgs.writeShellApplication {
-    name = "blix-xfce-refresh-workspace-one";
+  refreshWorkspaceShortcuts = pkgs.writeShellApplication {
+    name = "blix-xfce-refresh-workspace-shortcuts";
     runtimeInputs = [ pkgs.xfconf ];
     text = ''
-      # Re-register after xfwm4 starts; the saved binding alone did not grab the key.
-      xfconf-query -c xfce4-keyboard-shortcuts -p '/xfwm4/custom/<Super>1' -r 2>/dev/null || true
-      xfconf-query -c xfce4-keyboard-shortcuts -p '/xfwm4/custom/<Super>1' \
-        -n -t string -s workspace_1_key
+      # xfwm4 did not grab every saved workspace binding at startup.
+      for number in 1 2 3 4; do
+        switch="/xfwm4/custom/<Super>$number"
+        move="/xfwm4/custom/<Super><Shift>$number"
+        xfconf-query -c xfce4-keyboard-shortcuts -p "$switch" -r 2>/dev/null || true
+        xfconf-query -c xfce4-keyboard-shortcuts -p "$switch" \
+          -n -t string -s "workspace_''${number}_key"
+        xfconf-query -c xfce4-keyboard-shortcuts -p "$move" -r 2>/dev/null || true
+        xfconf-query -c xfce4-keyboard-shortcuts -p "$move" \
+          -n -t string -s "move_window_workspace_''${number}_key"
+      done
     '';
   };
   start = pkgs.writeShellApplication {
@@ -106,6 +119,12 @@ in
     description = "XFCE window scaling factor for this user.";
   };
 
+  options.blix.xfce.displayScale = lib.mkOption {
+    type = lib.types.nullOr lib.types.numbers.positive;
+    default = null;
+    description = "XFCE Default display profile scale for known outputs at login.";
+  };
+
   config = {
     home.packages = [ start ];
 
@@ -131,11 +150,11 @@ in
       '';
     };
 
-    xdg.configFile."autostart/blix-xfce-refresh-workspace-one.desktop".text = ''
+    xdg.configFile."autostart/blix-xfce-refresh-workspace-shortcuts.desktop".text = ''
       [Desktop Entry]
       Type=Application
       Name=Blix XFCE workspace shortcut
-      Exec=${refreshWorkspaceOne}/bin/blix-xfce-refresh-workspace-one
+      Exec=${refreshWorkspaceShortcuts}/bin/blix-xfce-refresh-workspace-shortcuts
       OnlyShowIn=XFCE;
       X-XFCE-Autostart-Phase=Applications
     '';

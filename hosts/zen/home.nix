@@ -7,4 +7,6 @@
   imports = [ ./display.nix ../../home/przvl/programs/steam.nix ];
 
   blix.xfce.windowScalingFactor = 2;
+  # 2x window scaling divided by this display scale gives about 175% overall.
+  blix.xfce.displayScale = 8.0 / 7.0;
 }
