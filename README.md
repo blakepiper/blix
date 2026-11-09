@@ -464,6 +464,8 @@ OXWM or labwc. It starts a separate X11 session using `~/.xfce-xinitrc`, leaving
 `startx` and its OXWM `~/.xinitrc` unchanged. Exit XFCE to return to the TTY.
 XFCE has its own session target and does not start the Blix X11 or Wayland user
 services. The phone does not install this session.
+On Zen, XFCE uses 200% window scaling. Firefox uses XFCE's window frame and
+keeps the OXWM-only video title marker disabled in this session.
 
 ## Experimental Wayland session
 

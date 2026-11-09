@@ -1,5 +1,5 @@
 # Separate XFCE login from the OXWM ~/.xinitrc and Blix session services.
-{ pkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 let
   start = pkgs.writeShellApplication {
@@ -21,26 +21,39 @@ let
   };
 in
 {
-  home.packages = [ start ];
-
-  home.file.".xfce-xinitrc" = {
-    executable = true;
-    text = "#!${pkgs.bash}/bin/bash\n" + ''
-      export XDG_CURRENT_DESKTOP=XFCE
-      export XDG_SESSION_DESKTOP=xfce
-      export XDG_SESSION_TYPE=x11
-      ${pkgs.systemd}/bin/systemctl --user start blix-xfce-session.target || exit 1
-      cleanup() {
-        ${pkgs.systemd}/bin/systemctl --user stop blix-xfce-session.target || true
-        ${pkgs.dbus}/bin/dbus-update-activation-environment --systemd \
-          DISPLAY= XAUTHORITY= DESKTOP_SESSION= XDG_CURRENT_DESKTOP= XDG_SESSION_DESKTOP= XDG_SESSION_TYPE= || true
-        ${pkgs.systemd}/bin/systemctl --user unset-environment \
-          DISPLAY XAUTHORITY DESKTOP_SESSION XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE || true
-      }
-      trap cleanup EXIT
-      ${pkgs.bash}/bin/bash ${pkgs.xfce4-session.xinitrc}
-    '';
+  options.blix.xfce.windowScalingFactor = lib.mkOption {
+    type = lib.types.nullOr lib.types.ints.positive;
+    default = null;
+    description = "XFCE window scaling factor for this user.";
   };
 
-  systemd.user.targets.blix-xfce-session.Unit.Description = "Blix XFCE session";
+  config = {
+    home.packages = [ start ];
+
+    home.file.".xfce-xinitrc" = {
+      executable = true;
+      text = "#!${pkgs.bash}/bin/bash\n" + ''
+        export XDG_CURRENT_DESKTOP=XFCE
+        export XDG_SESSION_DESKTOP=xfce
+        export XDG_SESSION_TYPE=x11
+${lib.optionalString (config.blix.xfce.windowScalingFactor != null) ''
+        ${pkgs.xfconf}/bin/xfconf-query -c xsettings \
+          -p /Gdk/WindowScalingFactor -n -t int \
+          -s ${toString config.blix.xfce.windowScalingFactor} || exit 1
+''}
+        ${pkgs.systemd}/bin/systemctl --user start blix-xfce-session.target || exit 1
+        cleanup() {
+          ${pkgs.systemd}/bin/systemctl --user stop blix-xfce-session.target || true
+          ${pkgs.dbus}/bin/dbus-update-activation-environment --systemd \
+            DISPLAY= XAUTHORITY= DESKTOP_SESSION= XDG_CURRENT_DESKTOP= XDG_SESSION_DESKTOP= XDG_SESSION_TYPE= || true
+          ${pkgs.systemd}/bin/systemctl --user unset-environment \
+            DISPLAY XAUTHORITY DESKTOP_SESSION XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE || true
+        }
+        trap cleanup EXIT
+        ${pkgs.bash}/bin/bash ${pkgs.xfce4-session.xinitrc}
+      '';
+    };
+
+    systemd.user.targets.blix-xfce-session.Unit.Description = "Blix XFCE session";
+  };
 }

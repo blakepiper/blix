@@ -5,4 +5,6 @@
 
 {
   imports = [ ./display.nix ../../home/przvl/programs/steam.nix ];
+
+  blix.xfce.windowScalingFactor = 2;
 }
