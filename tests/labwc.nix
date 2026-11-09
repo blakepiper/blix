@@ -21,6 +21,9 @@ let
   '';
 in
 assert laptop.config.programs.labwc.enable;
+assert home.blix.wayland.brightnessCommand == null;
+assert !(builtins.elem "custom/brightness"
+  (builtins.fromJSON (builtins.unsafeDiscardStringContext home.xdg.configFile."waybar/config".text)).modules-right);
 assert pkgs.stdenv.hostPlatform.isx86 ->
   lib.hasInfix (builtins.unsafeDiscardStringContext steamBinding)
     steamLaptop.config.home-manager.users.przvl.xdg.configFile."labwc/rc.xml".text;
@@ -32,6 +35,12 @@ assert !phone.config.programs.labwc.enable;
 assert !(phone.config.home-manager.users.przvl.systemd.user.targets ? blix-wayland-session);
 assert !lib.any (unit: builtins.elem unit wants) [ "blix-session.target" "blix-picom.service" "blix-lock.service" "blix-display-hotplug.service" "blix-nightlight.service" ];
 assert builtins.elem "blix-wayland-nightlight.service" wants;
+assert builtins.elem "blix-wayland-polkit.service" wants;
+assert builtins.elem "graphical-session.target"
+  home.systemd.user.targets.blix-wayland-session.Unit.BindsTo;
+assert builtins.elem "graphical-session.target"
+  home.systemd.user.targets.blix-wayland-session.Unit.After;
+assert home.systemd.user.services.blix-wayland-polkit.Unit.PartOf == [ "blix-wayland-session.target" ];
 assert !(builtins.elem "app-com.mitchellh.ghostty.service" wants);
 assert builtins.elem "app-com.mitchellh.ghostty.service"
   home.systemd.user.targets.blix-session.Unit.Wants;
@@ -46,6 +55,9 @@ pkgs.runCommand "labwc-session-checks" {
   LOCK_TEST = ./wayland-lock.py;
   SLIDER_SOURCE = ../home/przvl/config/labwc/slider.py;
   SLIDER_TEST = ./wayland-sliders.py;
+  MENU_COMMAND = home.systemd.user.services.blix-wayland-menu.Service.ExecStart;
+  POPUP_COMMAND = home.systemd.user.services.blix-wayland-sliders.Service.ExecStart;
+  LATENCY_TEST = ./wayland-panel-latency.py;
   PANEL_COMMAND = home.systemd.user.services.blix-wayland-panel.Service.ExecStart;
   PANEL_CONFIG = home.xdg.configFile."waybar/config".source;
   PANEL_STYLE = home.xdg.configFile."waybar/style.css".source;
@@ -63,6 +75,8 @@ pkgs.runCommand "labwc-session-checks" {
   QT_QPA_PLATFORM_PLUGIN_PATH = "${pkgs.qt6.qtbase}/${pkgs.qt6.qtbase.qtPluginPrefix}/platforms";
   DUNST_COMMAND = home.systemd.user.services.dunst.Service.ExecStart;
 } ''
+  python3 ${./wayland-outputs-headless.py} ${../home/przvl/hardware/wayland-outputs.py}
+  python3 ${./wayland-outputs.py} ${../home/przvl/hardware/wayland-outputs.py}
   export HOME="$TMPDIR/home" XDG_RUNTIME_DIR="$TMPDIR/runtime"
   mkdir -p "$HOME" "$XDG_RUNTIME_DIR" config
   chmod 700 "$XDG_RUNTIME_DIR"

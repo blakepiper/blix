@@ -8,6 +8,8 @@ root = ET.parse('config/rc.xml').getroot()
 keys = {binding.attrib['key']: binding.find('action')
         for binding in root.findall('keyboard/keybind')}
 assert keys['W-S-space'].attrib['command'].endswith('/bin/blix-wayland-control-menu')
+assert keys['W-S-b'].attrib['name'] == 'Execute'
+assert keys['W-S-b'].attrib['command'] == keys['W-b'].attrib['command'] + ' --private-window'
 assert root.findtext('theme/icon') == 'Blix'
 assert keys['W-q'].attrib['name'] == 'Close'
 assert keys['W-S-f'].attrib['name'] == 'ToggleMaximize'
@@ -25,6 +27,8 @@ for number in range(1, 10):
     assert keys[f'W-S-{number}'].attrib['name'] == 'SendToDesktop'
     assert keys[f'W-S-{number}'].attrib['to'] == str(number)
     assert keys[f'W-S-{number}'].attrib['follow'] == 'no'
+assert root.findtext("libinput/device[@category='non-touch']/naturalScroll") == 'yes'
+assert root.findtext("libinput/device[@category='touchpad']/naturalScroll") == 'yes'
 assert not root.findall('windowRules/windowRule/action')  # no forced tiling
 with open('labwc.log', 'w+') as log:
     process = subprocess.Popen(['labwc', '-d', '-C', str(Path('config').resolve())],
@@ -48,6 +52,7 @@ with open('labwc.log', 'w+') as log:
         subprocess.run(['wlr-randr'], check=True)
         subprocess.run(['grim', 'headless.png'], check=True)
         assert Path('headless.png').stat().st_size > 0
+        subprocess.run(['python3', os.environ['LATENCY_TEST']], check=True)
         # Last: keep the synthetic compositor locked until it exits.
         subprocess.run(['python3', os.environ['LOCK_TEST']], check=True)
     finally:

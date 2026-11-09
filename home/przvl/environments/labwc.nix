@@ -1,7 +1,24 @@
 # Parallel floating Wayland environment for workstation compositions.
-{ config, osConfig, lib, pkgs, blixSettings, labwcIconData, ... }:
+{ config, osConfig, lib, pkgs, blixSettings, labwcIconData, labwcExtraBarModules, ... }:
 let
   target = "blix-wayland-session.target";
+  display = config.blix.display;
+  manageOutputs = display.primaryOutput != null;
+  outputSettings = pkgs.writeText "blix-wayland-outputs.json" (builtins.toJSON {
+    primary = display.primaryOutput;
+    external = if config.blix.wayland.externalOutputs != [] then config.blix.wayland.externalOutputs
+      else lib.optional (display.externalOutput != null) display.externalOutput
+        ++ display.additionalExternalOutputs;
+    inherit (display) layout;
+    mode = display.mirrorMode;
+    rate = display.mirrorRate;
+    scales = lib.mapAttrs (_: value: value.scale) config.blix.wayland.outputs;
+  });
+  outputManager = pkgs.writeShellApplication {
+    name = "blix-wayland-outputs";
+    runtimeInputs = [ pkgs.python3 pkgs.wlr-randr pkgs.systemd ];
+    text = "exec python3 ${../hardware/wayland-outputs.py} ${outputSettings}";
+  };
   xml = lib.escapeXML;
   bind = key: action: ''<keybind key="${key}">${action}</keybind>'';
   action = name: ''<action name="${name}" />'';
@@ -15,13 +32,19 @@ let
   popupTools = pkgs.writeText "blix-wayland-slider-tools.json" (builtins.toJSON {
     wpctl = "${pkgs.wireplumber}/bin/wpctl";
     brightnessctl = "${pkgs.brightnessctl}/bin/brightnessctl";
+    monitorBrightness = config.blix.wayland.brightnessCommand;
     powerMode = "${blixSettings}/bin/blix-settings-apply";
   });
   popup = pkgs.writeShellApplication {
     name = "blix-wayland-slider";
-    runtimeInputs = [ (pkgs.python3.withPackages (ps: [ ps.pygobject3 ps.pycairo ])) ];
+    runtimeInputs = [ pkgs.glib (pkgs.python3.withPackages (ps: [ ps.pygobject3 ps.pycairo ])) ];
     text = ''
       export GI_TYPELIB_PATH="${lib.makeSearchPath "lib/girepository-1.0" (map lib.getLib [ pkgs.gtk3 pkgs.gtk-layer-shell pkgs.glib pkgs.gobject-introspection pkgs.pango pkgs.harfbuzz pkgs.atk pkgs.gdk-pixbuf ])}''${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
+      if [[ ''${1:-} != --daemon ]]; then
+        exec gdbus call --session --dest org.blix.BarPopups --object-path /org/blix/BarPopups \
+          --method org.blix.BarPopups.Toggle "$1" \
+          "$BLIX_PANEL_CENTER" "$BLIX_PANEL_WIDTH" "$BLIX_PANEL_HEIGHT" "$BLIX_PANEL_MONITOR" >/dev/null
+      fi
       exec python3 ${../config/labwc/slider.py} ${popupTools} "$@"
     '';
   };
@@ -33,7 +56,7 @@ let
     '';
   });
   appMenu = pkgs.nwg-menu.overrideAttrs (old: {
-    patches = (old.patches or []) ++ [ ../../../packaging/nwg-menu/0001-consistent-icons.patch ];
+    patches = (old.patches or []) ++ [ ../../../packaging/nwg-menu/0001-consistent-icons.patch ../../../packaging/nwg-menu/0002-resident-menu.patch ];
     # The pinned package omits upstream's category data from its install phase.
     postInstall = (old.postInstall or "") + ''
       cp -r desktop-directories "$out/share/desktop-directories"
@@ -47,13 +70,13 @@ let
     runtimeInputs = [ appMenu ];
     text = ''
       export XDG_DATA_DIRS="${labwcIconData}/share:${blixSettings}/share:${fileManager}/share:''${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
-      exec nwg-menu -ha left -va top -mt 0 -ml 0 -isl 24 -iss 16 -padding 1 -k \
+      exec nwg-menu -resident -ha left -va top -mt 0 -ml 0 -isl 24 -iss 16 -padding 1 -k \
         -fm ${fileManager}/bin/thunar \
         -term ${config.home.sessionVariables.TERMINAL} \
         -cmd-lock '${lock}' \
         -cmd-logout '${pkgs.labwc}/bin/labwc --exit' \
         -cmd-restart '${pkgs.systemd}/bin/systemctl reboot' \
-        -cmd-shutdown '${pkgs.systemd}/bin/systemctl poweroff'
+        -cmd-shutdown '${pkgs.systemd}/bin/systemctl poweroff' "$@"
     '';
   };
   controlMenu = pkgs.writeShellApplication {
@@ -159,6 +182,7 @@ let
       unset DISPLAY WAYLAND_DISPLAY MOZ_USE_XINPUT2
       cleanup() {
         systemctl --user stop ${target} || true
+        systemctl --user stop graphical-session.target || true
         systemctl --user stop xdg-desktop-portal.service xdg-desktop-portal-wlr.service xdg-desktop-portal-gtk.service || true
         dbus-update-activation-environment --systemd WAYLAND_DISPLAY= DISPLAY= XDG_CURRENT_DESKTOP= XDG_SESSION_DESKTOP= XDG_SESSION_TYPE= XDG_SESSION_ID= MOZ_ENABLE_WAYLAND= XDG_DATA_DIRS="$original_data_dirs" || true
         systemctl --user unset-environment WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE XDG_SESSION_ID MOZ_ENABLE_WAYLAND
@@ -187,6 +211,7 @@ let
 in
 {
   imports = [ ./labwc-icons.nix ];
+  _module.args.labwcExtraBarModules = lib.mkDefault {};
   home.packages = with pkgs; [
     start screenshot clipboard menu controlMenu wallpaper gtklock fuzzel wdisplays wlr-randr wl-clipboard cliphist
     fileManager nwg-look
@@ -231,6 +256,7 @@ in
           ${bind "W-d" (execute launcher)}
           ${bind "W-f" (execute "${fileManager}/bin/thunar")}
           ${bind "W-b" (execute config.home.sessionVariables.BROWSER)}
+          ${bind "W-S-b" (execute "${config.home.sessionVariables.BROWSER} --private-window")}
           ${lib.optionalString osConfig.programs.steam.enable
             (bind "W-g" (execute "${osConfig.programs.steam.package}/bin/steam"))}
           ${bind "W-q" (action "Close")}
@@ -272,12 +298,18 @@ in
         </keyboard>
         <mouse>
           <default />
+          <context name="Root">
+            <mousebind button="Left" action="Press"><action name="None" /></mousebind>
+            <mousebind button="Middle" action="Press"><action name="None" /></mousebind>
+            <mousebind button="Right" action="Press"><action name="None" /></mousebind>
+          </context>
           <context name="Frame">
             <mousebind button="W-Left" action="Drag"><action name="Move" /></mousebind>
             <mousebind button="W-Right" action="Drag"><action name="Resize" /></mousebind>
           </context>
         </mouse>
         <libinput>
+          <device category="non-touch"><naturalScroll>yes</naturalScroll></device>
           <device category="touchpad">
             <naturalScroll>yes</naturalScroll><tap>yes</tap>
             <tapButtonMap>lrm</tapButtonMap><clickMethod>clickfinger</clickMethod><disableWhileTyping>yes</disableWhileTyping>
@@ -302,22 +334,24 @@ in
       window.inactive.label.text.color: #565f89
       window.inactive.button.unpressed.image.color: #565f89
     '';
-    "waybar/config".text = builtins.toJSON {
+    "waybar/config".text = builtins.toJSON ({
       layer = "top";
       position = "top";
       height = 28;
       modules-left = [ "image#logo" "wlr/taskbar" ];
       modules-right = lib.optional config.blix.hardware.hasBattery "battery"
         ++ [ "pulseaudio" ]
+        ++ lib.optional (config.blix.wayland.brightnessCommand != null) "custom/brightness"
         ++ lib.optional config.blix.hardware.hasBacklight "backlight"
-        ++ [ "memory" "cpu_usage" "clock" ];
+        ++ [ "memory" "cpu_usage" ]
+        ++ builtins.attrNames labwcExtraBarModules ++ [ "clock" ];
       "image#logo" = {
         path = "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
         size = 22;
         # This Waybar version otherwise reloads a static image every millisecond.
         interval = "once";
         tooltip-format = "Applications, settings and session";
-        on-click = "${menu}/bin/blix-wayland-menu";
+        on-click = "${pkgs.systemd}/bin/systemctl --user kill --kill-whom=main --signal=USR1 blix-wayland-menu.service";
       };
       "wlr/taskbar" = {
         format = "{icon} {title:.24}";
@@ -335,6 +369,8 @@ in
       memory = { format = "Ram: {used:0.1f}/{total:0.1f}"; interval = 30; };
       battery = {
         format = "Bat: {capacity}%";
+        format-discharging = "Bat: {capacity}% {time}";
+        format-time = "{H}h{M}m";
         format-charging = "Bat: {capacity}% +";
         format-plugged = "Bat: {capacity}% +";
         format-full = "Bat: {capacity}% +";
@@ -354,6 +390,15 @@ in
         on-click-right = "${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle";
         scroll-step = 5;
       };
+      "custom/brightness" = {
+        exec = config.blix.wayland.brightnessCommand;
+        format = "Bri {}";
+        # Only reads the worker's cached file; never polls DDC/CI.
+        interval = 1;
+        tooltip = false;
+        on-click = "${popup}/bin/blix-wayland-slider monitor-brightness";
+        blix-popup-anchor = true;
+      };
       backlight = {
         format = "Bri {percent}%";
         # Udev supplies changes; avoid re-enumerating devices every two seconds.
@@ -363,7 +408,7 @@ in
         on-scroll-up = "${pkgs.brightnessctl}/bin/brightnessctl --class=backlight set +5%";
         on-scroll-down = "${pkgs.brightnessctl}/bin/brightnessctl --class=backlight --min-value=1 set 5%-";
       };
-    };
+    } // labwcExtraBarModules);
     "waybar/style.css".text = ''
       * {
         font-family: "JetBrainsMono Nerd Font";
@@ -374,7 +419,7 @@ in
       }
       window#waybar { background: #1a1b26; color: #bbbbbb; }
       #image.logo { padding: 0 10px; }
-      #image.logo:hover, #pulseaudio:hover, #backlight:hover, #battery:hover { background: #34324a; }
+      #image.logo:hover, #pulseaudio:hover, #backlight:hover, #custom-brightness:hover, #battery:hover { background: #34324a; }
       #taskbar { margin-left: 8px; }
       #taskbar button {
         background: transparent;
@@ -387,15 +432,15 @@ in
         box-shadow: inset 0 -2px #e0af68;
       }
       #taskbar button:hover { background: #34324a; }
-      #clock, #cpu_usage, #memory, #battery, #pulseaudio, #backlight, #tray {
+      #clock, #cpu_usage, #memory, #battery, #pulseaudio, #backlight, #custom-brightness, #custom-gpu, #tray {
         padding: 0 10px;
         margin: 3px 0;
         border-left: 1px solid #6e738d;
       }
       .modules-right > widget:first-child > * { border-left: none; }
-      #battery { color: #a6da95; }
+      #battery, #custom-gpu { color: #a6da95; }
       #pulseaudio { color: #8aadf4; }
-      #backlight { color: #eed49f; }
+      #backlight, #custom-brightness { color: #eed49f; }
       #memory { color: #c6a0f6; }
       #cpu_usage { color: #ed8796; }
       #clock { color: #cad3f5; }
@@ -442,21 +487,48 @@ in
 
   systemd.user.targets.blix-wayland-session.Unit = {
     Description = "Blix labwc Wayland session services";
+    BindsTo = [ "graphical-session.target" ];
+    After = [ "graphical-session.target" ];
     Wants = [ "dunst.service"
-      "blix-wayland-panel.service" "blix-wayland-lock.service"
+      "blix-wayland-polkit.service"
+      "blix-wayland-panel.service" "blix-wayland-menu.service" "blix-wayland-sliders.service" "blix-wayland-lock.service"
       "blix-wayland-clipboard.service" "blix-wayland-wallpaper.service"
       "blix-wayland-nightlight.service" ]
       ++ lib.optional config.services.blueman-applet.enable "blueman-applet.service"
-      ++ lib.optional (config.blix.wayland.outputs != {}) "blix-wayland-outputs.service";
+      ++ lib.optional (manageOutputs || config.blix.wayland.outputs != {}) "blix-wayland-outputs.service";
   };
   systemd.user.services = {
+    blix-wayland-polkit = service "Graphical authorization for the Wayland session"
+      "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1";
     blueman-applet = lib.mkIf config.services.blueman-applet.enable {
       Unit.PartOf = [ target ];
     };
-    blix-wayland-panel = service "Blix Wayland panel" "${panel}/bin/waybar";
-    blix-wayland-outputs = lib.mkIf (config.blix.wayland.outputs != {}) {
-      Unit = { Description = "Blix Wayland output scaling"; PartOf = [ target ]; };
-      Service = {
+    blix-wayland-menu = lib.recursiveUpdate
+      (service "Warm Wayland application menu" "${menu}/bin/blix-wayland-menu")
+      { Install.WantedBy = [ target ]; Unit.X-Restart-Triggers = [ "${config.home.path}" ]; };
+    blix-wayland-sliders = lib.recursiveUpdate
+      (service "Warm Wayland panel controls" "${popup}/bin/blix-wayland-slider --daemon")
+      {
+        Install.WantedBy = [ target ];
+        Service = { Type = "dbus"; BusName = "org.blix.BarPopups"; };
+      };
+    blix-wayland-panel = lib.recursiveUpdate
+      (service "Blix Wayland panel" "${panel}/bin/waybar")
+      {
+        Unit.After = [ "blix-wayland-menu.service" "blix-wayland-sliders.service" ];
+        Unit.X-Restart-Triggers = [
+          config.xdg.configFile."waybar/config".source
+          config.xdg.configFile."waybar/style.css".source
+        ];
+      };
+    blix-wayland-outputs = lib.mkIf (manageOutputs || config.blix.wayland.outputs != {}) {
+      Install.WantedBy = [ target ];
+      Unit = { Description = "Blix Wayland display layout and scaling"; PartOf = [ target ]; };
+      Service = if manageOutputs then {
+        ExecStart = "${outputManager}/bin/blix-wayland-outputs";
+        Restart = "on-failure";
+        RestartSec = 2;
+      } else {
         Type = "oneshot";
         RemainAfterExit = true;
         ExecStart = map (name:

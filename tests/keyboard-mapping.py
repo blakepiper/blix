@@ -8,12 +8,28 @@ import tempfile
 
 
 settings = json.loads(Path(sys.argv[1]).read_text())
-rules = [rule for rule in settings["inputClassSections"] if "altwin:swap_alt_win" in rule]
-assert len(rules) == 1, "Modifier swapping must be confined to one device rule"
-rule = rules[0]
-assert re.search(r'MatchUSBID\s+"1fc9:e8c7"', rule), "Mechanical keyboard USB match missing"
-assert re.search(r'MatchIsKeyboard\s+"on"', rule), "Rule must target keyboard interfaces"
+assert not any("altwin:swap_alt_win" in rule for rule in settings["inputClassSections"]), \
+    "Xorg must not apply the swap a second time"
 assert "altwin:swap_alt_win" not in settings["options"], "Global layout would remap laptop Win"
+with tempfile.TemporaryDirectory() as directory:
+    hwdb_dir = Path(directory) / "etc/udev/hwdb.d"
+    hwdb_dir.mkdir(parents=True)
+    (hwdb_dir / "90-blix-keyboard.hwdb").write_text(settings["hwdb"])
+    subprocess.run(["systemd-hwdb", "--root", directory, "--strict", "update"], check=True)
+
+    def query(identity):
+        result = subprocess.run(["systemd-hwdb", "--root", directory, "query", identity],
+                                text=True, capture_output=True)
+        return dict(line.split("=", 1) for line in result.stdout.splitlines())
+
+    mapping = query("evdev:input:b0003v1FC9pE8C7e0100-e0,1,k")
+    assert mapping == {
+        "KEYBOARD_KEY_700e2": "leftmeta", "KEYBOARD_KEY_700e3": "leftalt",
+        "KEYBOARD_KEY_700e6": "rightmeta", "KEYBOARD_KEY_700e7": "rightalt",
+    }, mapping
+    assert not query("evdev:input:b0003v046DpC08Be0111-e0,1,k"), "Other USB keyboards must not match"
+    assert not query("evdev:input:b0011v0001p0001eAB41-e0,1,k"), "Built-in keyboard must not match"
+    assert not query("evdev:input:b0005v1FC9pE8C7e0100-e0,1,k"), "Bluetooth must not match"
 
 
 def compile_keymap(layout, options, configuration=settings, include=None):
@@ -35,14 +51,14 @@ def check_key(keymap, name, symbol):
 
 
 builtin = compile_keymap(settings["layout"], settings["options"])
-external_layout = re.search(r'Option\s+"XkbLayout"\s+"([^"]+)"', rule).group(1)
-external_options = re.search(r'Option\s+"XkbOptions"\s+"([^"]+)"', rule).group(1)
-external = compile_keymap(external_layout, external_options)
-for suffix in ("L", "R"):
+# Resolve the remapped kernel modifier keycodes through the same XKB map used
+# by Xorg and labwc, checking both sides of the physical Alt/Win positions.
+keycode_names = {"leftmeta": "LWIN", "rightmeta": "RWIN", "leftalt": "LALT", "rightalt": "RALT"}
+for suffix, alt_scan, win_scan in (("L", "700e2", "700e3"), ("R", "700e6", "700e7")):
     check_key(builtin, suffix + "WIN", "Super_" + suffix)
     check_key(builtin, suffix + "ALT", "Alt_" + suffix)
-    check_key(external, suffix + "ALT", "Super_" + suffix)
-    check_key(external, suffix + "WIN", "Alt_" + suffix)
+    check_key(builtin, keycode_names[mapping["KEYBOARD_KEY_" + alt_scan]], "Super_" + suffix)
+    check_key(builtin, keycode_names[mapping["KEYBOARD_KEY_" + win_scan]], "Alt_" + suffix)
 print("PASS built-in Win stays Super; mechanical Cmd maps to Super")
 
 phone = json.loads(Path(sys.argv[2]).read_text())
@@ -61,7 +77,7 @@ with tempfile.TemporaryDirectory() as directory:
         (symbols / name).write_text(text)
     phone_keys = compile_keymap(phone_layout, phone_options, phone, directory)
 phone_default = compile_keymap(phone["layout"], phone["options"], phone)
-for keymap in (builtin, external, phone_default):
+for keymap in (builtin, phone_default):
     check_key(keymap, "TLDE", "grave")
 check_key(phone_keys, "TLDE", "Escape")
 check_key(phone_keys, "ESC", "Escape")

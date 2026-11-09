@@ -69,7 +69,9 @@ if 'power-mode' in sys.argv:
         with Path({str(log)!r}).open('a') as stream:
             stream.write('power ' + sys.argv[-1] + '\\n')
     raise SystemExit(0)
-if 'get-volume' in sys.argv:
+if len(sys.argv) == 1:
+    print('65%')
+elif 'get-volume' in sys.argv:
     print('Volume: 0.40')
 elif '--machine-readable' in sys.argv:
     print('test,backlight,70,70%,100')
@@ -79,11 +81,13 @@ else:
 ''')
     fake.chmod(0o755)
     tools = {name: str(fake) for name in ("wpctl", "brightnessctl", "powerMode")}
-    for kind, initial in (("volume", 40), ("brightness", 70)):
+    for kind, initial in (("volume", 40), ("brightness", 70), ("monitor-brightness", 65)):
+        tools["monitorBrightness"] = str(fake)
+        suffix = "" if kind == "monitor-brightness" else "%"
         popup = Popup(kind, tools, {"center": 600, "width": 1280, "height": 28, "monitor": 0})
         assert popup.fixed.child_get_property(popup.area, 'x') == 479
         assert popup.fixed.child_get_property(popup.area, 'y') == 34
-        pump()
+        pump(lambda: not popup.loading, seconds=5)
         assert popup.value == initial
         assert popup.left == 479 and popup.top == 34, (popup.left, popup.top)
         assert popup.area.get_allocated_width() == 242
@@ -97,14 +101,40 @@ else:
         assert popup.value == (50 if kind == 'volume' else 51), popup.value
         popup.set_value(55)
         popup.set_value(76)
-        pump(lambda: log.exists() and log.read_text().splitlines()[-1] == '76%', seconds=5)
-        assert log.read_text().splitlines()[-1] == '76%'
+        pump(lambda: log.exists() and log.read_text().splitlines()[-1] == '76' + suffix, seconds=5)
+        assert log.read_text().splitlines()[-1] == '76' + suffix
         popup.key(popup, SimpleNamespace(keyval=Gdk.KEY_Right))
         assert popup.value == 77
         popup.finish()
-        assert log.read_text().splitlines()[-1] == '77%', 'Final value must be written before exit'
+        assert log.read_text().splitlines()[-1] == '77' + suffix, 'Final value must be written before exit'
         popup.destroy()
         log.unlink()
+
+    slow_read = directory / 'slow-read'
+    slow_read.write_text(f'#!{sys.executable}\nimport time\ntime.sleep(.4)\nprint("Volume: 0.40")\n')
+    slow_read.chmod(0o755)
+    start = time.monotonic()
+    popup = Popup('volume', {**tools, 'wpctl': str(slow_read)},
+                  {"center": 600, "width": 1280, "height": 28, "monitor": 0})
+    assert time.monotonic() - start < .3, 'Hardware reads blocked popup construction'
+    pump(lambda: popup.get_mapped(), seconds=.2)
+    assert popup.get_mapped() and popup.loading
+    pump(lambda: not popup.loading, seconds=5)
+    assert popup.value == 40 and not popup.error
+    popup.finish()
+    popup.destroy()
+
+    unavailable = directory / 'unavailable'
+    unavailable.write_text(f'#!{sys.executable}\nprint("N/A")\n')
+    unavailable.chmod(0o755)
+    popup = Popup('monitor-brightness', {**tools, 'monitorBrightness': str(unavailable)},
+                  {"center": 600, "width": 1280, "height": 28, "monitor": 0})
+    pump(lambda: not popup.loading, seconds=5)
+    assert popup.error
+    popup.set_value(80)
+    popup.finish()
+    popup.destroy()
+    assert not log.exists(), 'Unavailable monitor brightness must not write'
 
     # Slow setters must remain serialized while rapid edits collapse to the
     # latest value. Closing must still apply the final edit exactly once.
@@ -120,6 +150,7 @@ with Path({str(directory / 'setter-lock')!r}).open('w') as lock:
 ''')
     slow.chmod(0o755)
     popup = Popup('volume', tools, {"center": 600, "width": 1280, "height": 28, "monitor": 0})
+    pump(lambda: not popup.loading, seconds=5)
     popup.tools = {**tools, 'wpctl': str(slow)}
     popup.set_value(41)
     pump(lambda: popup.process is not None, seconds=1)
@@ -133,6 +164,20 @@ with Path({str(directory / 'setter-lock')!r}).open('w') as lock:
     popup.finish()
     assert log.read_text().splitlines() == ['41%', '89%', '90%']
     popup.destroy()
+    log.unlink()
+    # Dismissing a resident control must not block GTK behind a slow setter,
+    # and its final edit must still be written in order after the first write.
+    popup = Popup('volume', tools, {"center": 600, "width": 1280, "height": 28, "monitor": 0}, lambda *_: None)
+    pump(lambda: not popup.loading, seconds=5)
+    popup.tools = {**tools, 'wpctl': str(slow)}
+    popup.set_value(41)
+    pump(lambda: popup.process is not None, seconds=1)
+    popup.set_value(75)
+    start = time.monotonic()
+    popup.close()
+    assert time.monotonic() - start < .1, 'Closing a resident popup waited for hardware'
+    pump(lambda: popup.process is None and log.exists() and log.read_text().splitlines() == ['41%', '75%'], seconds=5)
+    assert log.read_text().splitlines() == ['41%', '75%']
     log.unlink()
     assert module['position'](10, 1280) == 0
     assert module['position'](1279, 1280) == 1038

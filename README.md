@@ -22,11 +22,11 @@ The Ryzen/NVIDIA `desktop` host inherits the desktop profile and adds Steam,
 32-bit NVIDIA graphics, suspend VRAM preservation and zram. Desktop disables
 systemd's pre-suspend user-session freeze so Xorg can answer NVIDIA's VT switch.
 Physical suspend/resume passed on 2026-10-28: journals confirm S3 entry and
-resume, and the user confirmed successful wake. Its topbar brightness
+resume, and the user confirmed successful wake. Its OXWM and labwc topbar brightness
 slider controls the first DDC/CI monitor; enable DDC/CI in the monitor menu if
 it reports `N/A`. It sits between volume and RAM; a session service coalesces
-slider requests so slow monitor transactions do not block OXWM. Desktop enables
-I2C access for the local logged-in user. The service reads brightness once at
+slider requests so slow monitor transactions do not block the session. Desktop
+enables I2C access for the local logged-in user. The service reads brightness once at
 startup and caches confirmed slider changes; it never polls the monitor while
 idle because NVIDIA DDC reads cause rendering stalls. Changes made with the
 monitor's buttons are reflected after restarting the brightness service.
@@ -181,7 +181,7 @@ tests/
 ├── machine-profiles.nix          Profile defaults and hardware overrides
 ├── environment-composition.nix   Shared foundation and phone environment replacement
 ├── phone-hardware.nix            Real fajita/bootstrap integration assertions
-├── keyboard-mapping.nix          Compiled built-in and mechanical keymaps
+├── keyboard-mapping.nix          Compiled keyboard hwdb and modifier checks
 ├── keyboard-mapping.py           Win/Cmd modifier regression checks
 ├── display-hotplug.py            Monitor, rotation, scaling, and reconnect checks
 ├── blix-settings.nix             Settings backend and isolated GTK checks
@@ -308,9 +308,11 @@ the additional tap and click defaults; scrolling can be overridden with
 `services.libinput.touchpad.naturalScrolling`.
 
 `keyboards/mechanical.nix` matches USB ID `1fc9:e8c7` and swaps Alt/Super for that
-keyboard's Mac-mode Cmd key. Built-in laptop Win keys retain Super. Xorg applies
-the rule when the device connects; no keyboard hotplug daemon or Xorg log parsing
-is needed. New device-specific mappings belong alongside that module.
+keyboard's Mac-mode Cmd key. Built-in laptop Win keys retain Super. A udev hwdb
+rule remaps only that device's HID modifier scancodes before X11 or Wayland sees
+them, so Cmd works as Super in both sessions without a second Xorg swap. The rule
+applies when the device connects; reconnect it after the first activation. New
+device-specific mappings belong alongside that module.
 
 Display behavior and its dedicated hotplug service live in
 `home/przvl/hardware/display.nix` and `display-hotplug.sh`. Display facts live in
@@ -472,6 +474,11 @@ and are intended to run one at a time. Super+Shift+Q exits labwc back to the TTY
 `startx` then starts the existing OXWM environment again. The phone retains its
 X11 session and does not select labwc.
 
+The Wayland session owns `graphical-session.target`, allowing desktop portals
+to start for screen sharing and application integration. A session-owned Polkit
+agent supplies graphical administrator authentication prompts. Both lifecycles
+end when labwc exits.
+
 Labwc starts with floating, cascading windows and nine numbered workspaces.
 The bindings follow OXWM where the operations translate; tiling-layout commands
 are omitted. Workspaces span the Wayland desktop rather than OXWM's per-monitor
@@ -483,6 +490,7 @@ tags. Sending a window to another workspace does not follow it.
 | Super+Space / Super+D | Tokyo Night Fuzzel application launcher |
 | Super+Shift+Space | Control menu: lock, suspend, reboot, logout, monitors off, power off |
 | Super+F / Super+B | Thunar / Firefox |
+| Super+Shift+B | Firefox private browsing window |
 | Super+Q | Close window |
 | Super+M | Toggle maximized size |
 | Super+Shift+F | Toggle maximized size (keep the bar visible) |
@@ -527,8 +535,11 @@ The panel uses native usage-only CPU sampling every 10 seconds, memory every
 30 seconds and a time-only, minute-resolution clock. CPU percentages have no
 numeric padding, and the memory label omits the GB suffix. Battery and backlight changes arrive
 through kernel events, with a 60-second fallback scan. The static logo loads once;
-there are no periodic shell status commands or CPU-frequency probes. Sliders
-schedule work only after an edit and wait for setter completion without polling.
+there are no shared periodic shell status commands or CPU-frequency probes.
+Desktop additionally displays `GPU: N%` using the same NVIDIA command as OXWM,
+with a five-second interval and an `N/A` fallback. This host-only extension lives
+in `hosts/desktop/gpu.nix`. Sliders schedule work only after an edit and wait for
+setter completion without polling.
 The power chooser subscribes to D-Bus changes instead of repeatedly launching
 Settings. Blix Settings pauses periodic device queries while unfocused or hidden
 and refreshes when you return. The top-layer panel is hidden behind unobscured
@@ -565,20 +576,32 @@ provide global window opacity or Picom-style effects for arbitrary applications;
 transparency requires application support. Existing Ghostty processes need a
 new session to pick up these launch options.
 
-Outputs use their native advertised modes. Zen declares 200% scaling for its
-Wayland eDP-1 panel in `hosts/zen/display.nix`; other hosts retain their defaults.
-`blix.wayland.outputs` owns host-specific Wayland scale preferences, applied at
-session startup. Super+S opens the regular Blix Settings app with a Wayland
+The panel's application menu and slider controls are kept warm by session-owned
+services; clicks use native signal/D-Bus requests instead of restarting GTK.
+Sliders show immediately and read hardware asynchronously, with no idle
+polling. The application menu refreshes when the Home Manager application set
+changes. Wallpaper clicks do not open a menu.
+
+Laptop labwc sessions reuse the host's primary connector, external connector
+patterns (`blix.wayland.externalOutputs` for DRM naming) and mirror resolution
+at login and DRM hotplug. Mirroring selects each output's highest advertised
+refresh rate at the chosen common resolution and uses the same scale on both
+outputs. Undocked panels return to their preferred mode. Zen uses 200% scaling
+and T490 uses 125%; `blix.wayland.outputs` owns these Wayland scale preferences.
+The output service waits for DRM events without idle polling.
+Super+S opens the regular Blix Settings app with a Wayland
 interface: sidebar navigation, native audio/network/Bluetooth/power controls,
 per-output scaling, panel brightness and Night Light. A session-specific Gammastep
 service uses the Wayland gamma-control protocol; saved intensity and enable state
 are shared with X11. Layout, resolution and refresh-rate
 editing open wdisplays; theme and fonts open nwg-look. Wayland display changes
-last for the session. The unsupported X11 input and display-timeout controls
-are hidden in this session. XRandR connector names, mirror policies and scaling are not reused as Wayland output
-configuration. Blix Settings' X11 display/appearance controls and the
-USB-keyboard-specific Xorg modifier swap do not configure labwc. No global
-Alt/Super swap is applied to other keyboards.
+last for the session, with host defaults reapplied on dock hotplug. The unsupported X11 input and display-timeout controls
+are hidden in this session. XRandR helpers remain confined to X11. Blix
+Settings' X11 display/appearance controls do not configure labwc. Labwc enables natural scrolling for its non-touch mouse category as well
+as touchpads. The USB-scoped mechanical keyboard hwdb mapping works in both
+sessions; no global Alt/Super swap is applied to other keyboards. After first
+activating a changed hwdb mapping, reconnect the USB keyboard so the kernel
+receives the new keycodes.
 
 Validation includes headless labwc startup, generated XML, output discovery,
 mock-device slider writes, real GTK pointer events and a virtual-pointer click on
