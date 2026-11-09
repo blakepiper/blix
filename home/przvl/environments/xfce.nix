@@ -44,7 +44,7 @@ let
   ] ++ lib.concatMap (number: [
     { key = "<Super>${toString number}"; value = "workspace_${toString number}_key"; }
     { key = "<Super><Shift>${toString number}"; value = "move_window_workspace_${toString number}_key"; }
-  ]) (lib.range 1 9);
+  ]) (lib.range 1 4);
   shortcutLines = group: bindings: lib.concatMapStringsSep "\n" ({ key, value }: ''
     xfconf-query -c xfce4-keyboard-shortcuts \
       -p ${lib.escapeShellArg "/${group}/custom/${key}"} \
@@ -54,17 +54,31 @@ let
     name = "blix-xfce-configure";
     runtimeInputs = [ pkgs.xfconf ];
     text = ''
-      xfconf-query -c xfwm4 -p /general/workspace_count -n -t int -s 9
+      xfconf-query -c xfwm4 -p /general/workspace_count -n -t int -s 4
       xfconf-query -c xfce4-keyboard-shortcuts -p /commands/custom/override -n -t bool -s true
       xfconf-query -c xfce4-keyboard-shortcuts -p /xfwm4/custom/override -n -t bool -s true
       ${shortcutLines "commands" commandShortcuts}
       ${shortcutLines "xfwm4" windowShortcuts}
+      for number in 5 6 7 8 9; do
+        xfconf-query -c xfce4-keyboard-shortcuts -p "/xfwm4/custom/<Super>$number" -r 2>/dev/null || true
+        xfconf-query -c xfce4-keyboard-shortcuts -p "/xfwm4/custom/<Super><Shift>$number" -r 2>/dev/null || true
+      done
     '' + lib.optionalString (config.blix.xfce.windowScalingFactor != null) ''
       xfconf-query -c xsettings -p /Gdk/WindowScalingFactor -n -t int \
         -s ${toString config.blix.xfce.windowScalingFactor}
-      xfconf-query -c xfwm4 -p /general/theme -n -t string -s Default-hdpi
+      xfconf-query -c xfwm4 -p /general/theme -n -t string -s Default-xhdpi
       xfconf-query -c xfwm4 -p /general/title_font -n -t string \
-        -s ${lib.escapeShellArg "Sans Bold ${toString (9 * config.blix.xfce.windowScalingFactor)}"}
+        -s ${lib.escapeShellArg "Sans Bold ${toString (6 * config.blix.xfce.windowScalingFactor)}"}
+    '';
+  };
+  refreshWorkspaceOne = pkgs.writeShellApplication {
+    name = "blix-xfce-refresh-workspace-one";
+    runtimeInputs = [ pkgs.xfconf ];
+    text = ''
+      # Re-register after xfwm4 starts; the saved binding alone did not grab the key.
+      xfconf-query -c xfce4-keyboard-shortcuts -p '/xfwm4/custom/<Super>1' -r 2>/dev/null || true
+      xfconf-query -c xfce4-keyboard-shortcuts -p '/xfwm4/custom/<Super>1' \
+        -n -t string -s workspace_1_key
     '';
   };
   start = pkgs.writeShellApplication {
@@ -116,6 +130,15 @@ in
         ${pkgs.bash}/bin/bash ${pkgs.xfce4-session.xinitrc}
       '';
     };
+
+    xdg.configFile."autostart/blix-xfce-refresh-workspace-one.desktop".text = ''
+      [Desktop Entry]
+      Type=Application
+      Name=Blix XFCE workspace shortcut
+      Exec=${refreshWorkspaceOne}/bin/blix-xfce-refresh-workspace-one
+      OnlyShowIn=XFCE;
+      X-XFCE-Autostart-Phase=Applications
+    '';
 
     systemd.user.targets.blix-xfce-session.Unit.Description = "Blix XFCE session";
     systemd.user.targets.blix-xfce-session.Unit.Wants = [ "blix-clipboard.service" ];
