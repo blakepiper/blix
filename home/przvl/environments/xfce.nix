@@ -30,7 +30,7 @@ let
   };
   windowShortcuts = [
     { key = "<Super>q"; value = "close_window_key"; }
-    { key = "<Super><Shift>f"; value = "fullscreen_key"; }
+    { key = "<Super><Shift>f"; value = "maximize_window_key"; }
     { key = "<Super>m"; value = "maximize_window_key"; }
     { key = "<Super>Tab"; value = "left_workspace_key"; }
     { key = "<Super>Left"; value = "cycle_reverse_windows_key"; }

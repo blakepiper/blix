@@ -473,8 +473,8 @@ and carries the OXWM launcher, screenshot, clipboard, lock, suspend and media
 shortcuts into its own keyboard channel. Super+1–4 switches workspaces;
 Super+Shift+1–4 sends a window there. Super+Tab selects the workspace to the left,
 Super+arrow keys cycle windows, and Super+Shift+arrow keys tile the active window.
-Super+Shift+F toggles fullscreen, Super+M toggles maximize, and Super+Q closes
-a window.
+Super+Shift+F and Super+M toggle maximize while keeping the panel visible;
+Super+Q closes a window.
 XFCE's native volume and brightness controls remain responsible for their
 hardware keys. OXWM's tiling layout and master-size actions have no XFCE
 equivalent.
