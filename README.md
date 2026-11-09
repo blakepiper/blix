@@ -119,6 +119,7 @@ modules/common/
 modules/desktop/
 ├── default.nix                   Optional desktop environment composition
 ├── session.nix                   X11, startx, and OXWM
+├── xfce.nix                      Optional workstation XFCE session
 ├── services.nix                  Graphics, PipeWire, polkit, rtkit, and Blueman
 ├── fonts.nix                     Desktop fonts
 └── packages.nix                  X11 utilities and graphics diagnostics
@@ -156,6 +157,7 @@ home/przvl/
 ├── default.nix                   Workstation user composition for zen and t490
 ├── phone.nix                     Independent phone application and session choices
 ├── environments/oxwm.nix         Reusable OXWM services, helpers and settings
+├── environments/xfce.nix         Separate XFCE TTY launcher and X init script
 ├── hardware/
 │   ├── default.nix               Typed user capabilities
 │   ├── bluetooth.nix             Bluetooth manager and session pairing agent
@@ -452,6 +454,14 @@ all hosts and desktop environments. Desktop window controls and shortcuts remain
 available. Restart Firefox after activation to load browser chrome changes.
 Steam’s local desktop-entry override places it only in Games while preserving
 its URL handlers, translations and Library/Store actions.
+
+## XFCE session
+
+Workstations also install XFCE. From a local TTY, run `startxfce` after exiting
+OXWM or labwc. It starts a separate X11 session using `~/.xfce-xinitrc`, leaving
+`startx` and its OXWM `~/.xinitrc` unchanged. Exit XFCE to return to the TTY.
+XFCE has its own session target and does not start the Blix X11 or Wayland user
+services. The phone does not install this session.
 
 ## Experimental Wayland session
 

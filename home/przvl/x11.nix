@@ -105,6 +105,10 @@ in
     export PATH="${config.home.profileDirectory}/bin:${pkgs.systemd}/bin:${pkgs.coreutils}/bin:$PATH"
     export XDG_CURRENT_DESKTOP=OXWM
     export XDG_SESSION_TYPE=x11
+    if ${pkgs.systemd}/bin/systemctl --user is-active --quiet blix-xfce-session.target; then
+      echo 'Exit XFCE before starting OXWM.' >&2
+      exit 1
+    fi
     export MOZ_USE_XINPUT2=1
     export TERMINAL=${lib.escapeShellArg config.home.sessionVariables.TERMINAL}
     export BROWSER=${lib.escapeShellArg config.home.sessionVariables.BROWSER}

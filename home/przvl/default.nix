@@ -10,6 +10,7 @@
     ./programs/power.nix
     ./environments/oxwm.nix
     ./environments/labwc.nix
+    ./environments/xfce.nix
   ];
 
   home.packages = with pkgs; [ xfe mpv ];
