@@ -110,6 +110,8 @@ scope and risk rules in the Validation section.
 - `modules/desktop/xfce.nix` adds XFCE to laptop and desktop profiles;
   `home/przvl/environments/xfce.nix` supplies the separate `startxfce` TTY
   launcher, X init script and session target. The phone does not select XFCE.
+  `hosts/zen/xfce-dock.nix` owns Zen's second-panel launchers, end separators,
+  and dock-only period icons.
 - `modules/desktop/` supplies the optional X11/OXWM session, desktop services,
   fonts and system utilities. Profiles select it explicitly.
 - `modules/common/machine.nix` declares typed machine capabilities and passes

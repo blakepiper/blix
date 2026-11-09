@@ -464,8 +464,11 @@ OXWM or labwc. It starts a separate X11 session using `~/.xfce-xinitrc`, leaving
 `startx` and its OXWM `~/.xinitrc` unchanged. Exit XFCE to return to the TTY.
 XFCE has its own session target and does not start the Blix X11 or Wayland user
 services. The phone does not install this session.
-On Zen, XFCE combines 2× window scaling with an 8/7 display scale for about
-175% overall sizing on known outputs. Firefox uses XFCE's window frame and
+Zen's four-icon XFCE dock uses the existing 2005-era Firefox logo with Crystal
+Clear terminal, file-manager and application-finder icons. Its two end
+separators are removed; the main top panel keeps its own layout.
+On Zen, XFCE combines 2× window scaling with a 1.6 display scale for
+125% overall sizing on known outputs. Firefox uses XFCE's window frame and
 keeps the OXWM-only video title marker disabled in this session.
 Zen also selects xfwm4's xhdpi frame theme for larger window buttons and a
 12 pt title font. XFCE starts with four workspaces

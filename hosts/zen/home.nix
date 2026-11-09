@@ -4,9 +4,9 @@
 { ... }:
 
 {
-  imports = [ ./display.nix ../../home/przvl/programs/steam.nix ];
+  imports = [ ./display.nix ./xfce-dock.nix ../../home/przvl/programs/steam.nix ];
 
   blix.xfce.windowScalingFactor = 2;
-  # 2x window scaling divided by this display scale gives about 175% overall.
-  blix.xfce.displayScale = 8.0 / 7.0;
+  # 2x window scaling divided by this display scale gives 125% overall.
+  blix.xfce.displayScale = 1.6;
 }
