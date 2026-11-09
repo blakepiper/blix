@@ -466,6 +466,17 @@ XFCE has its own session target and does not start the Blix X11 or Wayland user
 services. The phone does not install this session.
 On Zen, XFCE uses 200% window scaling. Firefox uses XFCE's window frame and
 keeps the OXWM-only video title marker disabled in this session.
+Zen also selects xfwm4's HiDPI frame theme and an 18 pt title font so window
+decorations match the 200% application scale. XFCE starts with nine workspaces
+and carries the OXWM launcher, screenshot, clipboard, lock, suspend and media
+shortcuts into its own keyboard channel. Super+1–9 switches workspaces;
+Super+Shift+1–9 sends a window there. Super+Tab selects the workspace to the left,
+Super+arrow keys cycle windows, and Super+Shift+arrow keys tile the active window.
+Super+Shift+F toggles fullscreen, Super+M toggles maximize, and Super+Q closes
+a window.
+XFCE's native volume and brightness controls remain responsible for their
+hardware keys. OXWM's tiling layout and master-size actions have no XFCE
+equivalent.
 
 ## Experimental Wayland session
 

@@ -1,7 +1,72 @@
 # Separate XFCE login from the OXWM ~/.xinitrc and Blix session services.
-{ config, lib, pkgs, ... }:
+{ config, lib, osConfig, pkgs, blixSettings, scripts, ... }:
 
 let
+  blixScript = name: lib.getExe (lib.findFirst
+    (package: lib.getName package == name)
+    (throw "Missing Blix script: ${name}") scripts);
+  commandShortcuts = [
+    { key = "<Super>space"; value = "${pkgs.dmenu}/bin/dmenu_run"; }
+    { key = "<Super>d"; value = "${pkgs.dmenu}/bin/dmenu_run"; }
+    { key = "<Super>Return"; value = config.home.sessionVariables.TERMINAL; }
+    { key = "<Super>f"; value = "${pkgs.xfe}/bin/xfe"; }
+    { key = "<Super>b"; value = lib.getExe config.programs.firefox.finalPackage; }
+    { key = "<Super>s"; value = "${blixSettings}/bin/blix-settings"; }
+    { key = "<Super><Shift>s"; value = blixScript "screenshot-region"; }
+    { key = "Print"; value = "${blixScript "screenshot-region"} --full"; }
+    { key = "<Alt>Print"; value = "${blixScript "screenshot-region"} --window"; }
+    { key = "<Super>v"; value = blixScript "clipboard-history"; }
+    { key = "<Super>l"; value = "${pkgs.xfce4-session}/bin/xflock4"; }
+    { key = "<Super><Shift>l"; value = "${pkgs.xfce4-session}/bin/xfce4-session-logout --suspend"; }
+    { key = "XF86Sleep"; value = "${pkgs.xfce4-session}/bin/xfce4-session-logout --suspend"; }
+    { key = "<Super><Shift>space"; value = "${pkgs.xfce4-session}/bin/xfce4-session-logout"; }
+    { key = "<Super><Shift>q"; value = "${pkgs.xfce4-session}/bin/xfce4-session-logout"; }
+    { key = "XF86AudioPlay"; value = "${pkgs.playerctl}/bin/playerctl play-pause"; }
+    { key = "XF86AudioNext"; value = "${pkgs.playerctl}/bin/playerctl next"; }
+    { key = "XF86AudioPrev"; value = "${pkgs.playerctl}/bin/playerctl previous"; }
+  ] ++ lib.optional (osConfig.programs.steam.enable or false) {
+    key = "<Super>g";
+    value = "${osConfig.programs.steam.package}/bin/steam";
+  };
+  windowShortcuts = [
+    { key = "<Super>q"; value = "close_window_key"; }
+    { key = "<Super><Shift>f"; value = "fullscreen_key"; }
+    { key = "<Super>m"; value = "maximize_window_key"; }
+    { key = "<Super>Tab"; value = "left_workspace_key"; }
+    { key = "<Super>Left"; value = "cycle_reverse_windows_key"; }
+    { key = "<Super>Up"; value = "cycle_reverse_windows_key"; }
+    { key = "<Super>Right"; value = "cycle_windows_key"; }
+    { key = "<Super>Down"; value = "cycle_windows_key"; }
+    { key = "<Super><Shift>Left"; value = "tile_left_key"; }
+    { key = "<Super><Shift>Up"; value = "tile_up_key"; }
+    { key = "<Super><Shift>Right"; value = "tile_right_key"; }
+    { key = "<Super><Shift>Down"; value = "tile_down_key"; }
+  ] ++ lib.concatMap (number: [
+    { key = "<Super>${toString number}"; value = "workspace_${toString number}_key"; }
+    { key = "<Super><Shift>${toString number}"; value = "move_window_workspace_${toString number}_key"; }
+  ]) (lib.range 1 9);
+  shortcutLines = group: bindings: lib.concatMapStringsSep "\n" ({ key, value }: ''
+    xfconf-query -c xfce4-keyboard-shortcuts \
+      -p ${lib.escapeShellArg "/${group}/custom/${key}"} \
+      -n -t string -s ${lib.escapeShellArg value}
+  '') bindings;
+  configure = pkgs.writeShellApplication {
+    name = "blix-xfce-configure";
+    runtimeInputs = [ pkgs.xfconf ];
+    text = ''
+      xfconf-query -c xfwm4 -p /general/workspace_count -n -t int -s 9
+      xfconf-query -c xfce4-keyboard-shortcuts -p /commands/custom/override -n -t bool -s true
+      xfconf-query -c xfce4-keyboard-shortcuts -p /xfwm4/custom/override -n -t bool -s true
+      ${shortcutLines "commands" commandShortcuts}
+      ${shortcutLines "xfwm4" windowShortcuts}
+    '' + lib.optionalString (config.blix.xfce.windowScalingFactor != null) ''
+      xfconf-query -c xsettings -p /Gdk/WindowScalingFactor -n -t int \
+        -s ${toString config.blix.xfce.windowScalingFactor}
+      xfconf-query -c xfwm4 -p /general/theme -n -t string -s Default-hdpi
+      xfconf-query -c xfwm4 -p /general/title_font -n -t string \
+        -s ${lib.escapeShellArg "Sans Bold ${toString (9 * config.blix.xfce.windowScalingFactor)}"}
+    '';
+  };
   start = pkgs.writeShellApplication {
     name = "startxfce";
     runtimeInputs = [ pkgs.systemd pkgs.util-linux pkgs.xinit ];
@@ -36,11 +101,9 @@ in
         export XDG_CURRENT_DESKTOP=XFCE
         export XDG_SESSION_DESKTOP=xfce
         export XDG_SESSION_TYPE=x11
-${lib.optionalString (config.blix.xfce.windowScalingFactor != null) ''
-        ${pkgs.xfconf}/bin/xfconf-query -c xsettings \
-          -p /Gdk/WindowScalingFactor -n -t int \
-          -s ${toString config.blix.xfce.windowScalingFactor} || exit 1
-''}
+        ${configure}/bin/blix-xfce-configure || exit 1
+        ${pkgs.systemd}/bin/systemctl --user import-environment \
+          DISPLAY XAUTHORITY PATH XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE
         ${pkgs.systemd}/bin/systemctl --user start blix-xfce-session.target || exit 1
         cleanup() {
           ${pkgs.systemd}/bin/systemctl --user stop blix-xfce-session.target || true
@@ -55,5 +118,7 @@ ${lib.optionalString (config.blix.xfce.windowScalingFactor != null) ''
     };
 
     systemd.user.targets.blix-xfce-session.Unit.Description = "Blix XFCE session";
+    systemd.user.targets.blix-xfce-session.Unit.Wants = [ "blix-clipboard.service" ];
+    systemd.user.services.blix-clipboard.Unit.PartOf = [ "blix-xfce-session.target" ];
   };
 }
