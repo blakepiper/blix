@@ -165,7 +165,7 @@ let
         echo 'Run startlabwc from a local text console after exiting your desktop.' >&2
         exit 1
       fi
-      if systemctl --user is-active --quiet blix-session.target blix-xfce-session.target ${target}; then
+      if systemctl --user is-active --quiet blix-session.target ${target}; then
         echo 'Exit the existing Blix desktop before starting labwc.' >&2
         exit 1
       fi

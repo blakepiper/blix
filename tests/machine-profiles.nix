@@ -42,8 +42,6 @@ let
       efiVariables = cfg.boot.loader.efi.canTouchEfiVariables;
       systemdBoot = cfg.boot.loader.systemd-boot.enable;
       oxwm = cfg.services.xserver.windowManager.oxwm.enable;
-      xfce = cfg.services.xserver.desktopManager.xfce.enable;
-      xfceLauncher = builtins.elem "startxfce" packages;
       settingsLauncher = lib.hasInfix ''text = "  󰒓  "''
         home.home.file.".config/oxwm/config.lua".text;
       batteryHelper = builtins.elem "oxwm-battery" packages;
@@ -151,9 +149,6 @@ assert phoneOverrides.primaryRotation == "left" && phoneOverrides.blankAfterSeco
 assert phoneOverrides.xresources."Xft.dpi" == 192 && phoneOverrides.gtkDpi == 192 * 1024;
 assert lib.all (profile: profile.oxwm && !profile.hyprland && profile.consistentEnvironment && profile.xinitShebang)
   [ laptop desktop phone overrides laptopOverrides phoneOverrides ];
-assert lib.all (profile: profile.xfce && profile.xfceLauncher)
-  [ laptop desktop overrides laptopOverrides ];
-assert !phone.xfce && !phone.xfceLauncher && !phoneOverrides.xfce && !phoneOverrides.xfceLauncher;
 assert lib.all (profile: profile.mirrorRate == null && profile.bluetoothNoTray
   && profile.bluetoothApplet == profile.bluetoothInSession)
   [ laptop desktop phone overrides laptopOverrides phoneOverrides ];

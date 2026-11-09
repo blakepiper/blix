@@ -1,10 +1,9 @@
 --- a/plugins/thunar-wallpaper/twp-provider.c
 +++ b/plugins/thunar-wallpaper/twp-provider.c
-@@ -224,7 +224,18 @@
-   monitor_name = gdk_monitor_get_model (monitor);
-   escaped_file_name = g_shell_quote (file_name);
+@@ -209,5 +209,20 @@
+       return;
+     }
  
--  if (g_strcmp0 (desktop_type, "XFCE") == 0)
 +  if (g_strcmp0 (desktop_type, "labwc") == 0)
 +    {
 +      gchar *argv[] = { "@blix-wallpaper@", "--set", file_name, NULL };
@@ -15,8 +14,10 @@
 +          g_warning ("Failed to start Blix wallpaper setter: %s", error->message);
 +          g_clear_error (&error);
 +        }
++      g_free (file_name);
++      g_free (file_uri);
++      return;
 +    }
-+  else if (g_strcmp0 (desktop_type, "XFCE") == 0)
-     {
-       g_debug ("set on xfce");
- 
++
+   workspace = twp_get_active_workspace_number (screen);
+   n_monitors = gdk_display_get_n_monitors (display);

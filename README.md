@@ -119,7 +119,6 @@ modules/common/
 modules/desktop/
 ├── default.nix                   Optional desktop environment composition
 ├── session.nix                   X11, startx, and OXWM
-├── xfce.nix                      Optional workstation XFCE session
 ├── services.nix                  Graphics, PipeWire, polkit, rtkit, and Blueman
 ├── fonts.nix                     Desktop fonts
 └── packages.nix                  X11 utilities and graphics diagnostics
@@ -157,7 +156,6 @@ home/przvl/
 ├── default.nix                   Workstation user composition for zen and t490
 ├── phone.nix                     Independent phone application and session choices
 ├── environments/oxwm.nix         Reusable OXWM services, helpers and settings
-├── environments/xfce.nix         Separate XFCE TTY launcher and X init script
 ├── hardware/
 │   ├── default.nix               Typed user capabilities
 │   ├── bluetooth.nix             Bluetooth manager and session pairing agent
@@ -456,31 +454,6 @@ all hosts and desktop environments. Desktop window controls and shortcuts remain
 available. Restart Firefox after activation to load browser chrome changes.
 Steam’s local desktop-entry override places it only in Games while preserving
 its URL handlers, translations and Library/Store actions.
-
-## XFCE session
-
-Workstations also install XFCE. From a local TTY, run `startxfce` after exiting
-OXWM or labwc. It starts a separate X11 session using `~/.xfce-xinitrc`, leaving
-`startx` and its OXWM `~/.xinitrc` unchanged. Exit XFCE to return to the TTY.
-XFCE has its own session target and does not start the Blix X11 or Wayland user
-services. The phone does not install this session.
-Zen's four-icon XFCE dock uses the existing 2005-era Firefox logo with Crystal
-Clear terminal, file-manager and application-finder icons. Its two end
-separators are removed; the main top panel keeps its own layout.
-On Zen, XFCE uses 2× window scaling with native display scale; fractional
-output scaling blacked out the mirrored external monitor. Firefox uses XFCE's
-window frame and keeps the OXWM-only video title marker disabled in this session.
-Zen also selects xfwm4's xhdpi frame theme for larger window buttons and a
-12 pt title font. XFCE starts with four workspaces
-and carries the OXWM launcher, screenshot, clipboard, lock, suspend and media
-shortcuts into its own keyboard channel. Super+1–4 switches workspaces;
-Super+Shift+1–4 sends a window there. Super+Tab selects the workspace to the left,
-Super+arrow keys cycle windows, and Super+Shift+arrow keys tile the active window.
-Super+Shift+F and Super+M toggle maximize while keeping the panel visible;
-Super+Q closes a window.
-XFCE's native volume and brightness controls remain responsible for their
-hardware keys. OXWM's tiling layout and master-size actions have no XFCE
-equivalent.
 
 ## Experimental Wayland session
 
