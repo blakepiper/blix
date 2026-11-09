@@ -73,7 +73,7 @@ assert bootstrap.services.getty.autologinUser == null;
 assert !bootstrap.home-manager.users.przvl.programs.firefox.enable;
 assert !bootstrap.home-manager.users.przvl.programs.ghostty.enable;
 assert !(bootstrap.home-manager.users.przvl.home.file ? ".xinitrc");
-assert !lib.any (package: builtins.elem (lib.getName package) [ "codex" "xfe" "picom" ])
+assert !lib.any (package: builtins.elem (lib.getName package) [ "codex" "thunar" "picom" ])
   bootstrap.home-manager.users.przvl.home.packages;
 pkgs.runCommand "phone-hardware-checks" { } ''
   ${lib.optionalString (pkgs.stdenv.hostPlatform.system == "aarch64-linux") ''

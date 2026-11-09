@@ -56,7 +56,7 @@ The desktop uses:
 - Zen, T490 and desktop start Xorg manually with `startx`. The phone logs in as `przvl`
   and starts Xorg automatically on tty1; none uses a display manager.
 - OXWM is the window manager, with the Blix configuration and local patches.
-- Ghostty, `dmenu`, `picom`, `xsecurelock`, `xss-lock`, `clipmenu`, and Xfe provide
+- Ghostty, `dmenu`, `picom`, `xsecurelock`, `xss-lock`, `clipmenu`, and Thunar provide
   the terminal, launcher, compositor, locking, clipboard, and file-manager
   pieces.
 - Ghostty runs Bash with ble.sh for interactive editing, highlighting and
@@ -166,7 +166,7 @@ home/przvl/
 ├── services/blix.nix              Blix session target and user services
 ├── scripts/blix.nix               Wrapped Blix scripts
 ├── x11.nix                       Dotfiles and generated ~/.xinitrc
-└── config/                       OXWM, Picom, Xfe, Neovim, and script assets
+└── config/                       OXWM, Picom, Neovim, and script assets
 
 packaging/
 ├── blix-settings/                Native settings app, backends and GTK styling
@@ -605,7 +605,7 @@ Inspect failures with `journalctl --user -b -u 'blix-wayland-*' -u dunst.service
 
 Shared appearance in `home/przvl/appearance.nix` selects Tokyo Night Dark for
 GTK 3/4 and a matching Qt 5/6 Fusion palette, with JetBrainsMono Nerd Font.
-Ghostty, Neovim, btop, bat, lazygit, Xfe, Firefox chrome, notifications and Blix Settings use
+Ghostty, Neovim, btop, bat, lazygit, Thunar, Firefox chrome, notifications and Blix Settings use
 the same palette. Applications with their own embedded interface themes may
 need their own theme selection. Restart applications after changing toolkit
 themes; Qt platform integration is inherited by a new login session.

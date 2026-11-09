@@ -21,7 +21,7 @@
     ./phone/topbar.nix
   ];
 
-  home.packages = with pkgs; [ xfe mpv ];
+  home.packages = with pkgs; [ thunar mpv ];
   # Suppress connection/disconnection popups while keeping the pairing agent.
   dconf.settings."org/blueman/general".plugin-list = [ "!ConnectionNotifier" ];
   # First-install pulls must work before this device has GitHub SSH credentials.

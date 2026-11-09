@@ -166,9 +166,9 @@ scope and risk rules in the Validation section.
   Workstations and the small phone bootstrap retain their existing login behavior.
 - `home/przvl/environments/oxwm.nix` composes reusable X11 user services, helpers,
   packages and desktop settings. It does not select the browser or terminal.
-- `home/przvl/appearance.nix` owns the shared Tokyo Night GTK/Qt theme, Nerd
-  fonts and Xfe color merge; application modules own their native palettes.
-- `home/przvl/config/` owns the Blix-derived OXWM, Picom, Xfe, Neovim,
+- `home/przvl/appearance.nix` owns the shared Tokyo Night GTK/Qt theme and Nerd
+  fonts; application modules own their native palettes.
+- `home/przvl/config/` owns the Blix-derived OXWM, Picom, Neovim,
   Neofetch, and helper-script configuration.
 - `home/przvl/hardware/` declares typed user capabilities and display options;
   `display.nix` owns the display helper package and hotplug service. The X11

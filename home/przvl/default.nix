@@ -12,5 +12,5 @@
     ./environments/labwc.nix
   ];
 
-  home.packages = with pkgs; [ xfe mpv ];
+  home.packages = with pkgs; [ mpv ];
 }

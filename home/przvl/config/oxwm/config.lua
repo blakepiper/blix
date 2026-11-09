@@ -166,7 +166,7 @@ oxwm.bar.set_blocks(blocks)
 -- changing bindings.
 oxwm.key.bind({ mod }, "Space", oxwm.spawn("dmenu_run"))
 oxwm.key.bind({ mod }, "D", oxwm.spawn("dmenu_run"))
-oxwm.key.bind({ mod }, "F", oxwm.spawn("xfe"))
+oxwm.key.bind({ mod }, "F", oxwm.spawn("@thunar@"))
 oxwm.key.bind({ mod }, "B", oxwm.spawn("firefox"))
 oxwm.key.bind({ mod }, "S", oxwm.spawn("@blix-settings@"))
 -- @oxwm-extra-keybindings@
