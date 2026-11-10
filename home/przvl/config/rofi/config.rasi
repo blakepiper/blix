@@ -1,0 +1,56 @@
+configuration {
+    font: "JetBrainsMono Nerd Font 12";
+    show-icons: true;
+    drun-display-format: "{name}";
+}
+
+* {
+    background: #1a1b26;
+    foreground: #c0caf5;
+    selected: #292e42;
+    accent: #7aa2f7;
+}
+
+window {
+    width: 48%;
+    border: 2px;
+    border-color: @accent;
+    background-color: @background;
+}
+
+mainbox {
+    padding: 12px;
+    spacing: 8px;
+}
+
+inputbar {
+    padding: 8px;
+    background-color: #16161e;
+    children: [ prompt, entry ];
+}
+
+prompt {
+    text-color: @accent;
+}
+
+entry {
+    text-color: @foreground;
+}
+
+listview {
+    lines: 12;
+    spacing: 2px;
+    scrollbar: false;
+}
+
+element {
+    padding: 5px;
+}
+
+element selected {
+    background-color: @selected;
+}
+
+element-text {
+    text-color: @foreground;
+}

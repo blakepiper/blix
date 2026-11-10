@@ -103,10 +103,10 @@ in
     xsecurelockWithoutPicom;
 
   scripts = [
-    (writeScript "clipboard-history" [ pkgs.clipmenu pkgs.dmenu ])
+    (writeScript "clipboard-history" [ pkgs.clipmenu pkgs.rofi ])
     (writeScript "control-menu" [
       pkgs.coreutils
-      pkgs.dmenu
+      pkgs.rofi
       pkgs.systemd
       pkgs.xdotool
       pkgs.xset

@@ -68,12 +68,13 @@ in
     [general]
     adjustment-method=randr
   '';
+  xdg.configFile."rofi/config.rasi".text = builtins.readFile ./config/rofi/config.rasi;
 
   home.file = {
     ".config/mimeapps.list".source = ./config/mimeapps.list;
     ".config/oxwm/config.lua".text = lib.replaceStrings
-      [ "@nixos-logo@" "@oxwm-volume@" "@oxwm-brightness@" "@oxwm-power-mode@" "@wpctl@" "@brightnessctl@" "@blix-settings@" "@blix-settings-apply@" "@thunar@" "@firefox@" "@fuzzel@" "-- @oxwm-extra-bar-blocks@" "-- @oxwm-brightness-bar-blocks@" ]
-      [ "${nixosLogo}" "${oxwmVolume}/bin/oxwm-volume" "${oxwmBrightness}/bin/oxwm-brightness" "${oxwmPowerMode}/bin/oxwm-power-mode" "${pkgs.wireplumber}/bin/wpctl" "${pkgs.brightnessctl}/bin/brightnessctl" "${blixSettings}/bin/blix-settings" "${blixSettings}/bin/blix-settings-apply" "${pkgs.thunar}/bin/thunar" "${config.home.sessionVariables.BROWSER}" "${pkgs.fuzzel}/bin/fuzzel" oxwmExtraBarBlocks oxwmBrightnessBarBlocks ]
+      [ "@nixos-logo@" "@oxwm-volume@" "@oxwm-brightness@" "@oxwm-power-mode@" "@wpctl@" "@brightnessctl@" "@blix-settings@" "@blix-settings-apply@" "@thunar@" "@firefox@" "@rofi@" "-- @oxwm-extra-bar-blocks@" "-- @oxwm-brightness-bar-blocks@" ]
+      [ "${nixosLogo}" "${oxwmVolume}/bin/oxwm-volume" "${oxwmBrightness}/bin/oxwm-brightness" "${oxwmPowerMode}/bin/oxwm-power-mode" "${pkgs.wireplumber}/bin/wpctl" "${pkgs.brightnessctl}/bin/brightnessctl" "${blixSettings}/bin/blix-settings" "${blixSettings}/bin/blix-settings-apply" "${pkgs.thunar}/bin/thunar" "${config.home.sessionVariables.BROWSER}" "${pkgs.rofi}/bin/rofi" oxwmExtraBarBlocks oxwmBrightnessBarBlocks ]
       (lib.replaceStrings [ "-- @oxwm-extra-keybindings@" ] [ oxwmExtraKeybindings ]
         (builtins.readFile ./config/oxwm/config.lua));
     ".config/picom/picom.conf" = {
@@ -108,7 +109,7 @@ in
     export MOZ_USE_XINPUT2=1
     export TERMINAL=${lib.escapeShellArg config.home.sessionVariables.TERMINAL}
     export BROWSER=${lib.escapeShellArg config.home.sessionVariables.BROWSER}
-    export CM_LAUNCHER=dmenu
+    export CM_LAUNCHER=rofi
     export CM_SELECTIONS=clipboard
     export CM_MAX_CLIPS=100
     export CM_OWN_CLIPBOARD=0

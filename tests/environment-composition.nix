@@ -48,7 +48,7 @@ let
       && !(home.systemd.user.services ? blix-display-hotplug)
       && !(home.systemd.user.services ? blix-picom)
       && !lib.any (name: builtins.elem name packages)
-        [ "blix-settings" "thunar" "picom" "xsecurelock" "dmenu" ]
+        [ "blix-settings" "thunar" "picom" "xsecurelock" "rofi" ]
     );
   phoneHome = phone.config.home-manager.users.przvl;
   laptopHome = laptop.config.home-manager.users.przvl;

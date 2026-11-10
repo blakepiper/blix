@@ -793,7 +793,7 @@ def shortcut_reference(path=None):
         "layout.cycle": "Cycle layouts", "quit": "Log out", "spawn_terminal": "Terminal",
         "set_master_factor": "Adjust layout split", "inc_num_master": "Change master window count",
     }
-    launchers = {"dmenu_run": "Application launcher", "firefox": "Firefox", "thunar": "File manager",
+    launchers = {"rofi": "Application launcher", "firefox": "Firefox", "thunar": "File manager",
                  "blix-settings": "Blix Settings", "blix-lock": "Lock screen", "clipboard-history": "Clipboard history",
                  "control-menu": "Session controls", "blix-brightness": "Adjust brightness"}
     special = {"XF86AudioRaiseVolume": "Volume up", "XF86AudioLowerVolume": "Volume down",

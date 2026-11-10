@@ -2,10 +2,10 @@
 set -euo pipefail
 confirm() {
   local answer
-  answer=$(printf 'No\nYes\n' | dmenu -i -p "$1") || return 1
+  answer=$(printf 'No\nYes\n' | rofi -dmenu -i -p "$1") || return 1
   [[ $answer == Yes ]]
 }
-choice=$(printf 'Lock\nSuspend\nReboot\nLog Out\nMonitors Off\nPower Off\n' | dmenu -i -p Control) || exit 0
+choice=$(printf 'Lock\nSuspend\nReboot\nLog Out\nMonitors Off\nPower Off\n' | rofi -dmenu -i -p Control) || exit 0
 case $choice in
   Lock) blix-lock ;;
   Suspend)

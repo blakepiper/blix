@@ -164,8 +164,8 @@ oxwm.bar.set_blocks(blocks)
 -- All OXWM bindings live in this file. OXWM reload/restart is intentionally
 -- not bound to any key; edit this file and restart OXWM from a shell when
 -- changing bindings.
-oxwm.key.bind({ mod }, "Space", oxwm.spawn("@fuzzel@"))
-oxwm.key.bind({ mod }, "D", oxwm.spawn("@fuzzel@"))
+oxwm.key.bind({ mod }, "Space", oxwm.spawn("@rofi@ -show combi -modes combi -combi-modes drun,run"))
+oxwm.key.bind({ mod }, "D", oxwm.spawn("@rofi@ -show combi -modes combi -combi-modes drun,run"))
 oxwm.key.bind({ mod }, "F", oxwm.spawn("@thunar@"))
 oxwm.key.bind({ mod }, "B", oxwm.spawn("@firefox@"))
 oxwm.key.bind({ mod, "Shift" }, "B", oxwm.spawn("@firefox@ --private-window"))

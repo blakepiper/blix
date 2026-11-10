@@ -28,8 +28,7 @@ in
   ];
 
   home.packages = with pkgs; [
-    dmenu
-    fuzzel
+    rofi
     feh
     maim
     slop

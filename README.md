@@ -56,9 +56,10 @@ The desktop uses:
 - Zen, T490 and desktop start Xorg manually with `startx`. The phone logs in as `przvl`
   and starts Xorg automatically on tty1; none uses a display manager.
 - OXWM is the window manager, with the Blix configuration and local patches.
-- Ghostty, `dmenu`, `picom`, `xsecurelock`, `xss-lock`, `clipmenu`, and Thunar provide
+- Ghostty, `rofi`, `picom`, `xsecurelock`, `xss-lock`, `clipmenu`, and Thunar provide
   the terminal, launcher, compositor, locking, clipboard, and file-manager
   pieces.
+  `Super+Space` and `Super+D` open Rofi for installed applications and commands.
 - Ghostty runs Bash with ble.sh for interactive editing, highlighting and
   completion. Home Manager manages its settings and Bash integration; OXWM's
   terminal binding uses the same executable as `$TERMINAL`.
@@ -227,7 +228,7 @@ and the user session supplies its pairing agent.
 The Blueman pairing agent starts with the Blix X11 session without requiring a
 system tray. The unused tray icon plugins are disabled while pairing, automatic
 reconnects and notifications remain available. Launch `blueman-manager` from
-dmenu or a terminal to pair, trust and connect devices. Pairing records stay on the machine; hosts can opt out with
+Rofi or a terminal to pair, trust and connect devices. Pairing records stay on the machine; hosts can opt out with
 `blix.machine.hasBluetooth = false`.
 The shared X11 session runs Dunst before the pairing agent. Bluetooth status
 notifications have no icon, expire after two seconds, and leave no history;
@@ -639,7 +640,7 @@ Profiles choose capabilities; the host constructor chooses the package platform.
 `profiles/phone.nix` owns phone system policy and chooses its system environment.
 `home/przvl/phone.nix` independently selects phone applications, reusable program
 configuration and user-session modules. The initial selection retains OXWM,
-Xorg, Ghostty, dmenu, Firefox and Neovim. Workstation application additions in
+Xorg, Ghostty, Rofi, Firefox and Neovim. Workstation application additions in
 `home/przvl/default.nix` or `home/przvl/programs/default.nix` do not automatically
 reach the phone. Changes to an individual reusable program module still affect
 every composition that imports it.

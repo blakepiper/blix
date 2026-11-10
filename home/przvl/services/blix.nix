@@ -51,7 +51,7 @@ in
           "CM_SELECTIONS=clipboard"
           "CM_MAX_CLIPS=100"
           "CM_OWN_CLIPBOARD=0"
-          "CM_LAUNCHER=dmenu"
+          "CM_LAUNCHER=rofi"
         ];
         UMask = "0077";
       };
