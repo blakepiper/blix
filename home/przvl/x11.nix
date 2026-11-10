@@ -72,8 +72,8 @@ in
   home.file = {
     ".config/mimeapps.list".source = ./config/mimeapps.list;
     ".config/oxwm/config.lua".text = lib.replaceStrings
-      [ "@nixos-logo@" "@oxwm-volume@" "@oxwm-brightness@" "@oxwm-power-mode@" "@wpctl@" "@brightnessctl@" "@blix-settings@" "@blix-settings-apply@" "@thunar@" "@firefox@" "-- @oxwm-extra-bar-blocks@" "-- @oxwm-brightness-bar-blocks@" ]
-      [ "${nixosLogo}" "${oxwmVolume}/bin/oxwm-volume" "${oxwmBrightness}/bin/oxwm-brightness" "${oxwmPowerMode}/bin/oxwm-power-mode" "${pkgs.wireplumber}/bin/wpctl" "${pkgs.brightnessctl}/bin/brightnessctl" "${blixSettings}/bin/blix-settings" "${blixSettings}/bin/blix-settings-apply" "${pkgs.thunar}/bin/thunar" "${config.home.sessionVariables.BROWSER}" oxwmExtraBarBlocks oxwmBrightnessBarBlocks ]
+      [ "@nixos-logo@" "@oxwm-volume@" "@oxwm-brightness@" "@oxwm-power-mode@" "@wpctl@" "@brightnessctl@" "@blix-settings@" "@blix-settings-apply@" "@thunar@" "@firefox@" "@fuzzel@" "-- @oxwm-extra-bar-blocks@" "-- @oxwm-brightness-bar-blocks@" ]
+      [ "${nixosLogo}" "${oxwmVolume}/bin/oxwm-volume" "${oxwmBrightness}/bin/oxwm-brightness" "${oxwmPowerMode}/bin/oxwm-power-mode" "${pkgs.wireplumber}/bin/wpctl" "${pkgs.brightnessctl}/bin/brightnessctl" "${blixSettings}/bin/blix-settings" "${blixSettings}/bin/blix-settings-apply" "${pkgs.thunar}/bin/thunar" "${config.home.sessionVariables.BROWSER}" "${pkgs.fuzzel}/bin/fuzzel" oxwmExtraBarBlocks oxwmBrightnessBarBlocks ]
       (lib.replaceStrings [ "-- @oxwm-extra-keybindings@" ] [ oxwmExtraKeybindings ]
         (builtins.readFile ./config/oxwm/config.lua));
     ".config/picom/picom.conf" = {

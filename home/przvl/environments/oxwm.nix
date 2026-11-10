@@ -29,6 +29,7 @@ in
 
   home.packages = with pkgs; [
     dmenu
+    fuzzel
     feh
     maim
     slop
