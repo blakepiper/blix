@@ -69,7 +69,7 @@ let
     name = "blix-wayland-menu";
     runtimeInputs = [ appMenu ];
     text = ''
-      export XDG_DATA_DIRS="${labwcIconData}/share:${blixSettings}/share:${fileManager}/share:''${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+      export XDG_DATA_DIRS="$HOME/.local/share:${labwcIconData}/share:${blixSettings}/share:${fileManager}/share:''${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
       exec nwg-menu -resident -ha left -va top -mt 0 -ml 0 -isl 24 -iss 16 -padding 1 -k \
         -fm ${fileManager}/bin/thunar \
         -term ${config.home.sessionVariables.TERMINAL} \
