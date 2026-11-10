@@ -100,7 +100,9 @@
   font-family: "JetBrainsMono Nerd Font", monospace !important;
 }
 
-/* Window closing is handled by the desktop's controls and shortcuts. */
+/* Window management is handled by the desktop's controls and shortcuts. */
+.titlebar-min,
+.titlebar-max,
 .titlebar-close {
   display: none !important;
 }
