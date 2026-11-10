@@ -59,6 +59,12 @@
   inset-inline-start: calc(-1 * var(--blix-button-width));
 }
 
+/* Keep the private-window indicator after the menu/extensions pair. Firefox
+ * appends the menu after this indicator, breaking the adjacent-button swap. */
+:root:not([customizing]) #nav-bar > :is(.private-browsing-indicator-with-label, .private-browsing-indicator-button) {
+  order: 1 !important;
+}
+
 /* Hide account and Sync entry points and sign-in promotions. */
 #fxa-toolbar-menu-button,
 #appMenu-fxa-status2,
@@ -101,8 +107,6 @@
 }
 
 /* Window management is handled by the desktop's controls and shortcuts. */
-.titlebar-min,
-.titlebar-max,
-.titlebar-close {
+.titlebar-buttonbox-container {
   display: none !important;
 }
