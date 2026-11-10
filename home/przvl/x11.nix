@@ -102,7 +102,7 @@ in
     fi
 
     # Follow profile switches instead of retaining this session's package generation.
-    export PATH="${config.home.profileDirectory}/bin:${pkgs.systemd}/bin:${pkgs.coreutils}/bin:$PATH"
+    export PATH="$HOME/.local/bin:${config.home.profileDirectory}/bin:${pkgs.systemd}/bin:${pkgs.coreutils}/bin:$PATH"
     export XDG_CURRENT_DESKTOP=OXWM
     export XDG_SESSION_TYPE=x11
     export MOZ_USE_XINPUT2=1
