@@ -54,8 +54,8 @@ scope and risk rules in the Validation section.
   `lib/mk-host.nix` supplies the package platform, overlays and Home Manager
   NixOS module; each host explicitly imports its profile and hardware modules.
 - `overlays/desktop.nix` owns OXWM and Neofetch packaging; `overlays/codex.nix` installs
-  the complete official Codex release bundle. Its latest stable release inputs
-  are refreshed alongside the other inputs by `nix flake update`.
+  the complete official Codex release bundle. Update both versioned release
+  URLs in `flake.nix` together, then refresh their lock entries.
 - `flake.lock` pins all flake inputs.
 - `tests/` checks laptop, desktop and ARM phone defaults, environment replacement,
   overrides and display hotplug behavior. Its synthetic fixtures must never be

@@ -164,7 +164,7 @@ oxwm.bar.set_blocks(blocks)
 -- All OXWM bindings live in this file. OXWM reload/restart is intentionally
 -- not bound to any key; edit this file and restart OXWM from a shell when
 -- changing bindings.
-oxwm.key.bind({ mod }, "Space", oxwm.spawn("@rofi@ -show combi -modes combi -combi-modes drun,run"))
+oxwm.key.bind({ mod }, "space", oxwm.spawn("@rofi@ -show combi -modes combi -combi-modes drun,run"))
 oxwm.key.bind({ mod }, "D", oxwm.spawn("@rofi@ -show combi -modes combi -combi-modes drun,run"))
 oxwm.key.bind({ mod }, "F", oxwm.spawn("@thunar@"))
 oxwm.key.bind({ mod }, "B", oxwm.spawn("@firefox@"))
@@ -211,7 +211,7 @@ if suspend_command and suspend_command ~= "" then
   oxwm.key.bind({}, "XF86Sleep", oxwm.spawn(suspend_command))
   oxwm.key.bind({ mod, "Shift" }, "L", oxwm.spawn(suspend_command))
 end
-oxwm.key.bind({ mod, "Shift" }, "Space", oxwm.spawn("control-menu"))
+oxwm.key.bind({ mod, "Shift" }, "space", oxwm.spawn("control-menu"))
 oxwm.key.bind({}, "XF86AudioRaiseVolume", oxwm.spawn("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"))
 oxwm.key.bind({}, "XF86AudioLowerVolume", oxwm.spawn("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"))
 oxwm.key.bind({}, "XF86AudioMute", oxwm.spawn("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"))
