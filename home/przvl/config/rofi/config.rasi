@@ -2,6 +2,8 @@ configuration {
     font: "JetBrainsMono Nerd Font 12";
     show-icons: true;
     drun-display-format: "{name}";
+    combi-display-format: "{text}";
+    display-combi: "";
 }
 
 * {
@@ -49,6 +51,15 @@ element {
 
 element selected {
     background-color: @selected;
+}
+
+element alternate.normal {
+    background-color: @background;
+}
+
+element selected.normal {
+    background-color: @selected;
+    text-color: @foreground;
 }
 
 element-text {
