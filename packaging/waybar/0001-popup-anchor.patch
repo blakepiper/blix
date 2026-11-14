@@ -1,6 +1,6 @@
 --- a/src/AModule.cpp
 +++ b/src/AModule.cpp
-@@ -6,6 +6,7 @@
+@@ -8,6 +8,7 @@
  #include <util/command.hpp>
  
  #include "gdk/gdk.h"
@@ -8,13 +8,11 @@
  #include "gdkmm/cursor.h"
  
  namespace waybar {
-@@ -186,6 +187,29 @@
-       format.clear();
-   }
-   if (!format.empty()) {
+@@ -281,6 +282,27 @@
+         cmd = format;
+       }
+     }
 +    // Export the clicked module's logical geometry for native Blix popups.
-+    // Query the actual widget allocation so text widths and output scale do not
-+    // require hard-coded offsets in an external slider.
 +    if (config_["blix-popup-anchor"].asBool()) {
 +      auto* widget = GTK_WIDGET(event_box_.gobj());
 +      auto* panel = gtk_widget_get_toplevel(widget);
@@ -29,12 +27,12 @@
 +          break;
 +        }
 +      }
-+      format = fmt::format(
++      cmd = fmt::format(
 +          "BLIX_PANEL_CENTER={} BLIX_PANEL_WIDTH={} BLIX_PANEL_HEIGHT={} BLIX_PANEL_MONITOR={} {}",
 +          x + gtk_widget_get_allocated_width(widget) / 2,
 +          gtk_widget_get_allocated_width(panel), gtk_widget_get_allocated_height(panel),
-+          monitor_index, format);
++          monitor_index, cmd);
 +    }
-     pid_children_.push_back(util::command::forkExec(format));
+     forgetReapedChildren(pid_children_);
+     pid_children_.push_back(util::command::forkExec(cmd));
    }
-   dp.emit();
