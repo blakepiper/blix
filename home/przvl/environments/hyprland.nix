@@ -1,14 +1,24 @@
 # Hyprland keeps upstream defaults except for OXWM-style splits and scrolling.
 { config, lib, pkgs, osConfig, blixSettings, ... }:
 let
+  retroTerminalSize = config.blix.hyprland.retroTerminalSize;
+  terminalFonts = pkgs.writeText "hyprland-terminal-fonts.conf" ''
+    <?xml version="1.0"?>
+    <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+    <fontconfig>
+      <include ignore_missing="yes">/etc/fonts/fonts.conf</include>
+      <dir>${pkgs.terminus_font_ttf}/share/fonts/truetype</dir>
+    </fontconfig>
+  '';
   terminal = pkgs.writeShellApplication {
     name = "hyprland-ghostty";
     text = ''
-      # Tamsyn has only small bitmap strikes; use Ghostty's scalable font.
+      # Tamsyn has only small bitmap strikes; use a scalable terminal font.
       # Keep this instance separate from terminals started with session fonts.
-      export FONTCONFIG_FILE=/etc/fonts/fonts.conf
+      export FONTCONFIG_FILE=${if retroTerminalSize == null then "/etc/fonts/fonts.conf" else terminalFonts}
       exec ${lib.getExe config.programs.ghostty.package} \
-        --gtk-single-instance=false --quit-after-last-window-closed=true "$@"
+        --gtk-single-instance=false --quit-after-last-window-closed=true \
+        ${lib.optionalString (retroTerminalSize != null) ''--font-family="Terminus (TTF)" --font-style=Bold --font-size=${toString retroTerminalSize}''} "$@"
     '';
   };
   launcher = "${pkgs.wofi}/bin/wofi --show drun";
@@ -88,9 +98,15 @@ let
   };
 in
 {
-  home.packages = with pkgs; [ wofi hyprlock screenshot controlMenu start ];
-  xdg.configFile."hypr/fontconfig.conf".source = fonts;
-  xdg.configFile."hypr/hyprland.lua".text = ''
+  options.blix.hyprland.retroTerminalSize = lib.mkOption {
+    type = lib.types.nullOr lib.types.ints.positive;
+    default = null;
+    description = "Terminus TTF Bold size for the Hyprland terminal, or null for Ghostty defaults.";
+  };
+
+  config.home.packages = with pkgs; [ wofi hyprlock screenshot controlMenu start ];
+  config.xdg.configFile."hypr/fontconfig.conf".source = fonts;
+  config.xdg.configFile."hypr/hyprland.lua".text = ''
     -- New windows split toward the right or bottom, as in OXWM's dwindle layout.
     hl.config({
       general = { layout = "dwindle" },
