@@ -559,8 +559,8 @@ Scope {
                 exclusionMode: ExclusionMode.Ignore
                 focusable: false
                 color: "transparent"
-                implicitWidth: 264
-                implicitHeight: 270
+                implicitWidth: 132
+                implicitHeight: 135
                 visible: false
 
                 property var displayedMonth: {
@@ -577,7 +577,10 @@ Scope {
                 }
 
                 Rectangle {
-                    anchors.fill: parent
+                    width: 264
+                    height: 270
+                    scale: 0.5
+                    transformOrigin: Item.TopLeft
                     color: "#01000000"
                     border.color: "#66c0caf5"
                     border.width: 1
