@@ -1,4 +1,4 @@
-# Hyprland keeps upstream defaults; only familiar OXWM shortcuts are declared.
+# Hyprland keeps upstream defaults except for OXWM-style splits and scrolling.
 { config, lib, pkgs, osConfig, ... }:
 let
   terminal = lib.getExe config.programs.ghostty.package;
@@ -52,10 +52,20 @@ let
   };
 in
 {
-  home.packages = with pkgs; [ wofi hyprlock screenshot start tamsyn ];
+  home.packages = with pkgs; [ wofi hyprlock screenshot start ];
   xdg.configFile."hypr/fontconfig.conf".source = fonts;
   xdg.configFile."hypr/hyprland.lua".text = ''
-    -- Upstream defaults stay in effect; these are familiar OXWM shortcuts.
+    -- New windows split toward the right or bottom, as in OXWM's dwindle layout.
+    hl.config({
+      general = { layout = "dwindle" },
+      dwindle = { force_split = 2 },
+      input = {
+        natural_scroll = true,
+        touchpad = { natural_scroll = true },
+      },
+    })
+
+    -- Familiar OXWM shortcuts.
     local exec = hl.dsp.exec_cmd
     hl.bind("SUPER + Return", exec("${terminal}"))
     hl.bind("SUPER + Space", exec("${launcher}"))

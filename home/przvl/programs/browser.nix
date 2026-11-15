@@ -52,6 +52,7 @@ in
       isDefault = true;
       extraConfig = builtins.readFile ../config/firefox/user.js;
       userChrome = ../config/firefox/chrome/userChrome.css;
+      userContent = ../config/firefox/chrome/userContent.css;
       settings = {
         "browser.uiCustomization.navBarWhenVerticalTabs" = builtins.toJSON navbar;
         "browser.uiCustomization.horizontalTabstrip" = builtins.toJSON tabstrip;

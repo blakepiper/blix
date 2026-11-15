@@ -457,15 +457,17 @@ its URL handlers, translations and Library/Store actions.
 
 Laptop and desktop profiles install Hyprland alongside OXWM. From a local TTY,
 run `start-blix-hyprland` to start it; Super+Shift+Q returns to the TTY. OXWM still starts
-with `startx`. The phone remains X11 only. Hyprland uses upstream compositor
-defaults. `home/przvl/environments/hyprland.nix` contains familiar OXWM
+with `startx`. The phone remains X11 only. Hyprland uses dwindle tiling with
+new windows on the right or bottom and natural scrolling for mice and touchpads.
+`home/przvl/environments/hyprland.nix` contains these settings, familiar OXWM
 keybindings, the tools those bindings invoke, and the session font override.
 There is no Blix panel, wallpaper, output policy, session service, or automatic
 login for Hyprland.
 The TTY launcher selects Tamsyn Bold for the Hyprland session, including apps
 started through D-Bus, and restores the normal font config when Hyprland exits.
 It raises small font requests to a readable bitmap size. OXWM keeps its Nerd
-Font settings.
+Font settings. Firefox uses Tamsyn Bold for its interface and web page text in
+both sessions.
 
 Super+Enter opens Ghostty; Super+Space or Super+D opens Wofi; Super+F and
 Super+B open Thunar and Firefox. Super+Q closes the active window, Super+P

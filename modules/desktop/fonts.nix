@@ -7,6 +7,7 @@
       nerd-fonts.jetbrains-mono
       noto-fonts
       noto-fonts-color-emoji
+      tamsyn
     ];
     fontconfig.defaultFonts = {
       sansSerif = [ "JetBrainsMono Nerd Font" ];

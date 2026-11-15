@@ -101,9 +101,10 @@
   }
 }
 
-/* Later preference: use the installed family throughout browser text. */
+/* Use Tamsyn Bold throughout the browser interface. */
 :root, :root * {
-  font-family: "JetBrainsMono Nerd Font", monospace !important;
+  font-family: "Tamsyn", monospace !important;
+  font-weight: bold !important;
 }
 
 /* Window management is handled by the desktop's controls and shortcuts. */
