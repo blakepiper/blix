@@ -35,34 +35,11 @@ def command(name, *args, timeout=12):
     return result.stdout
 
 
-def is_wayland():
-    return bool(os.environ.get("WAYLAND_DISPLAY")) or os.environ.get("XDG_SESSION_TYPE") == "wayland"
-
-
 def launch(name):
     try:
         subprocess.Popen([TOOLS[name]])
     except (KeyError, OSError) as error:
         raise SettingsError(f"Could not open {name}: {error}") from error
-
-
-def wayland_outputs():
-    try:
-        result = json.loads(command("wlr-randr", "--json"))
-    except ValueError as error:
-        raise SettingsError("Could not read display information.") from error
-    if not isinstance(result, list):
-        raise SettingsError("Could not read display information.")
-    return result
-
-
-def set_wayland_scale(name, scale):
-    scale = float(scale)
-    if not math.isfinite(scale) or not 1 <= scale <= 3:
-        raise SettingsError("Choose a display scale between 100% and 300%.")
-    if not any(item.get("name") == name and item.get("enabled") for item in wayland_outputs()):
-        raise SettingsError("This display is no longer connected.")
-    command("wlr-randr", "--output", name, "--scale", scale)
 
 
 def config_root():
@@ -142,8 +119,7 @@ def run_nightlight():
     value = nightlight_settings()
     if value["enabled"]:
         temperature = 6500 - value["intensity"] * 40
-        method = "wayland" if is_wayland() else "randr"
-        os.execv(TOOLS["gammastep"], [TOOLS["gammastep"], "-m", method, "-l", "0:0",
+        os.execv(TOOLS["gammastep"], [TOOLS["gammastep"], "-m", "randr", "-l", "0:0",
                                     "-t", f"{temperature}:{temperature}", "-P", "-r"])
 
 
@@ -152,7 +128,7 @@ def set_nightlight(enabled, intensity, preferences=None):
         raise SettingsError("Choose a night light intensity between 0 and 100.")
     preferences = preferences or Preferences()
     previous = nightlight_settings(preferences)
-    service = "blix-wayland-nightlight.service" if is_wayland() else "blix-nightlight.service"
+    service = "blix-nightlight.service"
     preferences.update("nightlight", {"enabled": enabled, "intensity": intensity})
     try:
         command("systemctl", "--user", "restart", service)
@@ -272,14 +248,6 @@ def outputs():
 
 
 def display_state(backlight=True):
-    if is_wayland():
-        state = {"outputs": wayland_outputs(), "brightness": None, "brightness_error": None}
-        if backlight:
-            try:
-                state["brightness"] = brightness()
-            except SettingsError as error:
-                state["brightness_error"] = str(error)
-        return state
     state = {"outputs": outputs(), "brightness": None, "brightness_error": None,
              "transparency": transparency_enabled()}
     resources = command("xrdb", "-query")
@@ -308,7 +276,7 @@ def input_state():
 
 
 def power_state():
-    state = {"batteries": batteries(), "blank_seconds": None if is_wayland() else session_state()["blank_seconds"]}
+    state = {"batteries": batteries(), "blank_seconds": session_state()["blank_seconds"]}
     state["power_profiles"] = {"available": False}
     if defaults().get("capabilities", {}).get("hasPowerProfiles", False):
         try:

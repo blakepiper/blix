@@ -52,7 +52,7 @@ def check_key(keymap, name, symbol):
 
 builtin = compile_keymap(settings["layout"], settings["options"])
 # Resolve the remapped kernel modifier keycodes through the same XKB map used
-# by Xorg and labwc, checking both sides of the physical Alt/Win positions.
+# by Xorg and Hyprland, checking both sides of the physical Alt/Win positions.
 keycode_names = {"leftmeta": "LWIN", "rightmeta": "RWIN", "leftalt": "LALT", "rightalt": "RALT"}
 for suffix, alt_scan, win_scan in (("L", "700e2", "700e3"), ("R", "700e6", "700e7")):
     check_key(builtin, suffix + "WIN", "Super_" + suffix)

@@ -2,9 +2,6 @@
 { ... }:
 
 {
-  # DRM HDMI names differ from XRandR; dock DP/MST names are dynamic.
-  blix.wayland.externalOutputs = [ "HDMI-A-*" "DP-*" ];
-  blix.wayland.outputs."eDP-1".scale = 2.0;
   blix.display = {
     primaryOutput = "eDP-1";
     externalOutput = "HDMI-1";

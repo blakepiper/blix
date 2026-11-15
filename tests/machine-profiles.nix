@@ -37,7 +37,7 @@ let
         && home.systemd.user.services.blueman-applet.Unit.Requires == [ ]
         && home.systemd.user.services.blueman-applet.Unit.After == [ "blix-lock.service" "dunst.service" ]
         && home.systemd.user.services.blueman-applet.Unit.PartOf ==
-          ([ "blix-session.target" ] ++ lib.optional cfg.programs.labwc.enable "blix-wayland-session.target")
+          [ "blix-session.target" ]
       );
       efiVariables = cfg.boot.loader.efi.canTouchEfiVariables;
       systemdBoot = cfg.boot.loader.systemd-boot.enable;
@@ -147,7 +147,7 @@ assert !phoneOverrides.bluetooth && phoneOverrides.touchpadScrolling;
 assert !phoneOverrides.bluetoothManager && !phoneOverrides.bluetoothApplet;
 assert phoneOverrides.primaryRotation == "left" && phoneOverrides.blankAfterSeconds == 120;
 assert phoneOverrides.xresources."Xft.dpi" == 192 && phoneOverrides.gtkDpi == 192 * 1024;
-assert lib.all (profile: profile.oxwm && !profile.hyprland && profile.consistentEnvironment && profile.xinitShebang)
+assert lib.all (profile: profile.oxwm && (profile.type == "phone" || profile.hyprland) && profile.consistentEnvironment && profile.xinitShebang)
   [ laptop desktop phone overrides laptopOverrides phoneOverrides ];
 assert lib.all (profile: profile.mirrorRate == null && profile.bluetoothNoTray
   && profile.bluetoothApplet == profile.bluetoothInSession)

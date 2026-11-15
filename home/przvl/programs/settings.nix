@@ -2,7 +2,6 @@
 
 let
   blixSettings = pkgs.callPackage ../../../packaging/blix-settings {
-    withWayland = osConfig.programs.labwc.enable or false;
   };
   speed = value: if value == null then 0 else builtins.fromJSON value;
 in

@@ -15,13 +15,13 @@ import json, os, sys
 from pathlib import Path
 name = Path(sys.argv[0]).name
 args = sys.argv[1:]
-session = os.environ.get('TEST_SESSION', 'wayland')
+session = os.environ.get('TEST_SESSION', 'x11')
 if name == 'notify-send':
     raise SystemExit(0)
 if name == 'systemctl':
     if 'is-active' in args:
         target = args[-1]
-        expected = ['blix-wayland-session.target', 'blix-wayland-lock.service'] if session == 'wayland' else ['blix-session.target', 'blix-lock.service']
+        expected = ['blix-session.target', 'blix-lock.service']
         raise SystemExit(0 if session != 'none' and target in expected else 3)
     if 'show' in args:
         print('42')
@@ -43,7 +43,7 @@ elif name == 'busctl':
         (root / name).symlink_to(fake)
     result = root / 'result'
     base = {**os.environ, 'PATH': str(root) + ':' + os.environ['PATH'], 'TEST_RESULT': str(result)}
-    for session in ('wayland', 'x11'):
+    for session in ('x11',):
         env = {**base, 'TEST_SESSION': session}
         checked = subprocess.run(['bash', source, '--check'], env=env, capture_output=True, text=True)
         assert checked.returncode == 0, checked.stderr

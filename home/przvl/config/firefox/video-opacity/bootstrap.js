@@ -3,7 +3,7 @@
 // Only OXWM's X11 compositor consumes video markers.
 const blixWayland = Services.env.get("XDG_SESSION_TYPE") === "wayland" ||
   !!Services.env.get("WAYLAND_DISPLAY");
-// labwc provides the window frame; OXWM keeps Firefox's own layout.
+// Wayland uses the compositor frame; OXWM keeps Firefox's own layout.
 defaultPref("browser.tabs.inTitlebar", blixWayland ? 0 : 2);
 try {
   const { AddonManager } = ChromeUtils.importESModule("resource://gre/modules/AddonManager.sys.mjs");

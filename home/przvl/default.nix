@@ -9,7 +9,7 @@
     ./programs
     ./programs/power.nix
     ./environments/oxwm.nix
-    ./environments/labwc.nix
+    ./environments/hyprland.nix
   ];
 
   home.packages = with pkgs; [ mpv ];

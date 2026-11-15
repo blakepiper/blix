@@ -15,9 +15,7 @@ fail() {
   exit 2
 }
 
-if systemctl --user is-active --quiet blix-wayland-session.target; then
-  locker=blix-wayland-lock.service
-elif systemctl --user is-active --quiet blix-session.target; then
+if systemctl --user is-active --quiet blix-session.target; then
   locker=blix-lock.service
 else
   fail 'Start a Blix desktop session before suspending.'
@@ -26,7 +24,7 @@ systemctl --user is-active --quiet "$locker" || fail 'The session lock service i
 pid=$(systemctl --user show "$locker" --property=MainPID --value)
 [[ $pid =~ ^[1-9][0-9]*$ ]] || fail 'The session lock service has no running process.'
 
-# Both xss-lock and swayidle hold a delay inhibitor until their locker is ready.
+# xss-lock holds a delay inhibitor until its locker is ready.
 # Refuse a manual suspend when that protection has not been established.
 if ! busctl --timeout=5 --json=short call org.freedesktop.login1 /org/freedesktop/login1 \
     org.freedesktop.login1.Manager ListInhibitors |

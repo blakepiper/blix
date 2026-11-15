@@ -1,4 +1,4 @@
-# Workstation suspend entry point shared by OXWM and labwc; not selected by phone.
+# OXWM suspend entry point for workstations; not selected by phone.
 { lib, pkgs, ... }:
 let
   suspend = pkgs.writeShellApplication {

@@ -71,42 +71,13 @@ scope and risk rules in the Validation section.
 - `modules/common/default.nix` aggregates the shared system foundation: boot,
   locale, Nix, networking, users, command-line packages, capabilities and Home
   Manager integration. It does not select a desktop or user applications.
-- `modules/desktop/labwc.nix` enables the parallel experimental Wayland session
-  only in laptop and desktop profiles. `home/przvl/environments/labwc.nix` owns
-  `startlabwc`, floating-window shortcuts and the separate Wayland session target.
-  Ghostty starts on demand in labwc and exits after its last window closes;
-  X11 retains its preloaded instance.
-  Blix Settings supplies session-aware Wayland controls and styling in
-  `packaging/blix-settings/src/`; host display modules set `blix.wayland.outputs`
-  for Wayland scale preferences. The labwc output service reuses host connector
-  patterns and mirror defaults at login and DRM hotplug; it restores the
-  preferred panel mode when undocked. Its app menu uses nwg-menu below the opaque bar;
-  `packaging/nwg-menu/0001-consistent-icons.patch` fixes symbolic icon sizing;
-  `0002-resident-menu.patch` adds hidden startup and native-signal toggling.
-  `home/przvl/environments/labwc-icons.nix` supplies the retro Firefox logo for
-  titlebars, launchers, GTK/Qt lookup and notifications through a Wayland-only
-  icon/desktop-entry search overlay; its PNGs are rendered at build time.
-  Fuzzel themes the app, clipboard and Super+Shift+Space Control menus. Thunar's
-  existing wallpaper item is connected by `packaging/thunar/0001-labwc-wallpaper.patch`
-  to a setter that saves an owned image under the user's Blix state and restarts
-  the Wayland wallpaper unit; host wallpaper settings remain defaults.
-  The Wayland Night Light unit uses Gammastep's gamma-control backend and shares
-  saved preferences with the separate X11 unit.
-  `home/przvl/config/labwc/slider.py` mirrors the OXWM bar sliders with native
-  layer-shell windows, edit-triggered coalesced writes and D-Bus power updates;
-  idle popups must not poll or launch refresh subprocesses. The session-owned
-  menu and slider services keep GTK warm; clicks use native signal/D-Bus IPC,
-  and slider reads/final writes must not block the resident GTK loop.
-  Waybar uses the native `cpu_usage` module to avoid unused per-core frequency probes, and
-  battery/backlight events with slow fallback scans.
-  `packaging/waybar/0001-popup-anchor.patch` exports each
-  clicked block's allocation only for those controls. Keep this patch scoped
-  to the Wayland session's panel package.
-  The Wayland lock screen uses gtklock with a compact xsecurelock-style form in
-  `home/przvl/config/labwc/lock.{ui,css}`; this module supplies its PAM service.
-  The phone keeps X11. XRandR settings and X11 helper services do not configure
-  labwc. Basic Zen scaling, topbar and settings rendering were observed on
-  2026-11-05; broader input, suspend and portal verification remains pending.
+- `modules/desktop/hyprland.nix` enables an optional Hyprland session on laptop
+  and desktop profiles. `home/przvl/environments/hyprland.nix` supplies
+  OXWM-inspired keybindings and the tools they invoke. Start it manually from a
+  TTY with `start-blix-hyprland`; OXWM continues to use `startx`. The phone keeps X11.
+  Its launcher selects Tamsyn Bold through a session-only Fontconfig file;
+  OXWM retains the Nerd Font defaults.
+  Hyprland owns no Blix panel, output policy, login automation, or user target.
 - `modules/desktop/` supplies the optional X11/OXWM session, desktop services,
   fonts and system utilities. Profiles select it explicitly.
 - `modules/common/machine.nix` declares typed machine capabilities and passes
@@ -179,7 +150,7 @@ scope and risk rules in the Validation section.
   Bluetooth status bubbles are icon-free and expire after two seconds, while
   pairing requests remain actionable. The phone keeps connection popups disabled.
 - `hosts/desktop/brightness.nix` supplies the external-monitor DDC/CI topbar
-  slider in OXWM and labwc through a shared session worker; Desktop enables I2C
+  slider in OXWM through a shared session worker; Desktop enables I2C
   access rather than claiming an internal backlight.
 - `modules/desktop/steam.nix` supplies the optional Steam environment and OXWM
   Steam-game focus workaround selected by Zen and Desktop. Their home modules
@@ -188,7 +159,7 @@ scope and risk rules in the Validation section.
   Shared Picom rules keep Steam games opaque and allow eligible fullscreen games
   to bypass composition.
 - `hosts/desktop/gpu.nix` enables Neofetch GPU reporting and supplies the
-  NVIDIA utilization topbar block in both OXWM and labwc only on Desktop.
+  NVIDIA utilization topbar block in OXWM only on Desktop.
 - `hosts/<hostname>/home.nix` composes machine-dependent user settings and
   imports `display.nix` for connector, layout, rotation and DPI facts when using X11.
 

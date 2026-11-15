@@ -10,30 +10,6 @@ let
   };
 in
 {
-  options.blix.wayland.brightnessCommand = lib.mkOption {
-    type = lib.types.nullOr lib.types.str;
-    default = null;
-    description = "External monitor brightness executable: no arguments reads a cached percentage; an integer argument sets it.";
-  };
-
-  options.blix.wayland.externalOutputs = lib.mkOption {
-    type = lib.types.listOf lib.types.str;
-    default = [];
-    description = "Wayland connector patterns for mirrored external displays; empty inherits X11 connector patterns.";
-  };
-
-  options.blix.wayland.outputs = lib.mkOption {
-    type = lib.types.attrsOf (lib.types.submodule {
-      options.scale = lib.mkOption {
-        type = lib.types.numbers.positive;
-        default = 1;
-        description = "Wayland output scale at session startup.";
-      };
-    });
-    default = {};
-    description = "Host-specific Wayland connector preferences, independent of XRandR.";
-  };
-
   options.blix.display = {
     layout = lib.mkOption {
       type = lib.types.enum [ "mirror" "extend" ];
