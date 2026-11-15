@@ -24,7 +24,7 @@ Scope {
     Process {
         id: statusProcess
         command: ["@status-command@"]
-        running: true
+        running: @has-battery@ || @has-backlight@
         stdout: StdioCollector {
             onStreamFinished: {
                 for (const line of this.text.trim().split("\n")) {
@@ -43,7 +43,7 @@ Scope {
 
     Timer {
         interval: 5000
-        running: true
+        running: @has-battery@ || @has-backlight@
         repeat: true
         onTriggered: statusProcess.running = true
     }

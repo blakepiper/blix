@@ -198,7 +198,7 @@ in
       dwindle = { force_split = 2 },
       input = {
         natural_scroll = true,
-        touchpad = { natural_scroll = true },
+        ${lib.optionalString osConfig.blix.machine.hasTouchpad "touchpad = { natural_scroll = true },"}
       },
     })
 

@@ -471,7 +471,11 @@ new windows on the right or bottom and natural scrolling for mice and touchpads.
 keybindings, the tools those bindings invoke, and the session font override.
 Quickshell supplies a transparent topbar on each Hyprland monitor with the
 active and occupied workspace numbers, a centered 24-hour clock, and battery,
-volume and brightness icons that reflect their current levels. Each icon opens
+volume and brightness icons that reflect their current levels. Battery and internal
+backlight controls follow hardware capabilities: Desktop shows neither and skips
+their polling. Desktop also omits touchpad settings and laptop brightness keys;
+logind ignores lid events, while manual suspend and locking remain available.
+Its external-monitor DDC/CI brightness control currently belongs to OXWM. Each icon opens
 its own control card: battery
 shows an estimated time remaining and power modes, volume has a slider and
 mute, and brightness has a slider. These cards remain open while their
