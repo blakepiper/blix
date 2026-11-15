@@ -206,6 +206,12 @@ in
       -- Exclude fully transparent pixels so blur follows the rounded card mask.
       ignore_alpha = 0.0,
     })
+    hl.layer_rule({
+      name = "blix-calendar-popup-glass",
+      match = { namespace = "^blix-calendar-popup$" },
+      blur = true,
+      ignore_alpha = 0.0,
+    })
 
     ${lib.optionalString (primaryOutput != null) ''
       -- Mirror newly connected outputs to the host's built-in primary panel.

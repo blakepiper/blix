@@ -14,6 +14,7 @@ Scope {
     property string batteryEta: ""
     property string brightness: ""
     property string powerMode: ""
+    property date currentDate: new Date()
 
     PwObjectTracker {
         objects: [Pipewire.defaultAudioSink]
@@ -72,6 +73,7 @@ Scope {
             required property var modelData
             property string activeControl: ""
             function toggleControl(name) {
+                calendarPopup.visible = false;
                 if (activeControl === name && controlPopup.visible) {
                     controlPopup.visible = false;
                 } else {
@@ -79,18 +81,26 @@ Scope {
                     controlPopup.visible = true;
                 }
             }
+            function toggleCalendar() {
+                controlPopup.visible = false;
+                calendarPopup.visible = !calendarPopup.visible;
+            }
             screen: modelData
             anchors { top: true; left: true; right: true }
             implicitHeight: 36
             color: "transparent"
             mask: Region {
                 Region { item: workspaceRow }
+                Region { item: centerClock }
                 Region { item: controlsRow }
             }
             HyprlandFocusGrab {
-                active: controlPopup.visible
-                windows: [panel, controlPopup]
-                onCleared: controlPopup.visible = false
+                active: controlPopup.visible || calendarPopup.visible
+                windows: [panel, controlPopup, calendarPopup]
+                onCleared: {
+                    controlPopup.visible = false;
+                    calendarPopup.visible = false;
+                }
             }
 
             Row {
@@ -122,7 +132,10 @@ Scope {
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
-                            onPressed: controlPopup.visible = false
+                            onPressed: {
+                                controlPopup.visible = false;
+                                calendarPopup.visible = false;
+                            }
                             onClicked: Hyprland.dispatch(Hyprland.usingLua
                                 ? 'hl.dsp.focus({ workspace = "' + modelData.name + '" })'
                                 : "workspace " + modelData.name)
@@ -141,13 +154,23 @@ Scope {
                 font.family: "Terminus (TTF)"
                 font.bold: true
                 font.pixelSize: 16
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: panel.toggleCalendar()
+                }
             }
 
             Timer {
                 interval: 1000
                 running: true
                 repeat: true
-                onTriggered: centerClock.currentTime = Qt.formatDateTime(new Date(), "HH:mm")
+                onTriggered: {
+                    const now = new Date();
+                    centerClock.currentTime = Qt.formatDateTime(now, "HH:mm");
+                    root.currentDate = now;
+                }
             }
 
             Row {
@@ -520,6 +543,168 @@ Scope {
                                     radius: 8
                                     color: "#c0caf5"
                                     border.color: "#eed49f"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            PanelWindow {
+                id: calendarPopup
+                screen: panel.screen
+                WlrLayershell.namespace: "blix-calendar-popup"
+                anchors { top: true }
+                margins { top: 46 }
+                exclusionMode: ExclusionMode.Ignore
+                focusable: false
+                color: "transparent"
+                implicitWidth: 264
+                implicitHeight: 270
+                visible: false
+
+                property var displayedMonth: {
+                    const now = new Date();
+                    return new Date(now.getFullYear(), now.getMonth(), 1);
+                }
+                readonly property int daysInMonth: new Date(
+                    displayedMonth.getFullYear(), displayedMonth.getMonth() + 1, 0).getDate()
+                readonly property int firstWeekday: displayedMonth.getDay()
+
+                function changeMonth(offset) {
+                    displayedMonth = new Date(
+                        displayedMonth.getFullYear(), displayedMonth.getMonth() + offset, 1);
+                }
+
+                Rectangle {
+                    anchors.fill: parent
+                    color: "#01000000"
+                    border.color: "#66c0caf5"
+                    border.width: 1
+                    radius: 10
+
+                    Column {
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        spacing: 8
+
+                        Row {
+                            width: parent.width
+                            height: 26
+                            spacing: 8
+
+                            Rectangle {
+                                width: 26
+                                height: 26
+                                radius: 6
+                                color: "#552a2e42"
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "‹"
+                                    color: "#c0caf5"
+                                    font.family: "Terminus (TTF)"
+                                    font.pixelSize: 20
+                                }
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: calendarPopup.changeMonth(-1)
+                                }
+                            }
+
+                            Text {
+                                width: parent.width - 68
+                                height: 26
+                                text: Qt.formatDateTime(calendarPopup.displayedMonth, "MMMM yyyy")
+                                color: "#c0caf5"
+                                font.family: "Terminus (TTF)"
+                                font.bold: true
+                                font.pixelSize: 14
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+
+                            Rectangle {
+                                width: 26
+                                height: 26
+                                radius: 6
+                                color: "#552a2e42"
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "›"
+                                    color: "#c0caf5"
+                                    font.family: "Terminus (TTF)"
+                                    font.pixelSize: 20
+                                }
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: calendarPopup.changeMonth(1)
+                                }
+                            }
+                        }
+
+                        Row {
+                            id: weekdayRow
+                            width: parent.width
+                            height: 18
+                            spacing: 2
+
+                            Repeater {
+                                model: ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
+                                Item {
+                                    required property string modelData
+                                    width: (weekdayRow.width - 12) / 7
+                                    height: weekdayRow.height
+                                    Text {
+                                        anchors.fill: parent
+                                        text: modelData
+                                        color: "#8291b3"
+                                        font.family: "Terminus (TTF)"
+                                        font.bold: true
+                                        font.pixelSize: 11
+                                        horizontalAlignment: Text.AlignHCenter
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
+                                }
+                            }
+                        }
+
+                        Grid {
+                            id: calendarGrid
+                            width: parent.width
+                            height: 6 * 28 + 5 * 2
+                            columns: 7
+                            rowSpacing: 2
+                            columnSpacing: 2
+
+                            Repeater {
+                                model: 42
+                                Rectangle {
+                                    required property int index
+                                    readonly property int dayNumber: index - calendarPopup.firstWeekday + 1
+                                    readonly property bool inDisplayedMonth:
+                                        dayNumber >= 1 && dayNumber <= calendarPopup.daysInMonth
+                                    readonly property bool isToday: inDisplayedMonth
+                                        && dayNumber === root.currentDate.getDate()
+                                        && calendarPopup.displayedMonth.getMonth() === root.currentDate.getMonth()
+                                        && calendarPopup.displayedMonth.getFullYear() === root.currentDate.getFullYear()
+                                    width: (calendarGrid.width - 12) / 7
+                                    height: 28
+                                    radius: 6
+                                    color: isToday ? "#55354d45" : "transparent"
+                                    border.color: isToday ? "#77a6da95" : "transparent"
+                                    border.width: 1
+
+                                    Text {
+                                        anchors.fill: parent
+                                        text: parent.inDisplayedMonth ? parent.dayNumber : ""
+                                        color: parent.isToday ? "#d7ffe8" : "#c0caf5"
+                                        font.family: "Terminus (TTF)"
+                                        font.pixelSize: 13
+                                        horizontalAlignment: Text.AlignHCenter
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
                                 }
                             }
                         }
