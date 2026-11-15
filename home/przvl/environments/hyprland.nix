@@ -1,5 +1,5 @@
 # Hyprland keeps upstream defaults except for OXWM-style splits and scrolling.
-{ config, lib, pkgs, osConfig, ... }:
+{ config, lib, pkgs, osConfig, blixSettings, ... }:
 let
   terminal = lib.getExe config.programs.ghostty.package;
   launcher = "${pkgs.wofi}/bin/wofi --show drun";
@@ -17,6 +17,33 @@ let
         grim -g "$geometry" "$file"
       fi
       wl-copy --type image/png < "$file"
+    '';
+  };
+  controlMenu = pkgs.writeShellApplication {
+    name = "hyprland-control-menu";
+    runtimeInputs = [ pkgs.wofi pkgs.hyprlock pkgs.systemd pkgs.coreutils osConfig.programs.hyprland.package ];
+    text = ''
+      confirm() {
+        local answer
+        answer=$(printf 'No\nYes\n' | wofi --dmenu --no-custom-entry --prompt "$1") || return 1
+        [[ $answer == Yes ]]
+      }
+
+      choice=$(printf 'Lock\nSuspend\nReboot\nLog Out\nMonitors Off\nPower Off\n' |
+        wofi --dmenu --no-custom-entry --prompt Control) || exit 0
+      case $choice in
+        Lock) hyprlock ;;
+        Suspend)
+          hyprlock --grace 0 --immediate-render --no-fade-in &
+          locker=$!
+          sleep 1
+          kill -0 "$locker" || exit 1
+          systemctl suspend ;;
+        Reboot) if confirm 'Reboot?'; then systemctl reboot; fi ;;
+        'Log Out') if confirm 'Log out? Unsaved work may be lost.'; then hyprctl dispatch exit; fi ;;
+        'Monitors Off') sleep 0.2; hyprctl dispatch dpms off ;;
+        'Power Off') if confirm 'Power off?'; then systemctl poweroff; fi ;;
+      esac
     '';
   };
   fonts = pkgs.writeText "hyprland-tamsyn-fonts.conf" ''
@@ -52,7 +79,7 @@ let
   };
 in
 {
-  home.packages = with pkgs; [ wofi hyprlock screenshot start ];
+  home.packages = with pkgs; [ wofi hyprlock screenshot controlMenu start ];
   xdg.configFile."hypr/fontconfig.conf".source = fonts;
   xdg.configFile."hypr/hyprland.lua".text = ''
     -- New windows split toward the right or bottom, as in OXWM's dwindle layout.
@@ -69,8 +96,10 @@ in
     local exec = hl.dsp.exec_cmd
     hl.bind("SUPER + Return", exec("${terminal}"))
     hl.bind("SUPER + Space", exec("${launcher}"))
+    hl.bind("SUPER + SHIFT + Space", exec("${controlMenu}/bin/hyprland-control-menu"))
     hl.bind("SUPER + D", exec("${launcher}"))
     hl.bind("SUPER + F", exec("${pkgs.thunar}/bin/thunar"))
+    hl.bind("SUPER + S", exec("${blixSettings}/bin/blix-settings"))
     hl.bind("SUPER + B", exec("${lib.getExe config.programs.firefox.package}"))
     hl.bind("SUPER + SHIFT + B", exec("${lib.getExe config.programs.firefox.package} --private-window"))
     hl.bind("SUPER + Q", hl.dsp.window.close())

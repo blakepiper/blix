@@ -470,15 +470,18 @@ Font settings. Firefox uses Tamsyn Bold for its interface and web page text in
 both sessions.
 
 Super+Enter opens Ghostty; Super+Space or Super+D opens Wofi; Super+F and
-Super+B open Thunar and Firefox. Super+Q closes the active window, Super+P
+Super+B open Thunar and Firefox, and Super+S opens Blix Settings. Super+Q
+closes the active window, Super+P
 toggles floating, Super+Shift+F toggles fullscreen, and Super+1–9 selects a
 workspace. Super+Shift+1–9 moves the active window. Super+arrows focus windows,
 Super+Shift+arrows move them, and Super+Ctrl+left/right changes monitors.
-Super+L starts Hyprlock; Super+Shift+S selects a screenshot region and Print
+Super+L starts Hyprlock; Super+Shift+Space opens the control menu;
+Super+Shift+S selects a screenshot region and Print
 captures the whole display. Volume, playback, and built-in brightness keys
-keep the OXWM assignments. OXWM-specific layout, clipboard history, settings,
-control menu, and guarded suspend bindings have no Hyprland equivalents in
-this minimal session. Hyprland's own config is at `~/.config/hypr/hyprland.lua`.
+keep the OXWM assignments. OXWM-specific layout and clipboard history have no
+Hyprland equivalents in this minimal session. Blix Settings still uses X11
+commands for some controls. Hyprland's own config is at
+`~/.config/hypr/hyprland.lua`.
 
 Shared appearance in `home/przvl/appearance.nix` selects Tokyo Night Dark for
 GTK 3/4 and a matching Qt 5/6 Fusion palette, with JetBrainsMono Nerd Font.
