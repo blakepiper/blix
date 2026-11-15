@@ -199,6 +199,12 @@ in
       },
     })
 
+    hl.layer_rule({
+      name = "blix-control-popup-glass",
+      match = { namespace = "^blix-control-popup$" },
+      blur = true,
+    })
+
     ${lib.optionalString (primaryOutput != null) ''
       -- Mirror newly connected outputs to the host's built-in primary panel.
       hl.monitor({ output = "${primaryOutput}", mode = "preferred", position = "auto", scale = "auto" })

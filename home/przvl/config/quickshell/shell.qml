@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Services.Pipewire
+import Quickshell.Wayland
 
 Scope {
     id: root
@@ -277,6 +278,7 @@ Scope {
             PanelWindow {
                 id: controlPopup
                 screen: panel.screen
+                WlrLayershell.namespace: "blix-control-popup"
                 anchors {
                     top: true
                     right: true
@@ -288,33 +290,33 @@ Scope {
                 exclusionMode: ExclusionMode.Ignore
                 focusable: false
                 color: "transparent"
-                implicitWidth: 330
-                implicitHeight: cardColumn.implicitHeight + 32
+                implicitWidth: 165
+                implicitHeight: cardColumn.implicitHeight + 20
                 visible: false
 
                 Rectangle {
                     anchors.fill: parent
-                    color: "#1e2030"
-                    border.color: "#454a62"
+                    color: "transparent"
+                    border.color: "#66c0caf5"
                     border.width: 1
                     radius: 14
                     Column {
                         id: cardColumn
                         anchors.centerIn: parent
-                        width: parent.width - 32
-                        spacing: 12
+                        width: parent.width - 20
+                        spacing: 8
 
                         Item {
                             visible: panel.activeControl === "battery" && @has-battery@ && root.battery !== ""
                             width: parent.width
-                            height: 120
+                            height: 138
 
                             Text {
                                 text: "BATTERY"
                                 color: "#a6da95"
                                 font.family: "Terminus (TTF)"
                                 font.bold: true
-                                font.pixelSize: 14
+                                font.pixelSize: 12
                             }
                             Text {
                                 anchors.right: parent.right
@@ -322,10 +324,10 @@ Scope {
                                 color: "#c0caf5"
                                 font.family: "Terminus (TTF)"
                                 font.bold: true
-                                font.pixelSize: 16
+                                font.pixelSize: 14
                             }
                             Rectangle {
-                                y: 29
+                                y: 22
                                 width: parent.width
                                 height: 6
                                 radius: 3
@@ -338,17 +340,19 @@ Scope {
                                 }
                             }
                             Text {
-                                y: 47
+                                y: 34
+                                width: parent.width
                                 text: root.batteryEta
                                 color: "#a9b1d6"
                                 font.family: "Terminus (TTF)"
-                                font.pixelSize: 14
+                                font.pixelSize: 12
+                                elide: Text.ElideRight
                             }
-                            Row {
-                                id: modeRow
-                                y: 76
+                            Column {
+                                id: modeColumn
+                                y: 54
                                 width: parent.width
-                                spacing: 6
+                                spacing: 4
                                 Repeater {
                                     model: [
                                         { label: "Saver", value: "power-saver" },
@@ -357,18 +361,21 @@ Scope {
                                     ]
                                     Rectangle {
                                         required property var modelData
-                                        width: (modeRow.width - 12) / 3
-                                        height: 34
-                                        radius: 7
-                                        color: root.powerMode === modelData.value ? "#354d45" : "#2a2e42"
-                                        border.color: root.powerMode === modelData.value ? "#a6da95" : "transparent"
+                                        width: modeColumn.width
+                                        height: 24
+                                        radius: 6
+                                        color: root.powerMode === modelData.value ? "#55354d45" : "#552a2e42"
+                                        border.color: root.powerMode === modelData.value ? "#77a6da95" : "#33454a62"
+                                        border.width: 1
                                         Text {
-                                            anchors.centerIn: parent
+                                            anchors.left: parent.left
+                                            anchors.leftMargin: 8
+                                            anchors.verticalCenter: parent.verticalCenter
                                             text: modelData.label
                                             color: root.powerMode === modelData.value ? "#d7ffe8" : "#a9b1d6"
                                             font.family: "Terminus (TTF)"
                                             font.bold: true
-                                            font.pixelSize: 13
+                                            font.pixelSize: 12
                                         }
                                         MouseArea {
                                             anchors.fill: parent
@@ -384,38 +391,38 @@ Scope {
                         Item {
                             visible: panel.activeControl === "volume"
                             width: parent.width
-                            height: 70
+                            height: 62
                             Text {
                                 text: "VOLUME"
                                 color: "#8aadf4"
                                 font.family: "Terminus (TTF)"
                                 font.bold: true
-                                font.pixelSize: 14
+                                font.pixelSize: 12
                             }
                             Text {
                                 anchors.right: muteButton.left
-                                anchors.rightMargin: 10
+                                anchors.rightMargin: 7
                                 text: volumeControl.audio ? Math.round(volumeControl.audio.volume * 100) + "%" : "--"
                                 color: "#c0caf5"
                                 font.family: "Terminus (TTF)"
                                 font.bold: true
-                                font.pixelSize: 16
+                                font.pixelSize: 14
                             }
                             Rectangle {
                                 id: muteButton
                                 anchors.right: parent.right
                                 y: -3
-                                width: 52
-                                height: 25
+                                width: 46
+                                height: 23
                                 radius: 6
-                                color: volumeControl.audio && volumeControl.audio.muted ? "#5a3445" : "#2a2e42"
+                                color: volumeControl.audio && volumeControl.audio.muted ? "#885a3445" : "#772a2e42"
                                 Text {
                                     anchors.centerIn: parent
                                     text: volumeControl.audio && volumeControl.audio.muted ? "MUTED" : "MUTE"
                                     color: volumeControl.audio && volumeControl.audio.muted ? "#f7768e" : "#a9b1d6"
                                     font.family: "Terminus (TTF)"
                                     font.bold: true
-                                    font.pixelSize: 13
+                                    font.pixelSize: 11
                                 }
                                 MouseArea {
                                     anchors.fill: parent
@@ -425,9 +432,9 @@ Scope {
                             }
                             Slider {
                                 id: volumeSlider
-                                y: 30
+                                y: 27
                                 width: parent.width
-                                height: 30
+                                height: 28
                                 from: 0
                                 to: 100
                                 enabled: volumeControl.audio !== null
@@ -462,13 +469,13 @@ Scope {
                         Item {
                             visible: panel.activeControl === "brightness" && @has-backlight@ && root.brightness !== ""
                             width: parent.width
-                            height: 70
+                            height: 62
                             Text {
                                 text: "BRIGHTNESS"
                                 color: "#eed49f"
                                 font.family: "Terminus (TTF)"
                                 font.bold: true
-                                font.pixelSize: 14
+                                font.pixelSize: 12
                             }
                             Text {
                                 anchors.right: parent.right
@@ -476,13 +483,13 @@ Scope {
                                 color: "#c0caf5"
                                 font.family: "Terminus (TTF)"
                                 font.bold: true
-                                font.pixelSize: 16
+                                font.pixelSize: 14
                             }
                             Slider {
                                 id: brightnessSlider
-                                y: 30
+                                y: 27
                                 width: parent.width
-                                height: 30
+                                height: 28
                                 from: 1
                                 to: 100
                                 value: Number(root.brightness)
