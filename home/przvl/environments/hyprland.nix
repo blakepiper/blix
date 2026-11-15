@@ -1,6 +1,7 @@
 # Hyprland keeps upstream defaults except for OXWM-style splits and scrolling.
 { config, lib, pkgs, osConfig, blixSettings, ... }:
 let
+  primaryOutput = config.blix.display.primaryOutput or null;
   retroTerminalSize = config.blix.hyprland.retroTerminalSize;
   terminalFonts = pkgs.writeText "hyprland-terminal-fonts.conf" ''
     <?xml version="1.0"?>
@@ -36,6 +37,22 @@ let
         grim -g "$geometry" "$file"
       fi
       wl-copy --type image/png < "$file"
+    '';
+  };
+  barStatus = pkgs.writeShellApplication {
+    name = "hyprland-bar-status";
+    runtimeInputs = [ pkgs.coreutils ];
+    text = builtins.readFile ../config/quickshell/status.sh;
+  };
+  barQml = pkgs.writeText "blix-hyprland-bar.qml" (builtins.replaceStrings
+    [ "@status-command@" "@settings-command@" "@brightness-command@" "@has-battery@" "@has-backlight@" ]
+    [ "${barStatus}/bin/hyprland-bar-status" "${blixSettings}/bin/blix-settings" "${pkgs.brightnessctl}/bin/brightnessctl" (lib.boolToString config.blix.hardware.hasBattery) (lib.boolToString config.blix.hardware.hasBacklight) ]
+    (builtins.readFile ../config/quickshell/shell.qml));
+  bar = pkgs.writeShellApplication {
+    name = "blix-hyprland-bar";
+    text = ''
+      export FONTCONFIG_FILE=${terminalFonts}
+      exec ${pkgs.quickshell}/bin/quickshell --path ${barQml}
     '';
   };
   controlMenu = pkgs.writeShellApplication {
@@ -104,7 +121,7 @@ in
     description = "Terminus TTF Bold size for the Hyprland terminal, or null for Ghostty defaults.";
   };
 
-  config.home.packages = with pkgs; [ wofi hyprlock screenshot controlMenu start ];
+  config.home.packages = with pkgs; [ wofi hyprlock screenshot controlMenu bar start ];
   config.xdg.configFile."hypr/fontconfig.conf".source = fonts;
   config.xdg.configFile."hypr/hyprland.lua".text = ''
     -- New windows split toward the right or bottom, as in OXWM's dwindle layout.
@@ -116,6 +133,16 @@ in
         touchpad = { natural_scroll = true },
       },
     })
+
+    ${lib.optionalString (primaryOutput != null) ''
+      -- Mirror newly connected outputs to the host's built-in primary panel.
+      hl.monitor({ output = "${primaryOutput}", mode = "preferred", position = "auto", scale = "auto" })
+      hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1, mirror = "${primaryOutput}" })
+    ''}
+
+    hl.on("hyprland.start", function()
+      hl.exec_cmd("${bar}/bin/blix-hyprland-bar")
+    end)
 
     -- Familiar OXWM shortcuts.
     local exec = hl.dsp.exec_cmd

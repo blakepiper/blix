@@ -461,8 +461,12 @@ with `startx`. The phone remains X11 only. Hyprland uses dwindle tiling with
 new windows on the right or bottom and natural scrolling for mice and touchpads.
 `home/przvl/environments/hyprland.nix` contains these settings, familiar OXWM
 keybindings, the tools those bindings invoke, and the session font override.
-There is no Blix panel, wallpaper, output policy, session service, or automatic
-login for Hyprland.
+Quickshell supplies a topbar on each Hyprland monitor with workspaces, battery,
+volume, brightness, RAM, CPU and a clock. It starts with Hyprland and uses
+white text on Ghostty's dark blue background. Laptop profiles with a declared
+primary connector mirror newly connected outputs to that panel by default.
+Desktop needs a declared primary connector before mirroring can be configured.
+Hyprland has no wallpaper, session service, or automatic login.
 The TTY launcher selects Tamsyn Bold for the Hyprland session, including apps
 started through D-Bus, and restores the normal font config when Hyprland exits.
 It raises small font requests to a readable bitmap size. On Zen, Ghostty uses
