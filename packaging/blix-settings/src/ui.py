@@ -537,8 +537,15 @@ class Window(Gtk.ApplicationWindow):
         appearance = self.card(body, "Appearance")
         self.transparency_switch = Gtk.Switch(active=core.transparency_enabled(self.preferences))
         self.transparency_switch.set_sensitive(not self.saving_transparency)
-        self.row(appearance, "Window transparency", self.transparency_switch,
-                 "On uses the usual window opacity. Off makes every window fully opaque.")
+        if core.hyprland_session():
+            transparency_description = (
+                "Hyprland: on uses 85% focused / 80% unfocused opacity; off uses 100%. "
+                "Video and game window exceptions stay opaque. Shows the live compositor state.")
+        else:
+            transparency_description = (
+                "OXWM / Picom: on uses the configured window opacity; off forces full opacity. "
+                "Applies immediately by restarting Picom.")
+        self.row(appearance, "Window transparency", self.transparency_switch, transparency_description)
         self.connect_control(self.transparency_switch, "notify::active", lambda *_: self.save_transparency())
         self.build_nightlight(body)
         connected = [item for item in available if item["connected"] and item["modes"]]

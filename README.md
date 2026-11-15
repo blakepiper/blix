@@ -367,7 +367,9 @@ touch target and is selected only by `home/przvl/phone/topbar.nix`.
   Window transparency applies immediately: on keeps the usual 85% focused / 80%
   unfocused opacity and opaque Firefox video windows; off makes every window
   100% opaque. OXWM applies this with Picom, while Hyprland updates its live
-  opacity settings. The choice persists across sessions.
+  opacity settings through its Lua API. In Hyprland the switch reflects live
+  compositor opacity, including changes from configuration reloads. The control
+  explains which compositor it uses. The choice persists across sessions.
   Night light has an on/off switch and a 0–100% intensity slider (6500K neutral
   to 2500K warm). OXWM uses Gammastep; Hyprland uses Hyprsunset. Apply
   intensity saves the slider choice;

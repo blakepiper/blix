@@ -175,8 +175,25 @@ def apply_hyprland_transparency(enabled):
         raise SettingsError("Hyprland transparency controls are not available.")
     active = "0.85" if enabled else "1.0"
     inactive = "0.8" if enabled else "1.0"
-    command("hyprctl", "--batch",
-            f"keyword decoration:active_opacity {active}; keyword decoration:inactive_opacity {inactive}")
+    # The pinned Lua-based Hyprland rejects legacy keyword requests while
+    # returning exit status zero. Validate the IPC reply as well as the process.
+    reply = command("hyprctl", "eval",
+                    f"hl.config({{ decoration = {{ active_opacity = {active}, inactive_opacity = {inactive} }} }})")
+    if reply.strip() != "ok":
+        raise SettingsError(f"Hyprland could not change window transparency: {reply.strip()}")
+
+
+def live_transparency_enabled(preferences=None):
+    if not hyprland_session():
+        return transparency_enabled(preferences)
+    values = []
+    for option in ("active_opacity", "inactive_opacity"):
+        result = json.loads(command("hyprctl", "-j", "getoption", f"decoration:{option}"))
+        value = result.get("float")
+        if not isinstance(value, (float, int)) or not 0 <= value <= 1:
+            raise SettingsError("Hyprland returned an invalid window opacity.")
+        values.append(value)
+    return any(value < 1 for value in values)
 
 
 def apply_saved_transparency():
@@ -297,7 +314,7 @@ def outputs():
 
 def display_state(backlight=True):
     state = {"outputs": outputs(), "brightness": None, "brightness_error": None,
-             "transparency": transparency_enabled()}
+             "transparency": live_transparency_enabled()}
     resources = command("xrdb", "-query")
     dpi = re.search(r"^Xft\.dpi:\s*([\d.]+)\s*$", resources, re.M)
     state["dpi"] = float(dpi[1]) if dpi else None

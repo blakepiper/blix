@@ -105,17 +105,17 @@ class RuntimeTests(unittest.TestCase):
         preferences = core.Preferences()
         with patch.dict(core.TOOLS, hyprctl="/test/hyprctl"), \
                 patch.dict(os.environ, BLIX_HYPRLAND_SESSION="1"), \
-                patch.object(core, "command") as command:
+                patch.object(core, "command", return_value="ok\n") as command:
             core.set_transparency(False, preferences)
             command.assert_called_once_with(
-                "hyprctl", "--batch",
-                "keyword decoration:active_opacity 1.0; keyword decoration:inactive_opacity 1.0")
+                "hyprctl", "eval",
+                "hl.config({ decoration = { active_opacity = 1.0, inactive_opacity = 1.0 } })")
             self.assertFalse(core.transparency_enabled(preferences))
             command.reset_mock()
             core.apply_saved_transparency()
             command.assert_called_once_with(
-                "hyprctl", "--batch",
-                "keyword decoration:active_opacity 1.0; keyword decoration:inactive_opacity 1.0")
+                "hyprctl", "eval",
+                "hl.config({ decoration = { active_opacity = 1.0, inactive_opacity = 1.0 } })")
 
     def test_hyprland_transparency_failure_keeps_the_saved_choice(self):
         preferences = core.Preferences()
@@ -127,8 +127,29 @@ class RuntimeTests(unittest.TestCase):
         self.assertTrue(core.transparency_enabled(preferences))
         self.assertEqual(command.call_count, 2)
         self.assertEqual(command.call_args_list[1].args, (
-            "hyprctl", "--batch",
-            "keyword decoration:active_opacity 0.85; keyword decoration:inactive_opacity 0.8"))
+            "hyprctl", "eval",
+            "hl.config({ decoration = { active_opacity = 0.85, inactive_opacity = 0.8 } })"))
+
+    def test_hyprland_rejected_ipc_reply_does_not_save_a_false_success(self):
+        with patch.dict(core.TOOLS, hyprctl="/test/hyprctl"), \
+                patch.dict(os.environ, HYPRLAND_INSTANCE_SIGNATURE="running"), \
+                patch.object(core, "command", return_value="unknown request"):
+            with self.assertRaisesRegex(SettingsError, "unknown request"):
+                core.set_transparency(False)
+        self.assertTrue(core.transparency_enabled())
+
+    def test_transparency_reads_live_hyprland_state_despite_stale_x11_session_type(self):
+        with patch.dict(os.environ, HYPRLAND_INSTANCE_SIGNATURE="running", XDG_SESSION_TYPE="x11"), \
+                patch.object(core, "command", return_value='{"float": 1.0}') as command:
+            self.assertTrue(core.hyprland_session())
+            self.assertFalse(core.live_transparency_enabled())
+            self.assertEqual(command.call_count, 2)
+        with patch.dict(os.environ, BLIX_HYPRLAND_SESSION="1"), \
+                patch.object(core, "command", side_effect=['{"float": 1.0}', '{"float": 0.8}']):
+            self.assertTrue(core.live_transparency_enabled())
+        with patch.object(core, "command") as command:
+            self.assertTrue(core.live_transparency_enabled())
+            command.assert_not_called()
 
     def test_transparency_failure_restores_the_previous_opacity_and_preference(self):
         for enabled in (False, True):
