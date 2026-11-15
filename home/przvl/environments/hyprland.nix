@@ -1,4 +1,4 @@
-# Hyprland keeps upstream defaults except for OXWM-style splits and scrolling.
+# Hyprland adds Blix opacity to OXWM-style splits, scrolling and bindings.
 { config, lib, pkgs, osConfig, blixSettings, ... }:
 let
   primaryOutput = config.blix.display.primaryOutput or null;
@@ -54,6 +54,14 @@ let
       exec ${pkgs.quickshell}/bin/quickshell --path ${barQml}
     '';
   };
+  sessionStart = pkgs.writeShellApplication {
+    name = "blix-hyprland-session-start";
+    runtimeInputs = [ pkgs.dbus pkgs.systemd ];
+    text = ''
+      dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE BLIX_HYPRLAND_SESSION
+      systemctl --user start --no-block blix-hyprsunset.service
+    '';
+  };
   controlMenu = pkgs.writeShellApplication {
     name = "hyprland-control-menu";
     runtimeInputs = [ pkgs.wofi pkgs.hyprlock pkgs.systemd pkgs.coreutils osConfig.programs.hyprland.package ];
@@ -95,20 +103,42 @@ let
         <test name="size" compare="less"><double>15</double></test>
         <edit name="size" mode="assign"><double>15</double></edit>
       </match>
+      <match target="font">
+        <test name="family" qual="any"><string>Tamsyn</string></test>
+        <edit name="antialias" mode="assign"><bool>false</bool></edit>
+        <edit name="hinting" mode="assign"><bool>true</bool></edit>
+        <edit name="hintstyle" mode="assign"><const>hintfull</const></edit>
+        <edit name="embeddedbitmap" mode="assign"><bool>true</bool></edit>
+      </match>
     </fontconfig>
   '';
   start = pkgs.writeShellApplication {
     name = "start-blix-hyprland";
-    runtimeInputs = [ pkgs.dbus ];
+    runtimeInputs = [ pkgs.dbus pkgs.systemd ];
     text = ''
       previous_fontconfig="''${FONTCONFIG_FILE:-/etc/fonts/fonts.conf}"
+      previous_hyprland_session="''${BLIX_HYPRLAND_SESSION:-}"
       export FONTCONFIG_FILE=${fonts}
-      dbus-update-activation-environment --systemd FONTCONFIG_FILE
+      export BLIX_HYPRLAND_SESSION=1
+      dbus-update-activation-environment --systemd FONTCONFIG_FILE BLIX_HYPRLAND_SESSION
       restore_fonts() {
         export FONTCONFIG_FILE="$previous_fontconfig"
-        dbus-update-activation-environment --systemd FONTCONFIG_FILE
+        if [[ -n $previous_hyprland_session ]]; then
+          export BLIX_HYPRLAND_SESSION="$previous_hyprland_session"
+          dbus-update-activation-environment --systemd FONTCONFIG_FILE BLIX_HYPRLAND_SESSION
+        else
+          unset BLIX_HYPRLAND_SESSION
+          dbus-update-activation-environment --systemd FONTCONFIG_FILE BLIX_HYPRLAND_SESSION=
+          systemctl --user unset-environment BLIX_HYPRLAND_SESSION
+        fi
+        dbus-update-activation-environment --systemd HYPRLAND_INSTANCE_SIGNATURE=
+        systemctl --user unset-environment HYPRLAND_INSTANCE_SIGNATURE
       }
-      trap restore_fonts EXIT
+      restore_session() {
+        systemctl --user stop blix-hyprsunset.service >/dev/null 2>&1 || true
+        restore_fonts
+      }
+      trap restore_session EXIT
       ${osConfig.programs.hyprland.package}/bin/start-hyprland "$@"
     '';
   };
@@ -120,12 +150,16 @@ in
     description = "Terminus TTF Bold size for the Hyprland terminal, or null for Ghostty defaults.";
   };
 
-  config.home.packages = with pkgs; [ wofi hyprlock screenshot controlMenu bar start ];
+  config.home.packages = with pkgs; [ wofi hyprlock screenshot controlMenu bar sessionStart start ];
   config.xdg.configFile."hypr/fontconfig.conf".source = fonts;
   config.xdg.configFile."hypr/hyprland.lua".text = ''
     -- New windows split toward the right or bottom, as in OXWM's dwindle layout.
     hl.config({
       general = { layout = "dwindle", gaps_out = 10 },
+      decoration = {
+        active_opacity = 0.85,
+        inactive_opacity = 0.80,
+      },
       dwindle = { force_split = 2 },
       input = {
         natural_scroll = true,
@@ -140,8 +174,22 @@ in
     ''}
 
     hl.on("hyprland.start", function()
+      hl.exec_cmd("${sessionStart}/bin/blix-hyprland-session-start")
+      hl.exec_cmd("${blixSettings}/bin/blix-settings-apply apply-transparency")
       hl.exec_cmd("${bar}/bin/blix-hyprland-bar")
     end)
+
+    -- Preserve the X11 compositor exceptions for videos and Steam games.
+    hl.window_rule({
+      name = "opaque-firefox-video",
+      match = { class = "^firefox$", title = "^\\[blix-video\\] " },
+      opacity = "1.0 override 1.0 override 1.0 override",
+    })
+    hl.window_rule({
+      name = "opaque-steam-games",
+      match = { class = "^steam_app_.*$" },
+      opacity = "1.0 override 1.0 override 1.0 override",
+    })
 
     -- Familiar OXWM shortcuts.
     local exec = hl.dsp.exec_cmd

@@ -1,6 +1,5 @@
 // Nix installs this local extension as a trusted built-in. Signature checks
 // for ordinary downloaded/profile extensions remain enabled.
-// Only OXWM's X11 compositor consumes video markers.
 const blixWayland = Services.env.get("XDG_SESSION_TYPE") === "wayland" ||
   !!Services.env.get("WAYLAND_DISPLAY");
 // Wayland uses the compositor frame; OXWM keeps Firefox's own layout.
@@ -15,8 +14,7 @@ try {
       "video-opacity@blix.local", "@video-opacity-version@", "resource://blix-video-opacity/"
     ).then(async () => {
       const addon = await AddonManager.getAddonByID("video-opacity@blix.local");
-      if (blixWayland) await addon?.disable();
-      else await addon?.enable();
+      await addon?.enable();
     }).catch(Cu.reportError);
   }, "final-ui-startup");
 } catch (error) {

@@ -119,12 +119,32 @@ Scope {
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
+                            onPressed: controlPopup.visible = false
                             onClicked: Hyprland.dispatch(Hyprland.usingLua
                                 ? 'hl.dsp.focus({ workspace = "' + modelData.name + '" })'
                                 : "workspace " + modelData.name)
                         }
                     }
                 }
+            }
+
+            Text {
+                id: centerClock
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.verticalCenter: parent.verticalCenter
+                property string currentTime: Qt.formatDateTime(new Date(), "HH:mm")
+                text: currentTime
+                color: "#c0caf5"
+                font.family: "Terminus (TTF)"
+                font.bold: true
+                font.pixelSize: 16
+            }
+
+            Timer {
+                interval: 1000
+                running: true
+                repeat: true
+                onTriggered: centerClock.currentTime = Qt.formatDateTime(new Date(), "HH:mm")
             }
 
             Row {
@@ -134,16 +154,25 @@ Scope {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 14
 
-                Text {
+                Item {
                     id: batteryControl
                     visible: @has-battery@ && root.battery !== ""
-                    text: Number(root.battery) <= 10 ? "\uf244"
-                        : Number(root.battery) <= 35 ? "\uf243"
-                        : Number(root.battery) <= 60 ? "\uf242"
-                        : Number(root.battery) <= 85 ? "\uf241" : "\uf240"
-                    color: Number(root.battery) <= 20 ? "#f7768e" : "#a6da95"
-                    font.family: "JetBrainsMono Nerd Font"
-                    font.pixelSize: 21
+                    width: 25
+                    height: 25
+                    Rectangle {
+                        anchors.fill: parent
+                        color: "#00000000"
+                    }
+                    Text {
+                        anchors.centerIn: parent
+                        text: Number(root.battery) <= 10 ? "\uf244"
+                            : Number(root.battery) <= 35 ? "\uf243"
+                            : Number(root.battery) <= 60 ? "\uf242"
+                            : Number(root.battery) <= 85 ? "\uf241" : "\uf240"
+                        color: Number(root.battery) <= 20 ? "#f7768e" : "#a6da95"
+                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: 21
+                    }
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
@@ -154,24 +183,33 @@ Scope {
                     }
                 }
 
-                Text {
+                Item {
                     id: volumeControl
+                    width: 25
+                    height: 25
                     readonly property var audio: Pipewire.defaultAudioSink && Pipewire.defaultAudioSink.audio
                         ? Pipewire.defaultAudioSink.audio : null
-                    text: !audio || audio.muted || audio.volume === 0 ? "\uf6a9"
-                        : audio.volume < 0.35 ? "\uf026"
-                        : audio.volume < 0.7 ? "\uf027" : "\uf028"
-                    color: "#8aadf4"
-                    font.family: "JetBrainsMono Nerd Font"
-                    font.pixelSize: 21
+                    Rectangle {
+                        anchors.fill: parent
+                        color: "#00000000"
+                    }
+                    Text {
+                        anchors.centerIn: parent
+                        text: !volumeControl.audio || volumeControl.audio.muted || volumeControl.audio.volume === 0 ? "\uf6a9"
+                            : volumeControl.audio.volume < 0.35 ? "\uf026"
+                            : volumeControl.audio.volume < 0.7 ? "\uf027" : "\uf028"
+                        color: "#8aadf4"
+                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: 21
+                    }
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         onClicked: panel.toggleControl("volume")
                         onWheel: {
-                            if (!parent.audio) return;
+                            if (!volumeControl.audio) return;
                             const step = wheel.angleDelta.y > 0 ? 0.05 : -0.05;
-                            parent.audio.volume = Math.max(0, Math.min(1, parent.audio.volume + step));
+                            volumeControl.audio.volume = Math.max(0, Math.min(1, volumeControl.audio.volume + step));
                         }
                     }
                 }
@@ -181,6 +219,10 @@ Scope {
                     visible: @has-backlight@ && root.brightness !== ""
                     width: 25
                     height: 25
+                    Rectangle {
+                        anchors.fill: parent
+                        color: "#00000000"
+                    }
                     Canvas {
                         id: sunIcon
                         anchors.fill: parent
@@ -221,17 +263,19 @@ Scope {
                 }
             }
 
-            PopupWindow {
+            PanelWindow {
                 id: controlPopup
-                anchor {
-                    window: panel
-                    rect.x: panel.width - 14
-                    rect.y: panel.height + 8
-                    edges: Edges.Bottom | Edges.Right
-                    gravity: Edges.Bottom | Edges.Left
-                    adjustment: PopupAdjustment.All
+                screen: panel.screen
+                anchors {
+                    top: true
+                    right: true
                 }
-                grabFocus: false
+                margins {
+                    top: 44
+                    right: 14
+                }
+                exclusionMode: ExclusionMode.Ignore
+                focusable: false
                 color: "transparent"
                 implicitWidth: 330
                 implicitHeight: cardColumn.implicitHeight + 32

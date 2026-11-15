@@ -363,9 +363,11 @@ touch target and is selected only by `home/przvl/phone/topbar.nix`.
   restores the previous layout if it is rejected, times out or the app closes.
   Window transparency applies immediately: on keeps the usual 85% focused / 80%
   unfocused opacity and opaque Firefox video windows; off makes every window
-  100% opaque. Picom keeps running, and the choice persists across sessions.
-  Night light controls Gammastep with an on/off switch and a 0–100% intensity
-  slider (6500K neutral to 2500K warm). Apply intensity saves the slider choice;
+  100% opaque. OXWM applies this with Picom, while Hyprland updates its live
+  opacity settings. The choice persists across sessions.
+  Night light has an on/off switch and a 0–100% intensity slider (6500K neutral
+  to 2500K warm). OXWM uses Gammastep; Hyprland uses Hyprsunset. Apply
+  intensity saves the slider choice;
   switching off fully resets color adjustment. Choices persist across sessions.
   This requires display-driver gamma support. On the phone's pinned 6.4.0 kernel,
   the active display controller has no hardware gamma ramp or `GAMMA_LUT`
@@ -432,7 +434,8 @@ the navigation toolbar. Connecting the VPN remains a user choice.
 
 Firefox's local Blix Video Opacity extension marks a window's title with
 `[blix-video]` while its active tab plays an HTML video, including embedded
-videos and private windows. Picom makes only marked Firefox windows opaque;
+videos and private windows. Picom and Hyprland make only marked Firefox
+windows opaque;
 pause, completion, navigation and tab switching restore ordinary transparency.
 Tabs on x.com and its subdomains keep ordinary transparency, including when
 they play videos in embedded frames. The detector also skips x.com documents.
@@ -461,20 +464,29 @@ with `startx`. The phone remains X11 only. Hyprland uses dwindle tiling with
 new windows on the right or bottom and natural scrolling for mice and touchpads.
 `home/przvl/environments/hyprland.nix` contains these settings, familiar OXWM
 keybindings, the tools those bindings invoke, and the session font override.
-Quickshell supplies a topbar on each Hyprland monitor with the active and
-occupied workspace numbers plus battery, volume and brightness icons that
-reflect their current levels. Each icon opens its own control card: battery
+Quickshell supplies a transparent topbar on each Hyprland monitor with the
+active and occupied workspace numbers, a centered 24-hour clock, and battery,
+volume and brightness icons that reflect their current levels. Each icon opens
+its own control card: battery
 shows an estimated time remaining and power modes, volume has a slider and
-mute, and brightness has a slider. Scrolling over volume or brightness adjusts
-the level. The bar has a transparent center that passes clicks through.
-It starts with Hyprland.
+mute, and brightness has a slider. These cards remain open while their
+controls are clicked. Scrolling over volume or brightness adjusts the level.
+The bar and the three right-side control backgrounds are fully
+transparent; the clock area passes clicks through. Focused windows use 85%
+opacity and unfocused windows 80%. Firefox windows return to full opacity
+during video playback, and Steam game windows remain opaque. Blix Settings
+applies the saved transparency choice when Hyprland starts and updates it
+immediately when changed. Hyprsunset starts with the session and follows the
+saved night-light switch and intensity.
 Hyprland uses a 10 px outer window gap. Laptop profiles with a declared
 primary connector mirror newly connected outputs to that panel by default.
 Desktop needs a declared primary connector before mirroring can be configured.
-Hyprland has no wallpaper, session service, or automatic login.
+Hyprland has no wallpaper or automatic login. Its Night Light helper is owned
+by Blix Settings and runs only during the Hyprland session.
 The TTY launcher selects Tamsyn Bold for the Hyprland session, including apps
 started through D-Bus, and restores the normal font config when Hyprland exits.
-It raises small font requests to a readable bitmap size. On Zen, Ghostty uses
+It raises small font requests to a readable bitmap size with full hinting,
+antialiasing disabled and embedded bitmap strikes for sharper text. On Zen, Ghostty uses
 Terminus TTF Bold at 15 pt in Hyprland for a readable retro terminal; other
 Hyprland hosts keep their Ghostty defaults, and OXWM keeps its Nerd Font
 settings. Firefox uses Tamsyn Bold for its interface and web page text in both

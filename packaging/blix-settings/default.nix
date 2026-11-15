@@ -1,6 +1,7 @@
 { lib, stdenvNoCC, python3, gtk3, gobject-introspection, wrapGAppsHook3
 , networkmanager, networkmanagerapplet, pulseaudio, xrandr, xinput, xset, xrdb
 , brightnessctl, systemd, gammastep, adwaita-icon-theme, libnotify
+, hyprland ? null
 }:
 
 let
@@ -19,6 +20,8 @@ let
     udevadm = "${systemd}/bin/udevadm";
     connectionEditor = "${networkmanagerapplet}/bin/nm-connection-editor";
     notify-send = "${libnotify}/bin/notify-send";
+  } // lib.optionalAttrs (hyprland != null) {
+    hyprctl = "${hyprland}/bin/hyprctl";
   };
 in
 stdenvNoCC.mkDerivation {

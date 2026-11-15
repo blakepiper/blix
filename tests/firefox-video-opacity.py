@@ -261,9 +261,9 @@ with tempfile.TemporaryDirectory(prefix="blix-video-opacity-") as directory:
         session = None
         print("PASS: persistent installation across Firefox restart with the same profile", flush=True)
 
-        # Reuse the same profile across sessions: disabling markers in Wayland
-        # must not leave the extension disabled when returning to X11. Xvfb
-        # still renders this browser; the session detection is what is tested.
+        # Reuse the profile across sessions and keep video markers available
+        # to either compositor. Xvfb still
+        # renders this browser; the session variable is what is tested.
         for desktop in ("wayland", "x11"):
             processes[-1].terminate()
             processes[-1].wait(timeout=10)
@@ -280,15 +280,15 @@ with tempfile.TemporaryDirectory(prefix="blix-video-opacity-") as directory:
                     const { AddonManager } = ChromeUtils.importESModule("resource://gre/modules/AddonManager.sys.mjs");
                     AddonManager.getAddonByID("video-opacity@blix.local").then(addon => done(addon?.isActive));
                     ''', chrome=True, asynchronous=True)
-            wait_for(lambda: addon_active() == (desktop == "x11"), "Incorrect session marker state")
+            wait_for(addon_active, "Video opacity extension was disabled for the session")
             assert script('return Services.prefs.getIntPref("browser.tabs.inTitlebar");', chrome=True) == (0 if desktop == "wayland" else 2)
             script("document.getElementById('video').play();")
-            marked(desktop == "x11")
+            marked(True)
             time.sleep(0.5)
-            marked(desktop == "x11")
+            marked(True)
             api("DELETE", "/session/" + session)
             session = None
-        print("PASS: Wayland disables markers and uses system titlebar; X11 restores video markers", flush=True)
+        print("PASS: video markers stay active in Wayland and X11; Firefox keeps each session's titlebar", flush=True)
 
         # The production Picom configuration must turn the marker into actual
         # rendered opacity. Sample the composited X11 framebuffer, not a rule mock.

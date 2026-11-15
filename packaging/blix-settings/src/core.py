@@ -128,7 +128,7 @@ def set_nightlight(enabled, intensity, preferences=None):
         raise SettingsError("Choose a night light intensity between 0 and 100.")
     preferences = preferences or Preferences()
     previous = nightlight_settings(preferences)
-    service = "blix-nightlight.service"
+    service = "blix-hyprsunset.service" if hyprland_session() else "blix-nightlight.service"
     preferences.update("nightlight", {"enabled": enabled, "intensity": intensity})
     try:
         command("systemctl", "--user", "restart", service)
@@ -141,11 +141,47 @@ def set_nightlight(enabled, intensity, preferences=None):
         raise
 
 
+def apply_hyprland_nightlight(preferences=None):
+    if "hyprctl" not in TOOLS:
+        raise SettingsError("Hyprland night light controls are not available.")
+    value = nightlight_settings(preferences)
+    request = ("temperature", str(6500 - value["intensity"] * 40)) if value["enabled"] else ("identity",)
+    error = None
+    for attempt in range(20):
+        try:
+            command("hyprctl", "hyprsunset", *request, timeout=2)
+            return
+        except SettingsError as failure:
+            error = failure
+            if attempt < 19:
+                time.sleep(0.1)
+    raise error
+
+
 def transparency_enabled(preferences=None):
     enabled = (preferences or Preferences()).read().get("transparency", True)
     if not isinstance(enabled, bool):
         raise SettingsError("The saved window transparency setting is invalid.")
     return enabled
+
+
+def hyprland_session():
+    return (os.environ.get("BLIX_HYPRLAND_SESSION") == "1"
+            or bool(os.environ.get("HYPRLAND_INSTANCE_SIGNATURE")))
+
+
+def apply_hyprland_transparency(enabled):
+    if "hyprctl" not in TOOLS:
+        raise SettingsError("Hyprland transparency controls are not available.")
+    active = "0.85" if enabled else "1.0"
+    inactive = "0.8" if enabled else "1.0"
+    command("hyprctl", "--batch",
+            f"keyword decoration:active_opacity {active}; keyword decoration:inactive_opacity {inactive}")
+
+
+def apply_saved_transparency():
+    if hyprland_session():
+        apply_hyprland_transparency(transparency_enabled())
 
 
 def prepare_picom_configuration(enabled=None):
@@ -178,6 +214,18 @@ def set_transparency(enabled, preferences=None):
         raise SettingsError("Window transparency must be on or off.")
     preferences = preferences or Preferences()
     previous = transparency_enabled(preferences)
+    if hyprland_session():
+        try:
+            apply_hyprland_transparency(enabled)
+            preferences.update("transparency", None if enabled else False)
+        except (SettingsError, OSError):
+            preferences.update("transparency", None if previous else False)
+            try:
+                apply_hyprland_transparency(previous)
+            except SettingsError:
+                pass
+            raise
+        return
     prepare_picom_configuration(enabled)
     try:
         # ExecStartPre reads the saved preference when restarting Picom.

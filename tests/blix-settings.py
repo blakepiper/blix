@@ -32,7 +32,8 @@ class RuntimeTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(prefix="blix-settings-test-")
         self.root = Path(self.temp.name)
         self.environment = patch.dict(os.environ, XDG_CONFIG_HOME=str(self.root / "config"),
-                                      XDG_RUNTIME_DIR=str(self.root / "runtime"), DISPLAY=":999")
+                                      XDG_RUNTIME_DIR=str(self.root / "runtime"), DISPLAY=":999",
+                                      BLIX_HYPRLAND_SESSION="", HYPRLAND_INSTANCE_SIGNATURE="")
         self.environment.start()
         (self.root / "runtime").mkdir(mode=0o700)
         self.available = core.parse_outputs(QUERY)
@@ -67,6 +68,21 @@ class RuntimeTests(unittest.TestCase):
             with self.assertRaises(SettingsError):
                 core.set_nightlight(True, intensity)
 
+    def test_hyprland_nightlight_uses_hyprsunset_and_restarts_with_saved_values(self):
+        preferences = core.Preferences()
+        with patch.dict(core.TOOLS, hyprctl="/test/hyprctl"), \
+                patch.dict(os.environ, BLIX_HYPRLAND_SESSION="1"), \
+                patch.object(core, "command") as command:
+            core.set_nightlight(True, 47, preferences)
+            command.assert_called_once_with("systemctl", "--user", "restart", "blix-hyprsunset.service")
+            command.reset_mock()
+            core.apply_hyprland_nightlight(preferences)
+            command.assert_called_once_with("hyprctl", "hyprsunset", "temperature", "4620", timeout=2)
+            command.reset_mock()
+            preferences.update("nightlight", {"enabled": False, "intensity": 47})
+            core.apply_hyprland_nightlight(preferences)
+            command.assert_called_once_with("hyprctl", "hyprsunset", "identity", timeout=2)
+
     def test_transparency_restarts_picom_and_survives_the_next_session(self):
         original = (source / "picom.conf").read_text()
         self.assertTrue(core.transparency_enabled())
@@ -84,6 +100,35 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(path.read_text(), original)
         self.assertNotIn("transparency", preferences.read())
         self.assertEqual(preferences.read()["blank_seconds"], 600)
+
+    def test_hyprland_transparency_updates_opacity_and_restores_the_saved_choice(self):
+        preferences = core.Preferences()
+        with patch.dict(core.TOOLS, hyprctl="/test/hyprctl"), \
+                patch.dict(os.environ, BLIX_HYPRLAND_SESSION="1"), \
+                patch.object(core, "command") as command:
+            core.set_transparency(False, preferences)
+            command.assert_called_once_with(
+                "hyprctl", "--batch",
+                "keyword decoration:active_opacity 1.0; keyword decoration:inactive_opacity 1.0")
+            self.assertFalse(core.transparency_enabled(preferences))
+            command.reset_mock()
+            core.apply_saved_transparency()
+            command.assert_called_once_with(
+                "hyprctl", "--batch",
+                "keyword decoration:active_opacity 1.0; keyword decoration:inactive_opacity 1.0")
+
+    def test_hyprland_transparency_failure_keeps_the_saved_choice(self):
+        preferences = core.Preferences()
+        with patch.dict(core.TOOLS, hyprctl="/test/hyprctl"), \
+                patch.dict(os.environ, BLIX_HYPRLAND_SESSION="1"), \
+                patch.object(core, "command", side_effect=[SettingsError("failed"), ""]) as command:
+            with self.assertRaisesRegex(SettingsError, "failed"):
+                core.set_transparency(False, preferences)
+        self.assertTrue(core.transparency_enabled(preferences))
+        self.assertEqual(command.call_count, 2)
+        self.assertEqual(command.call_args_list[1].args, (
+            "hyprctl", "--batch",
+            "keyword decoration:active_opacity 0.85; keyword decoration:inactive_opacity 0.8"))
 
     def test_transparency_failure_restores_the_previous_opacity_and_preference(self):
         for enabled in (False, True):
