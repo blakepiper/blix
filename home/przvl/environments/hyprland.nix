@@ -26,7 +26,7 @@ let
         ${lib.optionalString (retroTerminalSize != null) ''--font-family="Terminus (TTF)" --font-style=Bold --font-size=${toString retroTerminalSize}''} "$@"
     '';
   };
-  launcher = "${pkgs.wofi}/bin/wofi --show drun";
+  launcher = "${pkgs.wofi}/bin/wofi --show drun --allow-images --prompt 'Search applications'";
   screenshot = pkgs.writeShellApplication {
     name = "hyprland-screenshot";
     runtimeInputs = [ pkgs.grim pkgs.slurp pkgs.wl-clipboard pkgs.coreutils ];
@@ -184,6 +184,17 @@ in
     };
   };
 
+  config.xdg.configFile."wofi/style.css".source = ../config/wofi-glass.css;
+  config.xdg.configFile."wofi/config".text = ''
+    width=560
+    height=460
+    location=center
+    matching=fuzzy
+    insensitive=true
+    image_size=32
+    gtk_dark=true
+  '';
+
   config.home.packages = with pkgs; [ wofi hyprlock screenshot controlMenu bar sessionStart start ];
   config.xdg.configFile."hypr/fontconfig.conf".source = fonts;
   config.xdg.configFile."hypr/hyprland.lua".text = ''
@@ -202,6 +213,12 @@ in
       },
     })
 
+    hl.layer_rule({
+      name = "blix-launcher-glass",
+      match = { namespace = "^wofi$" },
+      blur = true,
+      ignore_alpha = 0.0,
+    })
     hl.layer_rule({
       name = "blix-control-popup-glass",
       match = { namespace = "^blix-control-popup$" },

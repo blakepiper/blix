@@ -139,6 +139,10 @@ class Window(Gtk.ApplicationWindow):
         provider = Gtk.CssProvider()
         provider.load_from_path(str(Path(__file__).with_name("style.css")))
         Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        if os.environ.get("BLIX_HYPRLAND_SESSION") == "1":
+            glass = Gtk.CssProvider()
+            glass.load_from_path(str(Path(__file__).with_name("hyprland.css")))
+            Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), glass, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION + 1)
         Gtk.Settings.get_default().set_property("gtk-application-prefer-dark-theme", True)
         self.build_shell()
         self.initialize_radios()

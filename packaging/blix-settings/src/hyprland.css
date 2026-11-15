@@ -1,0 +1,13 @@
+/* Session-local glass treatment, aligned with the Quickshell popups. */
+window { background: #1a1b26; }
+.sidebar { background: rgba(22,23,32,0.65); border-color: rgba(192,202,245,0.22); padding: 10px; }
+.sidebar row { border-radius: 10px; margin: 3px 0; border-left-width: 0; }
+.sidebar row:selected { background: rgba(122,162,247,0.22); }
+.card { border-radius: 16px; background: rgba(192,202,245,0.045); border-color: rgba(192,202,245,0.22); padding: 20px; }
+button, entry, combobox, spinbutton { border-radius: 10px; }
+button { padding: 10px 16px; border-color: rgba(192,202,245,0.25); }
+button:hover { border-color: #7aa2f7; }
+entry { padding: 10px; }
+scale trough, scale highlight, scale slider, switch, switch slider, progressbar trough, progressbar progress { border-radius: 20px; }
+.monitor { border-radius: 12px; }
+.status { border-color: rgba(166,218,149,0.3); padding: 14px 20px; }
