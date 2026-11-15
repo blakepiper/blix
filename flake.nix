@@ -6,12 +6,12 @@
     # Official stable release bundles; update the release tag and lock together.
     codex-x86_64 = {
       type = "tarball";
-      url = "https://github.com/openai/codex/releases/download/rust-v0.167.1/codex-package-x86_64-unknown-linux-musl.tar.gz";
+      url = "https://github.com/openai/codex/releases/download/rust-v0.169.0/codex-package-x86_64-unknown-linux-musl.tar.gz";
       flake = false;
     };
     codex-aarch64 = {
       type = "tarball";
-      url = "https://github.com/openai/codex/releases/download/rust-v0.167.1/codex-package-aarch64-unknown-linux-musl.tar.gz";
+      url = "https://github.com/openai/codex/releases/download/rust-v0.169.0/codex-package-aarch64-unknown-linux-musl.tar.gz";
       flake = false;
     };
     home-manager = {

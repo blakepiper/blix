@@ -41,12 +41,11 @@ let
   };
   barStatus = pkgs.writeShellApplication {
     name = "hyprland-bar-status";
-    runtimeInputs = [ pkgs.coreutils ];
     text = builtins.readFile ../config/quickshell/status.sh;
   };
   barQml = pkgs.writeText "blix-hyprland-bar.qml" (builtins.replaceStrings
-    [ "@status-command@" "@settings-command@" "@brightness-command@" "@has-battery@" "@has-backlight@" ]
-    [ "${barStatus}/bin/hyprland-bar-status" "${blixSettings}/bin/blix-settings" "${pkgs.brightnessctl}/bin/brightnessctl" (lib.boolToString config.blix.hardware.hasBattery) (lib.boolToString config.blix.hardware.hasBacklight) ]
+    [ "@status-command@" "@power-mode-command@" "@brightness-command@" "@has-battery@" "@has-backlight@" "@has-power-profiles@" ]
+    [ "${barStatus}/bin/hyprland-bar-status" "${blixSettings}/bin/blix-settings-apply" "${pkgs.brightnessctl}/bin/brightnessctl" (lib.boolToString config.blix.hardware.hasBattery) (lib.boolToString config.blix.hardware.hasBacklight) (lib.boolToString config.blix.hardware.hasPowerProfiles) ]
     (builtins.readFile ../config/quickshell/shell.qml));
   bar = pkgs.writeShellApplication {
     name = "blix-hyprland-bar";
@@ -126,7 +125,7 @@ in
   config.xdg.configFile."hypr/hyprland.lua".text = ''
     -- New windows split toward the right or bottom, as in OXWM's dwindle layout.
     hl.config({
-      general = { layout = "dwindle" },
+      general = { layout = "dwindle", gaps_out = 10 },
       dwindle = { force_split = 2 },
       input = {
         natural_scroll = true,

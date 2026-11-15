@@ -15,7 +15,7 @@ assert workstation.programs.hyprland.enable;
 assert !phone.programs.hyprland.enable;
 assert lib.any (package: lib.getName package == "start-blix-hyprland") home.home.packages;
 assert !(phone.home-manager.users.przvl.xdg.configFile ? "hypr/hyprland.lua");
-assert lib.hasInfix ''general = { layout = "dwindle" }'' config;
+assert lib.hasInfix ''general = { layout = "dwindle", gaps_out = 10 }'' config;
 assert lib.hasInfix ''dwindle = { force_split = 2 }'' config;
 assert lib.hasInfix ''natural_scroll = true,'' config;
 assert lib.hasInfix ''touchpad = { natural_scroll = true }'' config;

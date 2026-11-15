@@ -1,39 +1,55 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-read_cpu() {
-  local user nice system idle iowait irq softirq steal
-  read -r _ user nice system idle iowait irq softirq steal _ _ < /proc/stat
-  printf '%s %s\n' "$((user + nice + system + idle + iowait + irq + softirq + steal))" "$((idle + iowait))"
+battery=""
+battery_eta=""
+format_minutes() {
+  local minutes=$1
+  printf '%dh %02dm' "$((minutes / 60))" "$((minutes % 60))"
 }
 
-read -r total_before idle_before < <(read_cpu)
-sleep 0.2
-read -r total_after idle_after < <(read_cpu)
-elapsed=$((total_after - total_before))
-idle_elapsed=$((idle_after - idle_before))
-cpu=0
-if (( elapsed > 0 )); then
-  cpu=$(((elapsed - idle_elapsed) * 100 / elapsed))
-fi
-
-mem_total=0
-mem_available=0
-while read -r key value _; do
-  case "$key" in
-    MemTotal:) mem_total=$value ;;
-    MemAvailable:) mem_available=$value ;;
-  esac
-done < /proc/meminfo
-ram_used=$(((mem_total - mem_available) / 1048576))
-ram_total=$((mem_total / 1048576))
-
-battery=""
 for supply in /sys/class/power_supply/*; do
   [[ -f "$supply/type" && -f "$supply/capacity" ]] || continue
   [[ $(<"$supply/type") == Battery ]] || continue
   [[ ! -f "$supply/scope" || $(<"$supply/scope") == System ]] || continue
   battery=$(<"$supply/capacity")
+  status=$(<"$supply/status")
+  energy_now=0 energy_full=0 power_now=0
+  charge_now=0 charge_full=0 current_now=0
+  [[ ! -f "$supply/energy_now" ]] || energy_now=$(<"$supply/energy_now")
+  [[ ! -f "$supply/energy_full" ]] || energy_full=$(<"$supply/energy_full")
+  [[ ! -f "$supply/power_now" ]] || power_now=$(<"$supply/power_now")
+  [[ ! -f "$supply/charge_now" ]] || charge_now=$(<"$supply/charge_now")
+  [[ ! -f "$supply/charge_full" ]] || charge_full=$(<"$supply/charge_full")
+  [[ ! -f "$supply/current_now" ]] || current_now=$(<"$supply/current_now")
+  remaining=0
+  if [[ $status == Discharging ]]; then
+    if (( power_now > 0 && energy_now > 0 )); then
+      remaining=$((energy_now * 60 / power_now))
+    elif (( current_now > 0 && charge_now > 0 )); then
+      remaining=$((charge_now * 60 / current_now))
+    fi
+    if (( remaining > 0 )); then
+      battery_eta="~$(format_minutes "$remaining") remaining"
+    else
+      battery_eta="Time remaining unavailable"
+    fi
+  elif [[ $status == Charging ]]; then
+    if (( power_now > 0 && energy_full > energy_now )); then
+      remaining=$(((energy_full - energy_now) * 60 / power_now))
+    elif (( current_now > 0 && charge_full > charge_now )); then
+      remaining=$(((charge_full - charge_now) * 60 / current_now))
+    fi
+    if (( remaining > 0 )); then
+      battery_eta="~$(format_minutes "$remaining") until full"
+    else
+      battery_eta="Charging"
+    fi
+  elif [[ $status == Full ]]; then
+    battery_eta="Fully charged"
+  else
+    battery_eta="$status"
+  fi
   break
 done
 
@@ -47,5 +63,4 @@ for device in /sys/class/backlight/*; do
   break
 done
 
-printf 'cpu=%s\nram=%s/%s\nbattery=%s\nbrightness=%s\n' \
-  "$cpu" "$ram_used" "$ram_total" "$battery" "$brightness"
+printf 'battery=%s\nbattery_eta=%s\nbrightness=%s\n' "$battery" "$battery_eta" "$brightness"

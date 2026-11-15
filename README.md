@@ -461,9 +461,14 @@ with `startx`. The phone remains X11 only. Hyprland uses dwindle tiling with
 new windows on the right or bottom and natural scrolling for mice and touchpads.
 `home/przvl/environments/hyprland.nix` contains these settings, familiar OXWM
 keybindings, the tools those bindings invoke, and the session font override.
-Quickshell supplies a topbar on each Hyprland monitor with workspaces, battery,
-volume, brightness, RAM, CPU and a clock. It starts with Hyprland and uses
-white text on Ghostty's dark blue background. Laptop profiles with a declared
+Quickshell supplies a topbar on each Hyprland monitor with the active and
+occupied workspace numbers plus battery, volume and brightness icons that
+reflect their current levels. Each icon opens its own control card: battery
+shows an estimated time remaining and power modes, volume has a slider and
+mute, and brightness has a slider. Scrolling over volume or brightness adjusts
+the level. The bar has a transparent center that passes clicks through.
+It starts with Hyprland.
+Hyprland uses a 10 px outer window gap. Laptop profiles with a declared
 primary connector mirror newly connected outputs to that panel by default.
 Desktop needs a declared primary connector before mirroring can be configured.
 Hyprland has no wallpaper, session service, or automatic login.
