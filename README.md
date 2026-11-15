@@ -504,7 +504,15 @@ It raises small font requests to a readable bitmap size with full hinting,
 antialiasing disabled and embedded bitmap strikes for sharper text. On Zen, Ghostty uses
 Terminus TTF Bold at 15 pt in Hyprland for a readable retro terminal; other
 Hyprland hosts keep their Ghostty defaults, and OXWM keeps its Nerd Font
-settings. Firefox uses Tamsyn Bold for its interface and web page text in both
+settings. Hyprland's Super+Enter terminal uses a dark translucent background
+with HyprGlass refraction, edge highlights and light blur, while text remains
+opaque. The effect is restricted to that launcher's `com.blix.ghostty-glass`
+app ID; other applications retain their existing appearance. The plugin is
+pinned in `packaging/hyprglass/default.nix` to the Hyprland 0.57 branch and
+built against the selected compositor's headers and toolchain. Update its
+compatible revision when upgrading Hyprland. Configuration lives in
+`home/przvl/environments/hyprland.nix` and `home/przvl/config/ghostty/glass.conf`.
+Firefox uses Tamsyn Bold for its interface and web page text in both
 sessions.
 
 Super+Enter opens Ghostty; Super+Space or Super+D opens Wofi; Super+F and

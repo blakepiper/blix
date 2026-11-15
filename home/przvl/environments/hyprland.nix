@@ -1,6 +1,12 @@
 # Hyprland adds Blix opacity to OXWM-style splits, scrolling and bindings.
 { config, lib, pkgs, osConfig, blixSettings, ... }:
 let
+  # Use the compositor's exact headers and toolchain, including host overrides.
+  hyprglass = pkgs.callPackage ../../../packaging/hyprglass {
+    inherit ((pkgs.hyprlandPlugins.override {
+      hyprland = osConfig.programs.hyprland.package;
+    })) mkHyprlandPlugin;
+  };
   barHeight = 36;
   windowTopGap = 4;
   popupTop = barHeight + windowTopGap;
@@ -23,6 +29,7 @@ let
       export FONTCONFIG_FILE=${if retroTerminalSize == null then "/etc/fonts/fonts.conf" else terminalFonts}
       exec ${lib.getExe config.programs.ghostty.package} \
         --gtk-single-instance=false --quit-after-last-window-closed=true \
+        --class=com.blix.ghostty-glass \
         --config-file=${../config/ghostty/glass.conf} \
         ${lib.optionalString (retroTerminalSize != null) ''--font-family="Terminus (TTF)" --font-style=Bold --font-size=${toString retroTerminalSize}''} "$@"
     '';
@@ -199,6 +206,39 @@ in
   config.home.packages = with pkgs; [ wofi hyprlock screenshot controlMenu bar sessionStart start ];
   config.xdg.configFile."hypr/fontconfig.conf".source = fonts;
   config.xdg.configFile."hypr/hyprland.lua".text = ''
+    -- Load before configuring the plugin. Keep glass restricted to this terminal.
+    hl.plugin.load("${hyprglass}/lib/libhyprglass.so")
+    if hl.plugin.hyprglass then
+      local hg = hl.plugin.hyprglass
+      hg.config({
+        enabled = false,
+        default_theme = "dark",
+        default_preset = "blix-terminal",
+      })
+      hg.preset("blix-terminal", {
+        inherits = "pomme",
+        blur_strength = 0.7,
+        edge_thickness_px = 18,
+        edge_height = 24,
+        refraction_strength = 0.8,
+        chromatic_aberration = 0.12,
+        dark = {
+          tint_color = 0x10182738,
+          brightness = 0.85,
+          contrast = 1.05,
+          saturation = 1.0,
+          adaptive_dim = 0.25,
+        },
+      })
+    end
+    hl.window_rule({
+      name = "blix-ghostty-glass",
+      match = { class = "^com[.]blix[.]ghostty-glass$" },
+      tag = "+hyprglass_enabled",
+      -- Ghostty supplies background alpha; preserve opaque, readable glyphs.
+      opacity = "1.0 override 1.0 override 1.0 override",
+    })
+
     -- New windows split toward the right or bottom, as in OXWM's dwindle layout.
     hl.config({
       general = { layout = "dwindle", gaps_out = { top = ${toString windowTopGap}, right = 10, bottom = 10, left = 10 } },

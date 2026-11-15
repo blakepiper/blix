@@ -77,7 +77,10 @@ scope and risk rules in the Validation section.
   TTY with `start-blix-hyprland`; OXWM continues to use `startx`. The phone keeps X11.
   Its launcher selects Tamsyn Bold through a session-only Fontconfig file;
   OXWM retains the Nerd Font defaults.
-  Hyprland owns no Blix panel, output policy, login automation, or user target.
+  Hyprland's user module also loads the pinned `packaging/hyprglass` plugin,
+  built against the selected compositor; glass is restricted to its Ghostty
+  launcher app ID. Update the compatible plugin revision with Hyprland.
+  Hyprland owns no login automation or user target.
 - `modules/desktop/` supplies the optional X11/OXWM session, desktop services,
   fonts and system utilities. Profiles select it explicitly.
 - `modules/common/machine.nix` declares typed machine capabilities and passes

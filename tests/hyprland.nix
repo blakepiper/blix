@@ -19,6 +19,12 @@ assert lib.any (package: lib.getName package == "start-blix-hyprland") home.home
 assert lib.any (package: lib.getName package == "blix-hyprland-session-start") home.home.packages;
 assert !(phone.home-manager.users.przvl.xdg.configFile ? "hypr/hyprland.lua");
 assert lib.hasInfix ''general = { layout = "dwindle", gaps_out = { top = 4, right = 10, bottom = 10, left = 10 } }'' config;
+assert lib.hasInfix ''hl.plugin.load("'' config;
+assert lib.hasInfix ''/lib/libhyprglass.so")'' config;
+assert lib.hasInfix ''enabled = false,'' config;
+assert lib.hasInfix ''default_preset = "blix-terminal"'' config;
+assert lib.hasInfix ''match = { class = "^com[.]blix[.]ghostty-glass$" }'' config;
+assert lib.hasInfix ''tag = "+hyprglass_enabled"'' config;
 assert lib.hasInfix ''active_opacity = 0.85'' config;
 assert lib.hasInfix ''inactive_opacity = 0.80'' config;
 assert lib.hasInfix ''title = "^\\[blix-video\\] "'' config;
