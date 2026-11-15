@@ -85,7 +85,7 @@ let
       }
 
       choice=$(printf 'Lock\nSuspend\nReboot\nLog Out\nMonitors Off\nPower Off\n' |
-        wofi --dmenu --no-custom-entry --prompt Control) || exit 0
+        wofi --dmenu --hide-search --no-custom-entry --prompt Control) || exit 0
       case $choice in
         Lock) loginctl lock-session ;;
         Suspend) systemctl suspend ;;
