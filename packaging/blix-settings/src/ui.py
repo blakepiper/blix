@@ -184,7 +184,13 @@ class Window(Gtk.ApplicationWindow):
 
     def build_shell(self):
         root = box(spacing=0)
-        self.add(root)
+        # Tiling compositors can allocate less than the shell's minimum size.
+        # Keep GTK's surface within that allocation and scroll the overflow,
+        # including the sidebar and Display footer, so input stays aligned.
+        shell_scroll = Gtk.ScrolledWindow()
+        shell_scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        shell_scroll.add(root)
+        self.add(shell_scroll)
         main = box(False, 0)
         root.pack_start(main, True, True, 0)
         sidebar = box(spacing=18)

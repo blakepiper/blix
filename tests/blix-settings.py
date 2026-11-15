@@ -1048,6 +1048,35 @@ class GuiTests(unittest.TestCase):
             self.pump(0.1)
             refresh.assert_called_once_with()
 
+    def test_small_window_keeps_surface_and_sidebar_input_in_bounds(self):
+        from gi.repository import Gtk
+        original = self.window.get_size()
+        try:
+            for width, height in ((703, 842), (703, 415), (360, 300)):
+                self.window.resize(width, height)
+                self.pump()
+                self.assertEqual(tuple(self.window.get_size()), (width, height))
+                row = self.window.sidebar.get_row_at_index(1)
+                x, y = row.translate_coordinates(self.window, 10, 10)
+                _, root_x, root_y = self.window.get_window().get_origin()
+                subprocess.run(["xdotool", "mousemove", str(root_x + x), str(root_y + y),
+                                "click", "1"], check=True, capture_output=True)
+                self.pump()
+                self.assertEqual(self.window.page, "audio")
+                scroll = self.window.get_child()
+                self.assertIsInstance(scroll, Gtk.ScrolledWindow)
+                adjustment = scroll.get_vadjustment()
+                adjustment.set_value(adjustment.get_upper() - adjustment.get_page_size())
+                self.pump()
+                last = self.window.sidebar.get_children()[-1]
+                _, bottom = last.translate_coordinates(self.window, 0, last.get_allocated_height())
+                self.assertLessEqual(bottom, height)
+                adjustment.set_value(0)
+                self.window.sidebar.select_row(self.window.sidebar.get_row_at_index(0))
+        finally:
+            self.window.resize(*original)
+            self.pump()
+
     def test_packaged_launcher_focuses_the_existing_window(self):
         executable = source.parent.parent / "bin/blix-settings"
         process = subprocess.Popen([str(executable), "--demo"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
