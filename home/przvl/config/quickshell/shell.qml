@@ -8,6 +8,7 @@ import Quickshell.Wayland
 
 Scope {
     id: root
+    readonly property int popupTop: @popup-top@
 
     property string battery: ""
     property string batteryStatus: ""
@@ -87,7 +88,7 @@ Scope {
             }
             screen: modelData
             anchors { top: true; left: true; right: true }
-            implicitHeight: 36
+            implicitHeight: @bar-height@
             color: "transparent"
             mask: Region {
                 Region { item: workspaceRow }
@@ -307,7 +308,7 @@ Scope {
                     right: true
                 }
                 margins {
-                    top: 46
+                    top: root.popupTop
                     right: 10
                 }
                 exclusionMode: ExclusionMode.Ignore
@@ -555,7 +556,7 @@ Scope {
                 screen: panel.screen
                 WlrLayershell.namespace: "blix-calendar-popup"
                 anchors { top: true }
-                margins { top: 46 }
+                margins { top: root.popupTop }
                 exclusionMode: ExclusionMode.Ignore
                 focusable: false
                 color: "transparent"

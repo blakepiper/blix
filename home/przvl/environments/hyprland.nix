@@ -1,6 +1,9 @@
 # Hyprland adds Blix opacity to OXWM-style splits, scrolling and bindings.
 { config, lib, pkgs, osConfig, blixSettings, ... }:
 let
+  barHeight = 36;
+  windowTopGap = 4;
+  popupTop = barHeight + windowTopGap;
   primaryOutput = config.blix.display.primaryOutput or null;
   wallpaper = config.blix.display.wallpaper or null;
   retroTerminalSize = config.blix.hyprland.retroTerminalSize;
@@ -45,8 +48,8 @@ let
     text = builtins.readFile ../config/quickshell/status.sh;
   };
   barQml = pkgs.writeText "blix-hyprland-bar.qml" (builtins.replaceStrings
-    [ "@status-command@" "@power-mode-command@" "@brightness-command@" "@has-battery@" "@has-backlight@" "@has-power-profiles@" ]
-    [ "${barStatus}/bin/hyprland-bar-status" "${blixSettings}/bin/blix-settings-apply" "${pkgs.brightnessctl}/bin/brightnessctl" (lib.boolToString config.blix.hardware.hasBattery) (lib.boolToString config.blix.hardware.hasBacklight) (lib.boolToString config.blix.hardware.hasPowerProfiles) ]
+    [ "@bar-height@" "@popup-top@" "@status-command@" "@power-mode-command@" "@brightness-command@" "@has-battery@" "@has-backlight@" "@has-power-profiles@" ]
+    [ (toString barHeight) (toString popupTop) "${barStatus}/bin/hyprland-bar-status" "${blixSettings}/bin/blix-settings-apply" "${pkgs.brightnessctl}/bin/brightnessctl" (lib.boolToString config.blix.hardware.hasBattery) (lib.boolToString config.blix.hardware.hasBacklight) (lib.boolToString config.blix.hardware.hasPowerProfiles) ]
     (builtins.readFile ../config/quickshell/shell.qml));
   bar = pkgs.writeShellApplication {
     name = "blix-hyprland-bar";
@@ -186,7 +189,7 @@ in
   config.xdg.configFile."hypr/hyprland.lua".text = ''
     -- New windows split toward the right or bottom, as in OXWM's dwindle layout.
     hl.config({
-      general = { layout = "dwindle", gaps_out = 10 },
+      general = { layout = "dwindle", gaps_out = { top = ${toString windowTopGap}, right = 10, bottom = 10, left = 10 } },
       decoration = {
         active_opacity = 0.85,
         inactive_opacity = 0.80,

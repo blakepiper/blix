@@ -18,7 +18,7 @@ assert !phone.programs.hyprland.enable;
 assert lib.any (package: lib.getName package == "start-blix-hyprland") home.home.packages;
 assert lib.any (package: lib.getName package == "blix-hyprland-session-start") home.home.packages;
 assert !(phone.home-manager.users.przvl.xdg.configFile ? "hypr/hyprland.lua");
-assert lib.hasInfix ''general = { layout = "dwindle", gaps_out = 10 }'' config;
+assert lib.hasInfix ''general = { layout = "dwindle", gaps_out = { top = 4, right = 10, bottom = 10, left = 10 } }'' config;
 assert lib.hasInfix ''active_opacity = 0.85'' config;
 assert lib.hasInfix ''inactive_opacity = 0.80'' config;
 assert lib.hasInfix ''title = "^\\[blix-video\\] "'' config;

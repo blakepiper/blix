@@ -477,6 +477,8 @@ shows an estimated time remaining and power modes, volume has a slider and
 mute, and brightness has a slider. These cards remain open while their
 controls are clicked. The battery icon displays a lightning bolt while charging.
 Scrolling over volume or brightness adjusts the level.
+Windows have a 4-pixel gap below the 36-pixel bar; control cards and the calendar
+share the same 40-pixel top offset. Side and bottom window gaps remain 10 pixels.
 The bar and the three right-side control backgrounds are fully
 transparent; the clock area passes clicks through. Focused windows use 85%
 opacity and unfocused windows 80%. Firefox windows return to full opacity
