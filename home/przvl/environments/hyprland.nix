@@ -2,6 +2,7 @@
 { config, lib, pkgs, osConfig, blixSettings, ... }:
 let
   primaryOutput = config.blix.display.primaryOutput or null;
+  wallpaper = config.blix.display.wallpaper or null;
   retroTerminalSize = config.blix.hyprland.retroTerminalSize;
   terminalFonts = pkgs.writeText "hyprland-terminal-fonts.conf" ''
     <?xml version="1.0"?>
@@ -67,6 +68,7 @@ let
     text = ''
       dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE BLIX_HYPRLAND_SESSION
       systemctl --user start --no-block blix-hyprsunset.service blix-hypridle.service
+      ${lib.optionalString (wallpaper != null) "systemctl --user start --no-block blix-hyprland-wallpaper.service"}
     '';
   };
   controlMenu = pkgs.writeShellApplication {
@@ -138,6 +140,7 @@ let
       }
       restore_session() {
         systemctl --user stop blix-hypridle.service >/dev/null 2>&1 || true
+        ${lib.optionalString (wallpaper != null) "systemctl --user stop blix-hyprland-wallpaper.service >/dev/null 2>&1 || true"}
         systemctl --user stop blix-hyprsunset.service >/dev/null 2>&1 || true
         restore_fonts
       }
@@ -153,13 +156,28 @@ in
     description = "Terminus TTF Bold size for the Hyprland terminal, or null for Ghostty defaults.";
   };
 
-  config.systemd.user.services.blix-hypridle = {
-    Unit.Description = "Lock Hyprland before system suspend";
-    Service = {
-      Type = "exec";
-      ExecStart = "${pkgs.hypridle}/bin/hypridle -c ${hypridleConfig}";
-      Restart = "on-failure";
-      RestartSec = 1;
+  config.systemd.user.services = {
+    blix-hypridle = {
+      Unit.Description = "Lock Hyprland before system suspend";
+      Service = {
+        Type = "exec";
+        ExecStart = "${pkgs.hypridle}/bin/hypridle -c ${hypridleConfig}";
+        Restart = "on-failure";
+        RestartSec = 1;
+      };
+    };
+  } // lib.optionalAttrs (wallpaper != null) {
+    blix-hyprland-wallpaper = {
+      Unit = {
+        Description = "Blix Hyprland wallpaper";
+        ConditionPathExists = wallpaper;
+      };
+      Service = {
+        Type = "exec";
+        ExecStart = "${pkgs.swaybg}/bin/swaybg -m fill -i ${wallpaper}";
+        Restart = "on-failure";
+        RestartSec = 1;
+      };
     };
   };
 
@@ -172,6 +190,7 @@ in
       decoration = {
         active_opacity = 0.85,
         inactive_opacity = 0.80,
+        rounding = 10,
       },
       dwindle = { force_split = 2 },
       input = {

@@ -63,7 +63,7 @@ in
     wallpaper = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = null;
-      description = "Path to the host wallpaper applied when the X11 session starts.";
+      description = "Path to the host wallpaper used by X11 and Wayland sessions.";
     };
   };
 

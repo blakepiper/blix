@@ -473,7 +473,8 @@ volume and brightness icons that reflect their current levels. Each icon opens
 its own control card: battery
 shows an estimated time remaining and power modes, volume has a slider and
 mute, and brightness has a slider. These cards remain open while their
-controls are clicked. Scrolling over volume or brightness adjusts the level.
+controls are clicked. The battery icon displays a lightning bolt while charging.
+Scrolling over volume or brightness adjusts the level.
 The bar and the three right-side control backgrounds are fully
 transparent; the clock area passes clicks through. Focused windows use 85%
 opacity and unfocused windows 80%. Firefox windows return to full opacity
@@ -481,10 +482,13 @@ during video playback, and Steam game windows remain opaque. Blix Settings
 applies the saved transparency choice when Hyprland starts and updates it
 immediately when changed. Hyprsunset starts with the session and follows the
 saved night-light switch and intensity.
-Hyprland uses a 10 px outer window gap. Laptop profiles with a declared
+Hyprland uses a 10 px outer gap and 10 px rounded window corners. A host-declared
+wallpaper is shown on every output with `swaybg`; Zen uses
+`~/Pictures/snowleopard.jpg`, which remains a local image outside the flake.
+Laptop profiles with a declared
 primary connector mirror newly connected outputs to that panel by default.
 Desktop needs a declared primary connector before mirroring can be configured.
-Hyprland has no wallpaper or automatic login. Its Night Light helper is owned
+Hyprland has no automatic login. Its Night Light helper is owned
 by Blix Settings and runs only during the Hyprland session.
 The TTY launcher selects Tamsyn Bold for the Hyprland session, including apps
 started through D-Bus, and restores the normal font config when Hyprland exits.

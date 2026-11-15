@@ -2,6 +2,7 @@
 set -euo pipefail
 
 battery=""
+battery_status=""
 battery_eta=""
 format_minutes() {
   local minutes=$1
@@ -14,6 +15,7 @@ for supply in /sys/class/power_supply/*; do
   [[ ! -f "$supply/scope" || $(<"$supply/scope") == System ]] || continue
   battery=$(<"$supply/capacity")
   status=$(<"$supply/status")
+  battery_status=$status
   energy_now=0 energy_full=0 power_now=0
   charge_now=0 charge_full=0 current_now=0
   [[ ! -f "$supply/energy_now" ]] || energy_now=$(<"$supply/energy_now")
@@ -63,4 +65,5 @@ for device in /sys/class/backlight/*; do
   break
 done
 
-printf 'battery=%s\nbattery_eta=%s\nbrightness=%s\n' "$battery" "$battery_eta" "$brightness"
+printf 'battery=%s\nbattery_status=%s\nbattery_eta=%s\nbrightness=%s\n' \
+  "$battery" "$battery_status" "$battery_eta" "$brightness"

@@ -9,6 +9,7 @@ Scope {
     id: root
 
     property string battery: ""
+    property string batteryStatus: ""
     property string batteryEta: ""
     property string brightness: ""
     property string powerMode: ""
@@ -29,6 +30,7 @@ Scope {
                     const key = line.slice(0, separator);
                     const value = line.slice(separator + 1);
                     if (key === "battery") root.battery = value;
+                    else if (key === "battery_status") root.batteryStatus = value;
                     else if (key === "battery_eta") root.batteryEta = value;
                     else if (key === "brightness") root.brightness = value;
                 }
@@ -172,6 +174,15 @@ Scope {
                         color: Number(root.battery) <= 20 ? "#f7768e" : "#a6da95"
                         font.family: "JetBrainsMono Nerd Font"
                         font.pixelSize: 21
+                    }
+                    Text {
+                        visible: root.batteryStatus === "Charging"
+                        anchors.right: parent.right
+                        anchors.bottom: parent.bottom
+                        text: "\uf0e7"
+                        color: "#eed49f"
+                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: 11
                     }
                     MouseArea {
                         anchors.fill: parent
