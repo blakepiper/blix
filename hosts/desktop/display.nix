@@ -4,6 +4,6 @@
   # Discover the first connected monitor; record connector/DPI facts here later.
   blix.display = {
     primaryOutput = null;
-    wallpaper = "/home/przvl/Pictures/snowleopard.jpg";
+    wallpaper = "/home/przvl/Pictures/snowleopard.png";
   };
 }
