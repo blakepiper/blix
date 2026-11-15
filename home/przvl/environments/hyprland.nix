@@ -203,6 +203,8 @@ in
       name = "blix-control-popup-glass",
       match = { namespace = "^blix-control-popup$" },
       blur = true,
+      -- Exclude fully transparent pixels so blur follows the rounded card mask.
+      ignore_alpha = 0.0,
     })
 
     ${lib.optionalString (primaryOutput != null) ''

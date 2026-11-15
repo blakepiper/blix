@@ -284,8 +284,8 @@ Scope {
                     right: true
                 }
                 margins {
-                    top: 44
-                    right: 14
+                    top: 46
+                    right: 10
                 }
                 exclusionMode: ExclusionMode.Ignore
                 focusable: false
@@ -296,10 +296,10 @@ Scope {
 
                 Rectangle {
                     anchors.fill: parent
-                    color: "transparent"
+                    color: "#01000000" // Defines the rounded blur mask with no visible tint.
                     border.color: "#66c0caf5"
                     border.width: 1
-                    radius: 14
+                    radius: 10
                     Column {
                         id: cardColumn
                         anchors.centerIn: parent
