@@ -79,7 +79,9 @@ scope and risk rules in the Validation section.
   OXWM retains the Nerd Font defaults.
   Hyprland's user module also loads the pinned `packaging/hyprglass` plugin,
   built against the selected compositor; glass is restricted to its Ghostty
-  launcher app ID. Update the compatible plugin revision with Hyprland.
+  launcher, Blix Settings, Wofi and Quickshell control/calendar popups. The
+  session's CSS/QML supplies background alpha without fading text. Update the
+  compatible plugin revision with Hyprland.
   Hyprland owns no login automation or user target.
 - `modules/desktop/` supplies the optional X11/OXWM session, desktop services,
   fonts and system utilities. Profiles select it explicitly.

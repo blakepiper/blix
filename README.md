@@ -507,8 +507,11 @@ Hyprland hosts keep their Ghostty defaults, and OXWM keeps its Nerd Font
 settings. Hyprland's Super+Enter terminal uses a dark translucent background
 with HyprGlass refraction, edge highlights and light blur, while text remains
 opaque. The effect is restricted to that launcher's `com.blix.ghostty-glass`
-app ID; other applications retain their existing appearance. The plugin is
-pinned in `packaging/hyprglass/default.nix` to the Hyprland 0.57 branch and
+app ID, Blix Settings (Super+S), Wofi (Super+Space and Super+Shift+Space),
+and Quickshell's control and calendar popups. These share the terminal's dark
+18% background tint with opaque text. Layer glass follows the rounded card
+outlines; the topbar and other applications retain their existing appearance.
+The plugin is pinned in `packaging/hyprglass/default.nix` to the Hyprland 0.57 branch and
 built against the selected compositor's headers and toolchain. Update its
 compatible revision when upgrading Hyprland. Configuration lives in
 `home/przvl/environments/hyprland.nix` and `home/przvl/config/ghostty/glass.conf`.

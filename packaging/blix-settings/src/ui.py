@@ -140,6 +140,11 @@ class Window(Gtk.ApplicationWindow):
         provider.load_from_path(str(Path(__file__).with_name("style.css")))
         Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         if os.environ.get("BLIX_HYPRLAND_SESSION") == "1":
+            # Client background alpha exposes HyprGlass without fading text.
+            visual = self.get_screen().get_rgba_visual()
+            if visual is not None:
+                self.set_visual(visual)
+            self.get_style_context().add_class("blix-glass")
             glass = Gtk.CssProvider()
             glass.load_from_path(str(Path(__file__).with_name("hyprland.css")))
             Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), glass, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION + 1)

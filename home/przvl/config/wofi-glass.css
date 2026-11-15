@@ -1,5 +1,5 @@
 * { font-family: "Terminus (TTF)", monospace; font-size: 16px; color: #c0caf5; }
-window { background: rgba(26,27,38,0.88); border: 1px solid rgba(192,202,245,0.4); border-radius: 18px; }
+window { background: rgba(16,24,39,0.18); border: 1px solid rgba(192,202,245,0.4); border-radius: 18px; }
 #outer-box { padding: 18px; }
 #input { background: rgba(192,202,245,0.07); border: 1px solid rgba(192,202,245,0.22); border-radius: 12px; padding: 12px 16px; margin-bottom: 12px; box-shadow: none; }
 #input:focus { border-color: #7aa2f7; }

@@ -320,7 +320,7 @@ Scope {
 
                 Rectangle {
                     anchors.fill: parent
-                    color: "#01000000" // Defines the rounded blur mask with no visible tint.
+                    color: "#2e101827" // Same dark background alpha as the glass terminal.
                     border.color: "#66c0caf5"
                     border.width: 1
                     radius: 10
@@ -579,7 +579,7 @@ Scope {
 
                 Rectangle {
                     anchors.fill: parent
-                    color: "#01000000"
+                    color: "#2e101827"
                     border.color: "#66c0caf5"
                     border.width: 1
                     radius: 10

@@ -206,16 +206,17 @@ in
   config.home.packages = with pkgs; [ wofi hyprlock screenshot controlMenu bar sessionStart start ];
   config.xdg.configFile."hypr/fontconfig.conf".source = fonts;
   config.xdg.configFile."hypr/hyprland.lua".text = ''
-    -- Load before configuring the plugin. Keep glass restricted to this terminal.
+    -- Load before configuring the plugin. Whitelist the terminal, Settings and menu surfaces.
     hl.plugin.load("${hyprglass}/lib/libhyprglass.so")
     if hl.plugin.hyprglass then
       local hg = hl.plugin.hyprglass
       hg.config({
         enabled = false,
         default_theme = "dark",
-        default_preset = "blix-terminal",
+        default_preset = "blix-glass",
+        layers = { enabled = true },
       })
-      hg.preset("blix-terminal", {
+      hg.preset("blix-glass", {
         inherits = "pomme",
         blur_strength = 0.7,
         edge_thickness_px = 18,
@@ -230,7 +231,22 @@ in
           adaptive_dim = 0.25,
         },
       })
+      -- Alpha masks follow rounded cards and exclude transparent layer margins.
+      for _, namespace in ipairs({ "wofi", "blix-control-popup", "blix-calendar-popup" }) do
+        hg.layer(namespace, {
+          preset = "blix-glass",
+          mask_mode = "contour",
+          mask_threshold = 0.05,
+          mask_feather = 0.03,
+        })
+      end
     end
+    hl.window_rule({
+      name = "blix-settings-glass",
+      match = { class = "^[.]blix-settings-wrapped$", title = "^Blix Settings$" },
+      tag = "+hyprglass_enabled",
+      opacity = "1.0 override 1.0 override 1.0 override",
+    })
     hl.window_rule({
       name = "blix-ghostty-glass",
       match = { class = "^com[.]blix[.]ghostty-glass$" },

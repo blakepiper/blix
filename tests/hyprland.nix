@@ -22,9 +22,12 @@ assert lib.hasInfix ''general = { layout = "dwindle", gaps_out = { top = 4, righ
 assert lib.hasInfix ''hl.plugin.load("'' config;
 assert lib.hasInfix ''/lib/libhyprglass.so")'' config;
 assert lib.hasInfix ''enabled = false,'' config;
-assert lib.hasInfix ''default_preset = "blix-terminal"'' config;
+assert lib.hasInfix ''default_preset = "blix-glass"'' config;
 assert lib.hasInfix ''match = { class = "^com[.]blix[.]ghostty-glass$" }'' config;
 assert lib.hasInfix ''tag = "+hyprglass_enabled"'' config;
+assert lib.hasInfix ''layers = { enabled = true }'' config;
+assert lib.hasInfix ''"wofi", "blix-control-popup", "blix-calendar-popup"'' config;
+assert lib.hasInfix ''match = { class = "^[.]blix-settings-wrapped$", title = "^Blix Settings$" }'' config;
 assert lib.hasInfix ''active_opacity = 0.85'' config;
 assert lib.hasInfix ''inactive_opacity = 0.80'' config;
 assert lib.hasInfix ''title = "^\\[blix-video\\] "'' config;
