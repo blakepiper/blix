@@ -1,7 +1,16 @@
 # Hyprland keeps upstream defaults except for OXWM-style splits and scrolling.
 { config, lib, pkgs, osConfig, blixSettings, ... }:
 let
-  terminal = lib.getExe config.programs.ghostty.package;
+  terminal = pkgs.writeShellApplication {
+    name = "hyprland-ghostty";
+    text = ''
+      # Tamsyn has only small bitmap strikes; use Ghostty's scalable font.
+      # Keep this instance separate from terminals started with session fonts.
+      export FONTCONFIG_FILE=/etc/fonts/fonts.conf
+      exec ${lib.getExe config.programs.ghostty.package} \
+        --gtk-single-instance=false --quit-after-last-window-closed=true "$@"
+    '';
+  };
   launcher = "${pkgs.wofi}/bin/wofi --show drun";
   screenshot = pkgs.writeShellApplication {
     name = "hyprland-screenshot";
@@ -94,7 +103,7 @@ in
 
     -- Familiar OXWM shortcuts.
     local exec = hl.dsp.exec_cmd
-    hl.bind("SUPER + Return", exec("${terminal}"))
+    hl.bind("SUPER + Return", exec("${terminal}/bin/hyprland-ghostty"))
     hl.bind("SUPER + Space", exec("${launcher}"))
     hl.bind("SUPER + SHIFT + Space", exec("${controlMenu}/bin/hyprland-control-menu"))
     hl.bind("SUPER + D", exec("${launcher}"))

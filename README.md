@@ -465,9 +465,10 @@ There is no Blix panel, wallpaper, output policy, session service, or automatic
 login for Hyprland.
 The TTY launcher selects Tamsyn Bold for the Hyprland session, including apps
 started through D-Bus, and restores the normal font config when Hyprland exits.
-It raises small font requests to a readable bitmap size. OXWM keeps its Nerd
-Font settings. Firefox uses Tamsyn Bold for its interface and web page text in
-both sessions.
+It raises small font requests to a readable bitmap size. Ghostty uses its
+configured scalable Nerd Font in Hyprland so larger font sizes stay effective;
+OXWM keeps its Nerd Font settings. Firefox uses Tamsyn Bold for its interface
+and web page text in both sessions.
 
 Super+Enter opens Ghostty; Super+Space or Super+D opens Wofi; Super+F and
 Super+B open Thunar and Firefox, and Super+S opens Blix Settings. Super+Q
