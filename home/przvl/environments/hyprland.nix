@@ -23,9 +23,10 @@ let
       export FONTCONFIG_FILE=${if retroTerminalSize == null then "/etc/fonts/fonts.conf" else terminalFonts}
       exec ${lib.getExe config.programs.ghostty.package} \
         --gtk-single-instance=false --quit-after-last-window-closed=true \
-        --background=181c2a --background-opacity=0.88 --background-blur=true \
-        --foreground=c0caf5 --selection-background=35476b --selection-foreground=e2e6ff \
-        --cursor-color=a4daff --window-padding-x=16 --window-padding-y=12 \
+        --background=38475a --background-opacity=0.62 --background-blur=true \
+        --foreground=edf3ff --selection-background=6386ad --selection-foreground=ffffff \
+        --cursor-color=bcecff --cursor-text=243448 \
+        --window-padding-x=20 --window-padding-y=16 \
         ${lib.optionalString (retroTerminalSize != null) ''--font-family="Terminus (TTF)" --font-style=Bold --font-size=${toString retroTerminalSize}''} "$@"
     '';
   };
