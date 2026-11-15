@@ -286,8 +286,11 @@ Use **Suspend** in the app menu, **Blix Settings → Power**, **Super+Shift+L**,
 **Sleep**. The workstation OXWM Control menu uses the same `blix-suspend` helper.
 It checks that the active desktop's lock service holds its sleep delay inhibitor
 before asking logind to suspend. `blix-suspend --check` only verifies readiness.
-The services lock on logind's PrepareForSleep event, covering lid-triggered
-suspends as well as UI requests. Laptop lid-close handling is already declared
+The X11 `xss-lock` service and the Hyprland `hypridle` service lock on logind's
+PrepareForSleep event, covering lid-triggered suspends as well as UI requests.
+Hypridle waits for Hyprland to report that the Wayland lock surface is active
+before releasing its sleep inhibitor. Neither session adds an automatic idle
+lock. Laptop lid-close handling is already declared
 in `modules/hardware/power.nix`: suspend on battery or AC, and ignore the lid
 while docked. Desktop and phone lid handling stays disabled through capabilities.
 Zen's journal confirms physical lid close/open and completed s2idle resumes;
@@ -498,7 +501,10 @@ closes the active window, Super+P
 toggles floating, Super+Shift+F toggles fullscreen, and Super+1–9 selects a
 workspace. Super+Shift+1–9 moves the active window. Super+arrows focus windows,
 Super+Shift+arrows move them, and Super+Ctrl+left/right changes monitors.
-Super+L starts Hyprlock; Super+Shift+Space opens the control menu;
+Super+L requests a logind session lock, which Hypridle fulfills with Hyprlock;
+the control menu uses the same path. Before suspend, Hypridle requests that
+session lock and waits for Hyprland to report it active. No automatic idle lock
+is configured. Super+Shift+Space opens the control menu;
 Super+Shift+S selects a screenshot region and Print
 captures the whole display. Volume, playback, and built-in brightness keys
 keep the OXWM assignments. OXWM-specific layout and clipboard history have no

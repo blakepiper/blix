@@ -54,17 +54,24 @@ let
       exec ${pkgs.quickshell}/bin/quickshell --path ${barQml}
     '';
   };
+  hypridleConfig = pkgs.writeText "blix-hypridle.conf" ''
+    general {
+      lock_cmd = ${pkgs.procps}/bin/pidof hyprlock || ${pkgs.hyprlock}/bin/hyprlock --grace 0 --immediate-render --no-fade-in
+      before_sleep_cmd = ${pkgs.systemd}/bin/loginctl lock-session
+      inhibit_sleep = 3
+    }
+  '';
   sessionStart = pkgs.writeShellApplication {
     name = "blix-hyprland-session-start";
     runtimeInputs = [ pkgs.dbus pkgs.systemd ];
     text = ''
       dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE BLIX_HYPRLAND_SESSION
-      systemctl --user start --no-block blix-hyprsunset.service
+      systemctl --user start --no-block blix-hyprsunset.service blix-hypridle.service
     '';
   };
   controlMenu = pkgs.writeShellApplication {
     name = "hyprland-control-menu";
-    runtimeInputs = [ pkgs.wofi pkgs.hyprlock pkgs.systemd pkgs.coreutils osConfig.programs.hyprland.package ];
+    runtimeInputs = [ pkgs.wofi pkgs.systemd pkgs.coreutils osConfig.programs.hyprland.package ];
     text = ''
       confirm() {
         local answer
@@ -75,13 +82,8 @@ let
       choice=$(printf 'Lock\nSuspend\nReboot\nLog Out\nMonitors Off\nPower Off\n' |
         wofi --dmenu --no-custom-entry --prompt Control) || exit 0
       case $choice in
-        Lock) hyprlock ;;
-        Suspend)
-          hyprlock --grace 0 --immediate-render --no-fade-in &
-          locker=$!
-          sleep 1
-          kill -0 "$locker" || exit 1
-          systemctl suspend ;;
+        Lock) loginctl lock-session ;;
+        Suspend) systemctl suspend ;;
         Reboot) if confirm 'Reboot?'; then systemctl reboot; fi ;;
         'Log Out') if confirm 'Log out? Unsaved work may be lost.'; then hyprctl dispatch exit; fi ;;
         'Monitors Off') sleep 0.2; hyprctl dispatch dpms off ;;
@@ -135,6 +137,7 @@ let
         systemctl --user unset-environment HYPRLAND_INSTANCE_SIGNATURE
       }
       restore_session() {
+        systemctl --user stop blix-hypridle.service >/dev/null 2>&1 || true
         systemctl --user stop blix-hyprsunset.service >/dev/null 2>&1 || true
         restore_fonts
       }
@@ -148,6 +151,16 @@ in
     type = lib.types.nullOr lib.types.ints.positive;
     default = null;
     description = "Terminus TTF Bold size for the Hyprland terminal, or null for Ghostty defaults.";
+  };
+
+  config.systemd.user.services.blix-hypridle = {
+    Unit.Description = "Lock Hyprland before system suspend";
+    Service = {
+      Type = "exec";
+      ExecStart = "${pkgs.hypridle}/bin/hypridle -c ${hypridleConfig}";
+      Restart = "on-failure";
+      RestartSec = 1;
+    };
   };
 
   config.home.packages = with pkgs; [ wofi hyprlock screenshot controlMenu bar sessionStart start ];
@@ -219,7 +232,7 @@ in
       hl.bind("SUPER + " .. i, hl.dsp.focus({ workspace = tostring(i) }))
       hl.bind("SUPER + SHIFT + " .. i, hl.dsp.window.move({ workspace = tostring(i) }))
     end
-    hl.bind("SUPER + L", exec("${pkgs.hyprlock}/bin/hyprlock"))
+    hl.bind("SUPER + L", exec("${pkgs.systemd}/bin/loginctl lock-session"))
     hl.bind("SUPER + SHIFT + S", exec("${screenshot}/bin/hyprland-screenshot"))
     hl.bind("Print", exec("${screenshot}/bin/hyprland-screenshot --full"))
     hl.bind("SUPER + mouse:272", hl.dsp.window.drag(), { mouse = true })
