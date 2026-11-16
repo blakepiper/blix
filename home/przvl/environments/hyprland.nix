@@ -207,7 +207,7 @@ in
   config.home.packages = with pkgs; [ wofi hyprlock screenshot controlMenu bar sessionStart start ];
   config.xdg.configFile."hypr/fontconfig.conf".source = fonts;
   config.xdg.configFile."hypr/hyprland.lua".text = ''
-    -- Load before configuring the plugin. Whitelist the terminal, Settings and menu surfaces.
+    -- Load before configuring the plugin. Whitelist the glass-enabled app and layer surfaces.
     hl.plugin.load("${hyprglass}/lib/libhyprglass.so")
     if hl.plugin.hyprglass then
       local hg = hl.plugin.hyprglass
@@ -233,7 +233,7 @@ in
         },
       })
       -- Alpha masks follow rounded cards and exclude transparent layer margins.
-      for _, namespace in ipairs({ "wofi", "blix-control-popup", "blix-calendar-popup" }) do
+      for _, namespace in ipairs({ "wofi", "blix-control-popup", "blix-calendar-popup", "blix-workspace-glass" }) do
         hg.layer(namespace, {
           preset = "blix-glass",
           mask_mode = "contour",
@@ -287,6 +287,12 @@ in
     hl.layer_rule({
       name = "blix-calendar-popup-glass",
       match = { namespace = "^blix-calendar-popup$" },
+      blur = true,
+      ignore_alpha = 0.0,
+    })
+    hl.layer_rule({
+      name = "blix-workspace-glass",
+      match = { namespace = "^blix-workspace-glass$" },
       blur = true,
       ignore_alpha = 0.0,
     })

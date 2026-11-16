@@ -73,6 +73,9 @@ Scope {
             id: panel
             required property var modelData
             property string activeControl: ""
+            property real focusedWorkspaceX: 0
+            property string focusedWorkspaceName: ""
+            readonly property int workspaceLeft: 46
             function toggleControl(name) {
                 calendarPopup.visible = false;
                 if (activeControl === name && controlPopup.visible) {
@@ -119,23 +122,41 @@ Scope {
             Row {
                 id: workspaceRow
                 anchors.left: parent.left
-                anchors.leftMargin: 46
+                anchors.leftMargin: panel.workspaceLeft
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 5
 
                 Repeater {
                     model: Hyprland.workspaces
                     Rectangle {
+                        id: workspaceItem
                         required property var modelData
                         visible: modelData.active || modelData.toplevels.values.length > 0
                         width: 28
                         height: 27
                         radius: 3
-                        color: modelData.focused ? "#34394e" : "transparent"
+                        color: "transparent"
+
+                        function updateGlassPosition() {
+                            if (!modelData.focused) return;
+                            panel.focusedWorkspaceX = x;
+                            panel.focusedWorkspaceName = modelData.name;
+                        }
+
+                        Component.onCompleted: Qt.callLater(updateGlassPosition)
+                        onXChanged: updateGlassPosition()
+
+                        Connections {
+                            target: modelData
+                            function onFocusedChanged() {
+                                if (modelData.focused) Qt.callLater(workspaceItem.updateGlassPosition);
+                            }
+                        }
 
                         Text {
                             anchors.centerIn: parent
                             text: modelData.name
+                            visible: !modelData.focused
                             color: modelData.focused ? "#d7ffe8" : "#6ee7a0"
                             font.family: "Terminus (TTF)"
                             font.bold: true
@@ -153,6 +174,40 @@ Scope {
                                 ? 'hl.dsp.focus({ workspace = "' + modelData.name + '" })'
                                 : "workspace " + modelData.name)
                         }
+                    }
+                }
+            }
+
+            PanelWindow {
+                id: workspaceGlass
+                screen: panel.screen
+                WlrLayershell.namespace: "blix-workspace-glass"
+                anchors { top: true; left: true }
+                margins { left: panel.workspaceLeft + panel.focusedWorkspaceX }
+                exclusionMode: ExclusionMode.Ignore
+                focusable: false
+                color: "transparent"
+                implicitWidth: 28
+                implicitHeight: @bar-height@
+                visible: panel.focusedWorkspaceName !== ""
+                mask: Region {}
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: parent.width
+                    height: 27
+                    color: "#2e101827"
+                    border.color: "#66c0caf5"
+                    border.width: 1
+                    radius: 7
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: panel.focusedWorkspaceName
+                        color: "#d7ffe8"
+                        font.family: "Terminus (TTF)"
+                        font.bold: true
+                        font.pixelSize: 16
                     }
                 }
             }
