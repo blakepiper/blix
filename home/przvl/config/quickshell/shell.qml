@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Shapes
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
@@ -438,7 +439,7 @@ Scope {
                 implicitWidth: Math.max(190, controlsRow.implicitWidth + 24)
                 implicitHeight: @bar-height@ + 162
                 mask: Region { item: controlsCard }
-                Rectangle {
+                Item {
                     id: controlsCard
                     anchors.right: parent.right
                     y: 3
@@ -446,10 +447,46 @@ Scope {
                         + Math.max(0, 190 - controlsRow.implicitWidth - 24) * controlsGlass.expansion
                     height: 30 + controlsGlass.menuHeight * controlsGlass.expansion
                     clip: true
-                    radius: 15
-                    color: "#18101827"
-                    border.color: "#40c0caf5"
-                    border.width: 1
+                    readonly property var selectedButton: panel.activeControl === "battery" ? batteryControl
+                        : panel.activeControl === "brightness" ? brightnessControl : volumeControl
+                    readonly property real tabCenter: controlsRow.x + tabOffset
+                    property real tabOffset: selectedButton.x + selectedButton.width / 2
+                    Behavior on tabOffset {
+                        NumberAnimation { duration: 240; easing.type: Easing.OutCubic }
+                    }
+                    // One contour: the active tab's shoulders join the menu without a seam.
+                    readonly property string outline: {
+                        const p = controlsGlass.expansion;
+                        const w = width, h = height;
+                        const left = Math.max(0, tabCenter - 22) * p;
+                        const right = w + (Math.min(w, tabCenter + 22) - w) * p;
+                        const r = 12;
+                        const bottomRadius = Math.min(12, (h - 30) / 2);
+                        const br = Math.min(12, (h - 30) / 2, (w - right) / 2);
+                        const bl = Math.min(12, (h - 30) / 2, left / 2);
+                        const sr = Math.min(8, (w - right) / 2) * p;
+                        const sl = Math.min(8, left / 2) * p;
+                        if (p < 0.001)
+                            return `M 15 0 H ${w-15} Q ${w} 0 ${w} 15 Q ${w} 30 ${w-15} 30 H 15 Q 0 30 0 15 Q 0 0 15 0 Z`;
+                        return `M ${left+r} 0 H ${right-r} Q ${right} 0 ${right} ${r}`
+                            + ` V ${30-sr} Q ${right} 30 ${right+sr} 30`
+                            + ` H ${w-br} Q ${w} 30 ${w} ${30+br}`
+                            + ` V ${h-bottomRadius} Q ${w} ${h} ${w-bottomRadius} ${h}`
+                            + ` H ${bottomRadius} Q 0 ${h} 0 ${h-bottomRadius}`
+                            + ` V ${30+bl} Q 0 30 ${bl} 30`
+                            + ` H ${left-sl} Q ${left} 30 ${left} ${30-sl}`
+                            + ` V ${r} Q ${left} 0 ${left+r} 0 Z`;
+                    }
+                    Shape {
+                        anchors.fill: parent
+                        preferredRendererType: Shape.CurveRenderer
+                        ShapePath {
+                            fillColor: "#18101827"
+                            strokeColor: "#40c0caf5"
+                            strokeWidth: 1
+                            PathSvg { path: controlsCard.outline }
+                        }
+                    }
                     Row {
                         id: controlsRow
                         anchors.right: parent.right
@@ -464,7 +501,12 @@ Scope {
                             height: 25
                             Rectangle {
                                 anchors.fill: parent
+                                radius: 10
                                 color: "#00000000"
+                                border.width: 1
+                                border.color: panel.activeControl === "battery" ? "transparent" : "#20c0caf5"
+                                opacity: panel.activeControl === "battery" ? 0 : controlsGlass.expansion
+                                Behavior on opacity { NumberAnimation { duration: 160 } }
                             }
                             Text {
                                 anchors.centerIn: parent
@@ -503,7 +545,12 @@ Scope {
                                 ? Pipewire.defaultAudioSink.audio : null
                             Rectangle {
                                 anchors.fill: parent
+                                radius: 10
                                 color: "#00000000"
+                                border.width: 1
+                                border.color: panel.activeControl === "volume" ? "transparent" : "#20c0caf5"
+                                opacity: panel.activeControl === "volume" ? 0 : controlsGlass.expansion
+                                Behavior on opacity { NumberAnimation { duration: 160 } }
                             }
                             Text {
                                 anchors.centerIn: parent
@@ -533,7 +580,12 @@ Scope {
                             height: 25
                             Rectangle {
                                 anchors.fill: parent
+                                radius: 10
                                 color: "#00000000"
+                                border.width: 1
+                                border.color: panel.activeControl === "brightness" ? "transparent" : "#20c0caf5"
+                                opacity: panel.activeControl === "brightness" ? 0 : controlsGlass.expansion
+                                Behavior on opacity { NumberAnimation { duration: 160 } }
                             }
                             Canvas {
                                 id: sunIcon

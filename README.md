@@ -522,7 +522,9 @@ It grows with the workspace list and scrolls on overflow. The clock remains
 centered and expands into the calendar; the right pane expands into the selected
 battery, volume or brightness menu. Each menu grows from its button pane as one
 continuous glass surface, with reversible eased motion and a delayed content
-reveal. Switching controls animates the pane height without closing it.
+reveal. The selected control forms a tab with curved shoulders that join directly into
+the menu; switching controls slides this tab and animates menu height without
+closing it. Native layer windows keep fixed dimensions throughout.
 The plugin is pinned in `packaging/hyprglass/default.nix` to the Hyprland 0.57 branch and
 built against the selected compositor's headers and toolchain. Update its
 compatible revision when upgrading Hyprland. Configuration lives in
