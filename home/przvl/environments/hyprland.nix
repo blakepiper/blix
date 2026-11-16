@@ -257,7 +257,7 @@ in
         })
       end
       -- Alpha masks follow rounded cards and exclude transparent layer margins.
-      for _, namespace in ipairs({ "wofi", "blix-control-popup", "blix-calendar-popup" }) do
+      for _, namespace in ipairs({ "wofi" }) do
         hg.layer(namespace, {
           preset = "blix-glass",
           mask_mode = "contour",
@@ -298,19 +298,6 @@ in
     hl.layer_rule({
       name = "blix-launcher-glass",
       match = { namespace = "^wofi$" },
-      blur = true,
-      ignore_alpha = 0.0,
-    })
-    hl.layer_rule({
-      name = "blix-control-popup-glass",
-      match = { namespace = "^blix-control-popup$" },
-      blur = true,
-      -- Exclude fully transparent pixels so blur follows the rounded card mask.
-      ignore_alpha = 0.0,
-    })
-    hl.layer_rule({
-      name = "blix-calendar-popup-glass",
-      match = { namespace = "^blix-calendar-popup$" },
       blur = true,
       ignore_alpha = 0.0,
     })

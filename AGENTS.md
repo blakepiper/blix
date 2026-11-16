@@ -79,8 +79,8 @@ scope and risk rules in the Validation section.
   OXWM retains the Nerd Font defaults.
   Hyprland's user module also loads the pinned `packaging/hyprglass` plugin,
   built against the selected compositor; glass is restricted to its Ghostty
-  launcher, Blix Settings, Wofi, Quickshell control/calendar popups and the
-  workspace, clock and controls panes. The session's CSS/QML supplies background alpha
+  launcher, Blix Settings, Wofi and Quickshell's
+  workspace, clock and controls panes (including their expanding menus). The session's CSS/QML supplies background alpha
   without fading text. Update the compatible plugin revision with Hyprland.
   `home/przvl/config/hyprland-monitors.lua` owns native laptop hotplug mirroring:
   prefer an external source at its preferred mode; restore the internal panel

@@ -513,14 +513,16 @@ settings. Hyprland's Super+Enter terminal uses a dark translucent background
 with HyprGlass refraction, edge highlights and light blur, while text remains
 opaque. The effect is restricted to that launcher's `com.blix.ghostty-glass`
 app ID, Blix Settings (Super+S), Wofi (Super+Space and Super+Shift+Space),
-Quickshell's control and calendar popups, and the workspace, clock and controls panes. These
+Quickshell's workspace, clock and controls panes. These
 use contour-masked glass with opaque text. The topbar's three panes use a
 clearer material with lighter tint, reduced blur and gentler refraction than the
 terminal and popups. The workspace pane includes the distro logo and all regular
 workspaces, with animated insertion and removal, and text color indicating focus.
 It grows with the workspace list and scrolls on overflow. The clock remains
-centered and opens the calendar; the right pane holds the existing controls.
-Layer glass follows the rounded popup card outlines as well.
+centered and expands into the calendar; the right pane expands into the selected
+battery, volume or brightness menu. Each menu grows from its button pane as one
+continuous glass surface, with reversible eased motion and a delayed content
+reveal. Switching controls animates the pane height without closing it.
 The plugin is pinned in `packaging/hyprglass/default.nix` to the Hyprland 0.57 branch and
 built against the selected compositor's headers and toolchain. Update its
 compatible revision when upgrading Hyprland. Configuration lives in
