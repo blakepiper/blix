@@ -71,6 +71,108 @@ def update_combo(widget, entries, current=None):
         widget.set_active(0)
 
 
+class AnimatedSwitch(Gtk.ToggleButton):
+    """A glass-session switch with an adjustable thumb animation."""
+
+    animation_duration_ms = 220
+
+    def __init__(self, active=False):
+        super().__init__(active=active)
+        self.set_relief(Gtk.ReliefStyle.NONE)
+        self.set_size_request(48, 24)
+        self.get_style_context().add_class("blix-switch")
+        self._position = 1.0 if self.get_active() else 0.0
+        self._animation_start = self._position
+        self._animation_target = self._position
+        self._animation_started = 0
+        self._tick_id = 0
+        self.connect("notify::active", self._active_changed)
+        self.connect("state-flags-changed", lambda *_: self.queue_draw())
+
+    def _active_changed(self, *_):
+        if self._tick_id:
+            self.remove_tick_callback(self._tick_id)
+            self._tick_id = 0
+        self._animation_start = self._position
+        self._animation_target = 1.0 if self.get_active() else 0.0
+        if not self.get_mapped() or not Gtk.Settings.get_default().get_property("gtk-enable-animations"):
+            self._position = self._animation_target
+        else:
+            self._animation_started = GLib.get_monotonic_time()
+            self._tick_id = self.add_tick_callback(self._animate)
+        self.queue_draw()
+
+    def _animate(self, _widget, frame_clock, _data=None):
+        elapsed = max(0, frame_clock.get_frame_time() - self._animation_started)
+        progress = min(1.0, elapsed / (self.animation_duration_ms * 1000))
+        eased = 1.0 - (1.0 - progress) ** 3
+        self._position = self._animation_start + (self._animation_target - self._animation_start) * eased
+        self.queue_draw()
+        if progress >= 1.0:
+            self._position = self._animation_target
+            self._tick_id = 0
+            return False
+        return True
+
+    @staticmethod
+    def _rounded_rectangle(cr, x, y, width, height, radius):
+        cr.new_sub_path()
+        cr.arc(x + width - radius, y + radius, radius, -math.pi / 2, 0)
+        cr.arc(x + width - radius, y + height - radius, radius, 0, math.pi / 2)
+        cr.arc(x + radius, y + height - radius, radius, math.pi / 2, math.pi)
+        cr.arc(x + radius, y + radius, radius, math.pi, 3 * math.pi / 2)
+        cr.close_path()
+
+    @staticmethod
+    def _mix(start, end, amount):
+        return tuple(left + (right - left) * amount for left, right in zip(start, end))
+
+    def do_draw(self, cr):
+        allocation = self.get_allocation()
+        track_width, track_height = min(48, allocation.width), min(24, allocation.height)
+        x = (allocation.width - track_width) / 2
+        y = (allocation.height - track_height) / 2
+        position = self._position
+        if self.get_sensitive():
+            track_fill = self._mix((0.75, 0.79, 0.96, 0.14), (0.54, 0.68, 0.96, 0.50), position)
+            track_edge = self._mix((0.75, 0.79, 0.96, 0.20), (0.54, 0.68, 0.96, 0.75), position)
+            knob_color = (0.89, 0.91, 0.97, 1.0)
+            if self.get_state_flags() & Gtk.StateFlags.PRELIGHT:
+                track_fill = (track_fill[0], track_fill[1], track_fill[2], min(0.8, track_fill[3] + 0.08))
+                knob_color = (0.95, 0.96, 1.0, 1.0)
+        else:
+            track_fill = (0.45, 0.48, 0.59, 0.20 + 0.12 * position)
+            track_edge = (0.45, 0.48, 0.59, 0.35)
+            knob_color = (0.45, 0.48, 0.59, 1.0)
+
+        self._rounded_rectangle(cr, x, y, track_width, track_height, track_height / 2)
+        cr.set_source_rgba(*track_fill)
+        cr.fill_preserve()
+        cr.set_line_width(1)
+        cr.set_source_rgba(*track_edge)
+        cr.stroke()
+
+        knob_size = min(18, track_height - 6)
+        knob_radius = knob_size / 2
+        left = x + 3 + knob_radius
+        right = x + track_width - 3 - knob_radius
+        center_x = left + (right - left) * position
+        center_y = y + track_height / 2
+        cr.arc(center_x, center_y + 1, knob_radius, 0, 2 * math.pi)
+        cr.set_source_rgba(0.06, 0.08, 0.13, 0.22)
+        cr.fill()
+        cr.arc(center_x, center_y, knob_radius, 0, 2 * math.pi)
+        cr.set_source_rgba(*knob_color)
+        cr.fill()
+
+        if self.has_focus():
+            self._rounded_rectangle(cr, x - 2, y - 2, track_width + 4, track_height + 4, track_height / 2 + 2)
+            cr.set_line_width(1)
+            cr.set_source_rgba(0.48, 0.64, 0.97, 0.8)
+            cr.stroke()
+        return True
+
+
 def spin(value, minimum, maximum, step=1):
     widget = Gtk.SpinButton.new_with_range(minimum, maximum, step)
     widget.set_value(value)
@@ -501,6 +603,11 @@ class Window(Gtk.ApplicationWindow):
         content.connect("size-allocate", reflow)
         parent.pack_start(content, False, False, 0)
 
+    def make_switch(self, active=False):
+        if self.glass_session:
+            return AnimatedSwitch(active=active)
+        return Gtk.Switch(active=active)
+
     def connect_control(self, widget, signal, callback):
         # Disposing old GTK controls can emit value/selection notifications.
         # Only edits to a mounted control may change settings or mark a draft.
@@ -608,7 +715,7 @@ class Window(Gtk.ApplicationWindow):
                 "brightnessctl", "--class=backlight", "--min-value=1", "set", f"{value}%")))
         self.build_nightlight(body)
         appearance = self.card(body, "Appearance")
-        self.transparency_switch = Gtk.Switch(active=core.transparency_enabled(self.preferences))
+        self.transparency_switch = self.make_switch(active=core.transparency_enabled(self.preferences))
         self.transparency_switch.set_sensitive(not self.saving_transparency)
         if core.hyprland_session():
             transparency_description = (
@@ -645,7 +752,7 @@ class Window(Gtk.ApplicationWindow):
         self.display_controls = {}
         for item in connected:
             card = self.card(body, item["name"])
-            enabled = Gtk.Switch(active=item["enabled"])
+            enabled = self.make_switch(active=item["enabled"])
             self.row(card, "Enabled", enabled)
             mode = item["mode"] or core.preferred_mode(item)
             resolution = combo([(value, value.replace("x", " × ")) for value in item["modes"]], mode)
@@ -699,7 +806,7 @@ class Window(Gtk.ApplicationWindow):
     def build_nightlight(self, body):
         nightlight = core.nightlight_settings(self.preferences)
         card = self.card(body, "Night light")
-        self.nightlight_switch = Gtk.Switch(active=nightlight["enabled"])
+        self.nightlight_switch = self.make_switch(active=nightlight["enabled"])
         self.nightlight_intensity = slider(0, 100, percent=True)
         self.nightlight_intensity.set_value(nightlight["intensity"])
         self.nightlight_intensity.set_digits(0)
@@ -954,7 +1061,7 @@ class Window(Gtk.ApplicationWindow):
             devices = combo([])
             volume = slider(0, 100, percent=True)
             self.track_slider(volume, kind)
-            mute = Gtk.Switch()
+            mute = self.make_switch()
             self.row(card, "Device", devices)
             self.row(card, "Volume" if kind == "sink" else "Input level", volume)
             self.row(card, "Mute output" if kind == "sink" else "Mute microphone", mute)
@@ -1097,7 +1204,7 @@ class Window(Gtk.ApplicationWindow):
 
     def build_network(self, body, state):
         card = self.card(body)
-        enabled = Gtk.Switch(active=state["enabled"])
+        enabled = self.make_switch(active=state["enabled"])
         enabled.set_sensitive(state["available"] and ("network", "toggle") not in self.pending_radios)
         self.connect_control(enabled, "notify::active", lambda widget, _: self.radio_request("network", "toggle", "Updating…",
             lambda done, value=widget.get_active(): (self.network.toggle(value), done(None))))
@@ -1172,7 +1279,7 @@ class Window(Gtk.ApplicationWindow):
             return
         for adapter in state["adapters"]:
             card = self.card(body, adapter["name"])
-            powered = Gtk.Switch(active=adapter["powered"])
+            powered = self.make_switch(active=adapter["powered"])
             powered.set_sensitive(("bluetooth", adapter["path"]) not in self.pending_radios)
             self.connect_control(powered, "notify::active", lambda widget, _, adapter=adapter:
                 self.radio_request("bluetooth", adapter["path"], "Updating…",
@@ -1388,7 +1495,7 @@ class Window(Gtk.ApplicationWindow):
             controls = {"speed": speed}
             for key, title in (("natural", "Natural scrolling"), ("tapping", "Tap to click")):
                 if device[key] is not None:
-                    widget = Gtk.Switch(active=values[key])
+                    widget = self.make_switch(active=values[key])
                     controls[key] = widget
                     self.row(card, title, widget)
             self.input_controls[device["key"]] = (device, controls)

@@ -606,6 +606,7 @@ Scope {
                             height: 25
                             readonly property var audio: Pipewire.defaultAudioSink && Pipewire.defaultAudioSink.audio
                                 ? Pipewire.defaultAudioSink.audio : null
+                            onAudioChanged: if (volumeIcon) volumeIcon.requestPaint()
                             Rectangle {
                                 anchors.fill: parent
                                 radius: 10
@@ -615,14 +616,59 @@ Scope {
                                 opacity: panel.activeControl === "volume" ? 0 : controlsGlass.expansion
                                 Behavior on opacity { NumberAnimation { duration: 160 } }
                             }
-                            Text {
-                                anchors.centerIn: parent
-                                text: !volumeControl.audio || volumeControl.audio.muted || volumeControl.audio.volume === 0 ? "\uf6a9"
-                                    : volumeControl.audio.volume < 0.35 ? "\uf026"
-                                    : volumeControl.audio.volume < 0.7 ? "\uf027" : "\uf028"
-                                color: "#8aadf4"
-                                font.family: "JetBrainsMono Nerd Font"
-                                font.pixelSize: 21
+                            Canvas {
+                                id: volumeIcon
+                                anchors.fill: parent
+                                onPaint: {
+                                    const ctx = getContext("2d");
+                                    ctx.clearRect(0, 0, width, height);
+                                    const cx = width / 2;
+                                    const cy = height / 2;
+                                    const audio = volumeControl.audio;
+                                    const muted = !audio || audio.muted || audio.volume <= 0.001;
+                                    ctx.fillStyle = "#8aadf4";
+                                    ctx.strokeStyle = "#8aadf4";
+                                    ctx.lineWidth = 2;
+                                    ctx.lineCap = "round";
+                                    ctx.lineJoin = "round";
+                                    ctx.beginPath();
+                                    ctx.moveTo(cx - 8, cy - 3.5);
+                                    ctx.lineTo(cx - 4, cy - 3.5);
+                                    ctx.lineTo(cx + 1, cy - 7);
+                                    ctx.lineTo(cx + 1, cy + 7);
+                                    ctx.lineTo(cx - 4, cy + 3.5);
+                                    ctx.lineTo(cx - 8, cy + 3.5);
+                                    ctx.closePath();
+                                    ctx.fill();
+                                    if (muted) {
+                                        ctx.beginPath();
+                                        ctx.moveTo(cx + 4, cy - 3);
+                                        ctx.lineTo(cx + 9, cy + 3);
+                                        ctx.moveTo(cx + 9, cy - 3);
+                                        ctx.lineTo(cx + 4, cy + 3);
+                                        ctx.stroke();
+                                    } else {
+                                        ctx.beginPath();
+                                        ctx.arc(cx, cy, 5, -Math.PI / 3, Math.PI / 3);
+                                        ctx.stroke();
+                                        if (audio.volume >= 0.35) {
+                                            ctx.beginPath();
+                                            ctx.arc(cx, cy, 9, -Math.PI / 3, Math.PI / 3);
+                                            ctx.stroke();
+                                        }
+                                        if (audio.volume >= 0.7) {
+                                            ctx.beginPath();
+                                            ctx.arc(cx, cy, 12, -Math.PI / 3, Math.PI / 3);
+                                            ctx.stroke();
+                                        }
+                                    }
+                                }
+                            }
+                            Connections {
+                                target: volumeControl.audio
+                                ignoreUnknownSignals: true
+                                function onVolumeChanged() { volumeIcon.requestPaint(); }
+                                function onMutedChanged() { volumeIcon.requestPaint(); }
                             }
                             MouseArea {
                                 anchors.fill: parent
