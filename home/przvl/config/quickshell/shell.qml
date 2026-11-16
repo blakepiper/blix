@@ -73,9 +73,6 @@ Scope {
             id: panel
             required property var modelData
             property string activeControl: ""
-            property real focusedWorkspaceX: 0
-            property string focusedWorkspaceName: ""
-            readonly property int workspaceLeft: 46
             function toggleControl(name) {
                 calendarPopup.visible = false;
                 if (activeControl === name && controlPopup.visible) {
@@ -94,8 +91,6 @@ Scope {
             implicitHeight: @bar-height@
             color: "transparent"
             mask: Region {
-                Region { item: distroLogo }
-                Region { item: workspaceRow }
                 Region { item: centerClock }
                 Region { item: controlsRow }
             }
@@ -108,74 +103,25 @@ Scope {
                 }
             }
 
-            Image {
-                id: distroLogo
-                anchors.left: parent.left
-                anchors.leftMargin: 14
-                anchors.verticalCenter: parent.verticalCenter
-                width: 24
-                height: 24
-                source: "file://@distro-logo@"
-                fillMode: Image.PreserveAspectFit
-            }
-
-            Row {
-                id: workspaceRow
-                anchors.left: parent.left
-                anchors.leftMargin: panel.workspaceLeft
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 5
-
-                Repeater {
-                    model: Hyprland.workspaces
-                    Rectangle {
-                        id: workspaceItem
-                        required property var modelData
-                        visible: modelData.active || modelData.toplevels.values.length > 0
-                        width: 28
-                        height: 27
-                        radius: 3
-                        color: "transparent"
-
-                        function updateGlassPosition() {
-                            if (!modelData.focused) return;
-                            panel.focusedWorkspaceX = x;
-                            panel.focusedWorkspaceName = modelData.name;
-                        }
-
-                        Component.onCompleted: Qt.callLater(updateGlassPosition)
-                        onXChanged: updateGlassPosition()
-
-                        Connections {
-                            target: modelData
-                            function onFocusedChanged() {
-                                if (modelData.focused) Qt.callLater(workspaceItem.updateGlassPosition);
-                            }
-                        }
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: modelData.name
-                            visible: !modelData.focused
-                            color: modelData.focused ? "#d7ffe8" : "#6ee7a0"
-                            font.family: "Terminus (TTF)"
-                            font.bold: true
-                            font.pixelSize: 16
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onPressed: {
-                                controlPopup.visible = false;
-                                calendarPopup.visible = false;
-                            }
-                            onClicked: Hyprland.dispatch(Hyprland.usingLua
-                                ? 'hl.dsp.focus({ workspace = "' + modelData.name + '" })'
-                                : "workspace " + modelData.name)
-                        }
-                    }
+            // Keep membership keyed by workspace ID so ListView can animate removals.
+            ListModel { id: workspaceModel; dynamicRoles: true }
+            function syncWorkspaces() {
+                const workspaces = Hyprland.workspaces.values.filter(w => w.id > 0)
+                    .sort((a, b) => a.id - b.id);
+                const ids = workspaces.map(w => w.id);
+                for (let i = workspaceModel.count - 1; i >= 0; --i)
+                    if (ids.indexOf(workspaceModel.get(i).workspaceId) < 0)
+                        workspaceModel.remove(i);
+                for (let i = 0; i < workspaces.length; ++i) {
+                    const w = workspaces[i];
+                    if (i >= workspaceModel.count || workspaceModel.get(i).workspaceId !== w.id)
+                        workspaceModel.insert(i, { workspaceId: w.id, workspace: w });
                 }
+            }
+            Component.onCompleted: syncWorkspaces()
+            Connections {
+                target: Hyprland.workspaces
+                function onValuesChanged() { panel.syncWorkspaces(); }
             }
 
             PanelWindow {
@@ -183,31 +129,108 @@ Scope {
                 screen: panel.screen
                 WlrLayershell.namespace: "blix-workspace-glass"
                 anchors { top: true; left: true }
-                margins { left: panel.workspaceLeft + panel.focusedWorkspaceX }
+                margins.left: 10
                 exclusionMode: ExclusionMode.Ignore
                 focusable: false
                 color: "transparent"
-                implicitWidth: 28
+                implicitWidth: Math.ceil(capsule.width)
                 implicitHeight: @bar-height@
-                visible: panel.focusedWorkspaceName !== ""
-                mask: Region {}
+                mask: Region { item: capsule }
 
                 Rectangle {
-                    anchors.centerIn: parent
-                    width: parent.width
-                    height: 27
+                    id: capsule
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 44 + workspaceList.width + 8
+                    height: 30
+                    radius: 15
                     color: "#2e101827"
-                    border.color: "#66c0caf5"
+                    border.color: "#55c0caf5"
                     border.width: 1
-                    radius: 7
 
-                    Text {
-                        anchors.centerIn: parent
-                        text: panel.focusedWorkspaceName
-                        color: "#d7ffe8"
-                        font.family: "Terminus (TTF)"
-                        font.bold: true
-                        font.pixelSize: 16
+                    Image {
+                        anchors.left: parent.left
+                        anchors.leftMargin: 10
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 22
+                        height: 22
+                        source: "file://@distro-logo@"
+                        fillMode: Image.PreserveAspectFit
+                    }
+                    Rectangle {
+                        x: 39
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 1
+                        height: 14
+                        color: "#33c0caf5"
+                    }
+                    ListView {
+                        id: workspaceList
+                        x: 44
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: Math.min(contentWidth, Math.max(32, panel.width / 2 - 60))
+                        height: 26
+                        orientation: ListView.Horizontal
+                        spacing: 3
+                        clip: true
+                        boundsBehavior: Flickable.StopAtBounds
+                        model: workspaceModel
+                        Behavior on width { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+                        add: Transition {
+                            NumberAnimation { properties: "opacity"; from: 0; to: 1; duration: 180 }
+                            NumberAnimation { properties: "scale"; from: 0.7; to: 1; duration: 220; easing.type: Easing.OutCubic }
+                        }
+                        remove: Transition {
+                            NumberAnimation { properties: "opacity"; to: 0; duration: 140 }
+                            NumberAnimation { properties: "scale"; to: 0.7; duration: 140 }
+                        }
+                        displaced: Transition {
+                            NumberAnimation { properties: "x"; duration: 220; easing.type: Easing.OutCubic }
+                        }
+                        delegate: Rectangle {
+                            id: workspaceButton
+                            required property var workspace
+                            required property int index
+                            function revealFocused() {
+                                if (workspace.focused)
+                                    workspaceList.positionViewAtIndex(index, ListView.Contain);
+                            }
+                            Component.onCompleted: Qt.callLater(revealFocused)
+                            Connections {
+                                target: workspaceButton.workspace
+                                function onFocusedChanged() { workspaceButton.revealFocused(); }
+                            }
+                            width: Math.max(28, workspaceLabel.implicitWidth + 16)
+                            height: 26
+                            radius: 13
+                            color: workspace.focused ? "#406ee7a0" : workspaceMouse.containsMouse ? "#20c0caf5" : "transparent"
+                            border.width: 1
+                            border.color: workspace.focused ? "#886ee7a0" : "transparent"
+                            Behavior on color { ColorAnimation { duration: 180 } }
+                            Behavior on border.color { ColorAnimation { duration: 180 } }
+                            Text {
+                                id: workspaceLabel
+                                anchors.centerIn: parent
+                                text: workspace.name
+                                color: workspace.focused ? "#e2ffef" : "#a9b1d6"
+                                font.family: "Terminus (TTF)"
+                                font.bold: true
+                                font.pixelSize: 16
+                                Behavior on color { ColorAnimation { duration: 180 } }
+                            }
+                            MouseArea {
+                                id: workspaceMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    controlPopup.visible = false;
+                                    calendarPopup.visible = false;
+                                    Hyprland.dispatch(Hyprland.usingLua
+                                        ? 'hl.dsp.focus({ workspace = "' + workspace.name + '" })'
+                                        : "workspace " + workspace.name);
+                                }
+                            }
+                        }
                     }
                 }
             }
