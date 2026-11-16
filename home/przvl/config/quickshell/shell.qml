@@ -16,6 +16,7 @@ Scope {
     property string batteryEta: ""
     property string brightness: ""
     property string powerMode: ""
+    property int nightlightLevel: 0
     property date currentDate: new Date()
 
     PwObjectTracker {
@@ -67,6 +68,34 @@ Scope {
         onExited: powerModeProcess.exec(["@power-mode-command@", "power-mode"])
     }
 
+    Process {
+        id: nightlightRead
+        command: ["@power-mode-command@", "nightlight-level"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const level = Number(this.text.trim());
+                if (this.text.trim() !== "" && isFinite(level)
+                    && !nightlightDebounce.running && !nightlightSet.running)
+                    root.nightlightLevel = Math.max(0, Math.min(100, level));
+            }
+        }
+    }
+    Process {
+        id: nightlightSet
+        onExited: (exitCode, exitStatus) => {
+            if (exitCode !== 0) nightlightRead.running = true;
+        }
+    }
+    Timer {
+        id: nightlightDebounce
+        interval: 250
+        onTriggered: {
+            if (nightlightSet.running) { restart(); return; }
+            nightlightSet.exec(["@power-mode-command@", "nightlight-level",
+                "--intensity", root.nightlightLevel.toString()]);
+        }
+    }
+
     Variants {
         model: Quickshell.screens
 
@@ -80,6 +109,7 @@ Scope {
                     controlPopup.visible = false;
                 } else {
                     activeControl = name;
+                    if (name === "brightness") nightlightRead.running = true;
                     controlPopup.visible = true;
                 }
             }
@@ -800,7 +830,7 @@ Scope {
                         Item {
                             visible: panel.activeControl === "brightness" && @has-backlight@ && root.brightness !== ""
                             width: parent.width
-                            height: 62
+                            height: 128
                             Text {
                                 text: "BRIGHTNESS"
                                 color: "#eed49f"
@@ -851,6 +881,59 @@ Scope {
                                     radius: 8
                                     color: "#c0caf5"
                                     border.color: "#eed49f"
+                                }
+                            }
+                            Text {
+                                y: 66
+                                text: "NIGHT LIGHT"
+                                color: "#e0af68"
+                                font.family: "Terminus (TTF)"
+                                font.bold: true
+                                font.pixelSize: 12
+                            }
+                            Text {
+                                y: 66
+                                anchors.right: parent.right
+                                text: root.nightlightLevel === 0 ? "OFF" : root.nightlightLevel + "%"
+                                color: "#c0caf5"
+                                font.family: "Terminus (TTF)"
+                                font.bold: true
+                                font.pixelSize: 14
+                            }
+                            Slider {
+                                id: nightlightSlider
+                                y: 93
+                                width: parent.width
+                                height: 28
+                                from: 0
+                                to: 100
+                                value: root.nightlightLevel
+                                onMoved: {
+                                    root.nightlightLevel = Math.round(value);
+                                    nightlightDebounce.restart();
+                                }
+                                background: Rectangle {
+                                    x: nightlightSlider.leftPadding
+                                    y: nightlightSlider.topPadding + nightlightSlider.availableHeight / 2 - 3
+                                    width: nightlightSlider.availableWidth
+                                    height: 6
+                                    radius: 3
+                                    color: "#34394e"
+                                    Rectangle {
+                                        width: nightlightSlider.visualPosition * parent.width
+                                        height: parent.height
+                                        radius: 3
+                                        color: "#e0af68"
+                                    }
+                                }
+                                handle: Rectangle {
+                                    x: nightlightSlider.leftPadding + nightlightSlider.visualPosition * (nightlightSlider.availableWidth - width)
+                                    y: nightlightSlider.topPadding + nightlightSlider.availableHeight / 2 - height / 2
+                                    width: 16
+                                    height: 16
+                                    radius: 8
+                                    color: "#c0caf5"
+                                    border.color: "#e0af68"
                                 }
                             }
                         }

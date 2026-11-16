@@ -43,6 +43,32 @@ class RuntimeTests(unittest.TestCase):
         self.environment.stop()
         self.temp.cleanup()
 
+    def test_nightlight_level_runtime_roundtrip_and_validation(self):
+        import contextlib
+        import io
+        import main as runtime
+
+        def invoke(*args):
+            output = io.StringIO()
+            with patch.object(sys, "argv", ["blix-settings-apply", "nightlight-level", *args]), contextlib.redirect_stdout(output):
+                runtime.main(gui=False)
+            return output.getvalue().strip()
+
+        self.assertEqual(invoke(), "0")
+        with patch.object(core, "command") as command:
+            invoke("--intensity", "60")
+            command.assert_called_once_with("systemctl", "--user", "restart", "blix-nightlight.service")
+        self.assertEqual(invoke(), "60")
+        with patch.object(core, "command"):
+            invoke("--intensity", "0")
+        self.assertEqual(invoke(), "0")
+        self.assertFalse(core.nightlight_settings()["enabled"])
+        with patch.object(core, "command"), contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit) as error:
+                invoke("--intensity", "101")
+        self.assertEqual(error.exception.code, 1)
+        self.assertEqual(core.nightlight_settings(), {"enabled": False, "intensity": 0})
+
     def test_nightlight_persistence_and_failure_recovery(self):
         self.assertEqual(core.nightlight_settings(), {"enabled": False, "intensity": 50})
         with patch.object(core, "command") as command:

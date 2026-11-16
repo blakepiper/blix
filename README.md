@@ -524,7 +524,9 @@ battery, volume or brightness menu. Each menu grows from its button pane as one
 continuous glass surface, with reversible eased motion and a delayed content
 reveal. The selected control forms a tab with curved shoulders that join directly into
 the menu; switching controls slides this tab and animates menu height without
-closing it. Native layer windows keep fixed dimensions throughout.
+closing it. Native layer windows keep fixed dimensions throughout. The brightness menu also
+includes night-light warmth (0 is off), saved through the same setting as Blix
+Settings and restored at login.
 The plugin is pinned in `packaging/hyprglass/default.nix` to the Hyprland 0.57 branch and
 built against the selected compositor's headers and toolchain. Update its
 compatible revision when upgrading Hyprland. Configuration lives in
