@@ -239,15 +239,17 @@ Scope {
                 Behavior on expansion {
                     NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
                 }
-                implicitWidth: Math.ceil(centerClock.implicitWidth + 28
-                    + (264 - centerClock.implicitWidth - 28) * expansion)
-                implicitHeight: Math.ceil(@bar-height@ + 270 * expansion)
+                // Keep the Wayland buffer stable; animate only the card inside it.
+                implicitWidth: 264
+                implicitHeight: @bar-height@ + 270
                 mask: Region { item: clockCard }
                 Rectangle {
                     id: clockCard
+                    anchors.horizontalCenter: parent.horizontalCenter
                     y: 3
-                    width: parent.width
-                    height: parent.height - 6
+                    width: centerClock.implicitWidth + 28
+                        + (264 - centerClock.implicitWidth - 28) * clockGlass.expansion
+                    height: 30 + 270 * clockGlass.expansion
                     clip: true
                     radius: 15
                     color: "#18101827"
@@ -277,7 +279,7 @@ Scope {
                         width: 240
                         opacity: Math.max(0, (clockGlass.expansion - 0.25) / 0.75)
                         visible: clockGlass.expansion > 0
-                        enabled: calendarPopup.visible && clockGlass.expansion > 0.9
+                        enabled: calendarPopup.visible
                         spacing: 8
 
                         Row {
@@ -432,15 +434,17 @@ Scope {
                 Behavior on menuHeight {
                     NumberAnimation { duration: 240; easing.type: Easing.OutCubic }
                 }
-                implicitWidth: Math.ceil(controlsRow.implicitWidth + 24
-                    + Math.max(0, 190 - controlsRow.implicitWidth - 24) * expansion)
-                implicitHeight: Math.ceil(@bar-height@ + menuHeight * expansion)
+                // The input mask follows the card, including when the menu is closed.
+                implicitWidth: Math.max(190, controlsRow.implicitWidth + 24)
+                implicitHeight: @bar-height@ + 162
                 mask: Region { item: controlsCard }
                 Rectangle {
                     id: controlsCard
+                    anchors.right: parent.right
                     y: 3
-                    width: parent.width
-                    height: parent.height - 6
+                    width: controlsRow.implicitWidth + 24
+                        + Math.max(0, 190 - controlsRow.implicitWidth - 24) * controlsGlass.expansion
+                    height: 30 + controlsGlass.menuHeight * controlsGlass.expansion
                     clip: true
                     radius: 15
                     color: "#18101827"
@@ -578,7 +582,7 @@ Scope {
                         width: 166
                         opacity: Math.max(0, (controlsGlass.expansion - 0.25) / 0.75)
                         visible: controlsGlass.expansion > 0
-                        enabled: controlPopup.visible && controlsGlass.expansion > 0.9
+                        enabled: controlPopup.visible
                         spacing: 8
 
                         Item {
