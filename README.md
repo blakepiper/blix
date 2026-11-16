@@ -364,12 +364,11 @@ touch target and is selected only by `home/przvl/phone/topbar.nix`.
   each output's advertised refresh rates, rotation, scaling and brightness.
   Applying a layout starts a 15-second confirmation window. A separate watchdog
   restores the previous layout if it is rejected, times out or the app closes.
-  Window transparency applies immediately: on keeps the usual 85% focused / 80%
-  unfocused opacity and opaque Firefox video windows; off makes every window
-  100% opaque. OXWM applies this with Picom, while Hyprland updates its live
-  opacity settings through its Lua API. In Hyprland the switch reflects live
-  compositor opacity, including changes from configuration reloads. The control
-  explains which compositor it uses. The choice persists across sessions.
+  OXWM's Window transparency control applies immediately: on keeps the usual
+  85% focused / 80% unfocused opacity and opaque Firefox video windows; off
+  makes every window 100% opaque. The choice persists across sessions. Hyprland
+  opacity is configured by the session and has no transparency control in Blix
+  Settings.
   Night light has an on/off switch and a 0–100% intensity slider (6500K neutral
   to 2500K warm). OXWM uses Gammastep; Hyprland uses Hyprsunset. Apply
   intensity saves the slider choice;
@@ -486,10 +485,8 @@ share the same 40-pixel top offset. Side and bottom window gaps remain 10 pixels
 The bar and the three right-side control backgrounds are fully
 transparent; the clock area passes clicks through. Focused windows use 85%
 opacity and unfocused windows 80%. Firefox windows return to full opacity
-during video playback, and Steam game windows remain opaque. Blix Settings
-applies the saved transparency choice when Hyprland starts and updates it
-immediately when changed. Hyprsunset starts with the session and follows the
-saved night-light switch and intensity.
+during video playback, and Steam game windows remain opaque. Hyprsunset starts
+with the session and follows the saved night-light switch and intensity.
 Hyprland uses a 10 px outer gap and 10 px rounded window corners. A host-declared
 wallpaper is shown on every output with `swaybg`; Zen uses
 `~/Pictures/forest.jpg`, which remains a local image outside the flake.
@@ -521,7 +518,8 @@ selects the scalable Terminus font configuration so titles, labels and values
 can have distinct sizes and weights. Its X11 appearance stays independent. Daily display controls come before monitor
 arrangement; wide fields stack in narrower windows, action buttons sit with the
 controls they affect, and search explains when no settings match. Display Apply
-only commits monitor changes; brightness, transparency and audio act immediately.
+only commits monitor changes; brightness, audio, and the OXWM-only transparency
+control act immediately.
 Night-light warmth applies automatically after a short debounce, turns on above
 zero and turns off at zero. The switch restores a visible warmth when enabled;
 the bar preserves the last warmth when disabling night light. The topbar's three panes use a

@@ -335,7 +335,6 @@ in
 
     hl.on("hyprland.start", function()
       hl.exec_cmd("${sessionStart}/bin/blix-hyprland-session-start")
-      hl.exec_cmd("${blixSettings}/bin/blix-settings-apply apply-transparency")
       hl.exec_cmd("${bar}/bin/blix-hyprland-bar")
     end)
 

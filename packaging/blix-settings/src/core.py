@@ -181,37 +181,6 @@ def hyprland_session():
             or bool(os.environ.get("HYPRLAND_INSTANCE_SIGNATURE")))
 
 
-def apply_hyprland_transparency(enabled):
-    if "hyprctl" not in TOOLS:
-        raise SettingsError("Hyprland transparency controls are not available.")
-    active = "0.85" if enabled else "1.0"
-    inactive = "0.8" if enabled else "1.0"
-    # The pinned Lua-based Hyprland rejects legacy keyword requests while
-    # returning exit status zero. Validate the IPC reply as well as the process.
-    reply = command("hyprctl", "eval",
-                    f"hl.config({{ decoration = {{ active_opacity = {active}, inactive_opacity = {inactive} }} }})")
-    if reply.strip() != "ok":
-        raise SettingsError(f"Hyprland could not change window transparency: {reply.strip()}")
-
-
-def live_transparency_enabled(preferences=None):
-    if not hyprland_session():
-        return transparency_enabled(preferences)
-    values = []
-    for option in ("active_opacity", "inactive_opacity"):
-        result = json.loads(command("hyprctl", "-j", "getoption", f"decoration:{option}"))
-        value = result.get("float")
-        if not isinstance(value, (float, int)) or not 0 <= value <= 1:
-            raise SettingsError("Hyprland returned an invalid window opacity.")
-        values.append(value)
-    return any(value < 1 for value in values)
-
-
-def apply_saved_transparency():
-    if hyprland_session():
-        apply_hyprland_transparency(transparency_enabled())
-
-
 def prepare_picom_configuration(enabled=None):
     if enabled is None:
         enabled = transparency_enabled()
@@ -240,20 +209,10 @@ def prepare_picom_configuration(enabled=None):
 def set_transparency(enabled, preferences=None):
     if not isinstance(enabled, bool):
         raise SettingsError("Window transparency must be on or off.")
+    if hyprland_session():
+        raise SettingsError("Window transparency is configured by the Hyprland session.")
     preferences = preferences or Preferences()
     previous = transparency_enabled(preferences)
-    if hyprland_session():
-        try:
-            apply_hyprland_transparency(enabled)
-            preferences.update("transparency", None if enabled else False)
-        except (SettingsError, OSError):
-            preferences.update("transparency", None if previous else False)
-            try:
-                apply_hyprland_transparency(previous)
-            except SettingsError:
-                pass
-            raise
-        return
     prepare_picom_configuration(enabled)
     try:
         # ExecStartPre reads the saved preference when restarting Picom.
@@ -325,7 +284,7 @@ def outputs():
 
 def display_state(backlight=True):
     state = {"outputs": outputs(), "brightness": None, "brightness_error": None,
-             "transparency": live_transparency_enabled()}
+             "transparency": transparency_enabled()}
     resources = command("xrdb", "-query")
     dpi = re.search(r"^Xft\.dpi:\s*([\d.]+)\s*$", resources, re.M)
     state["dpi"] = float(dpi[1]) if dpi else None

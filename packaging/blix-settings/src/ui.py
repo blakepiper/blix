@@ -197,8 +197,15 @@ class Window(Gtk.ApplicationWindow):
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_icon_name("preferences-system")
         self.glass_session = os.environ.get("BLIX_HYPRLAND_SESSION") == "1"
+        self.hyprland_session = core.hyprland_session()
         self.demo = Demo() if demo else None
-        self.page_definitions = PAGES
+        self.page_definitions = [
+            (name, title, icon,
+             "Brightness, night light and monitor arrangement" if self.hyprland_session and name == "display" else subtitle,
+             " ".join(word for word in keywords.split() if word not in ("transparency", "opacity"))
+             if self.hyprland_session else keywords)
+            for name, title, icon, subtitle, keywords in PAGES
+        ]
         self.preferences = DemoPreferences() if demo else core.Preferences()
         self.defaults = self.demo.defaults if demo else core.defaults()
         self.executor = ThreadPoolExecutor(max_workers=3, thread_name_prefix="blix-settings")
@@ -682,7 +689,7 @@ class Window(Gtk.ApplicationWindow):
         if hasattr(self, "text_size"):
             dpi = state.get("dpi")
             self.text_size.set_text(f"{dpi / 96 * 100:g}% ({dpi:g} DPI)" if dpi else "Default")
-        if not self.saving_transparency:
+        if hasattr(self, "transparency_switch") and not self.saving_transparency:
             self.syncing = True
             try:
                 self.transparency_switch.set_active(state["transparency"])
@@ -714,18 +721,13 @@ class Window(Gtk.ApplicationWindow):
             self.connect_control(scale, "value-changed", lambda widget: self.defer_slider("brightness", lambda value=round(widget.get_value()): self.command(
                 "brightnessctl", "--class=backlight", "--min-value=1", "set", f"{value}%")))
         self.build_nightlight(body)
-        appearance = self.card(body, "Appearance")
-        self.transparency_switch = self.make_switch(active=core.transparency_enabled(self.preferences))
-        self.transparency_switch.set_sensitive(not self.saving_transparency)
-        if core.hyprland_session():
-            transparency_description = (
-                "Make supported windows translucent. Video and game exceptions stay opaque. "
-                "Changes take effect immediately.")
-        else:
-            transparency_description = (
-                "Make supported windows translucent. Changes take effect immediately.")
-        self.row(appearance, "Window transparency", self.transparency_switch, transparency_description)
-        self.connect_control(self.transparency_switch, "notify::active", lambda *_: self.save_transparency())
+        if not self.hyprland_session:
+            appearance = self.card(body, "Appearance")
+            self.transparency_switch = self.make_switch(active=core.transparency_enabled(self.preferences))
+            self.transparency_switch.set_sensitive(not self.saving_transparency)
+            self.row(appearance, "Window transparency", self.transparency_switch,
+                     "Make supported windows translucent. Changes take effect immediately.")
+            self.connect_control(self.transparency_switch, "notify::active", lambda *_: self.save_transparency())
         connected = [item for item in available if item["connected"] and item["modes"]]
         if not connected:
             body.pack_start(label("No connected displays were found."), False, False, 0)
@@ -798,7 +800,9 @@ class Window(Gtk.ApplicationWindow):
         actions.pack_end(self.display_apply, False, False, 0)
         actions.pack_end(self.display_restore, False, False, 0)
         self.display_footer.pack_start(actions, False, False, 0)
-        self.display_footer.pack_start(label("Monitor changes revert after 15 seconds unless kept. Brightness and transparency apply immediately.", "dim", True), False, False, 0)
+        footer_note = "Monitor changes revert after 15 seconds unless kept."
+        footer_note += " Brightness applies immediately." if self.hyprland_session else " Brightness and transparency apply immediately."
+        self.display_footer.pack_start(label(footer_note, "dim", True), False, False, 0)
         self.dirty_display = False
         body.show_all()
         self.display_footer.show_all()

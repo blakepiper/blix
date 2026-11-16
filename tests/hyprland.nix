@@ -34,7 +34,7 @@ assert lib.hasInfix ''match = { class = "^[.]blix-settings-wrapped$", title = "^
 assert lib.hasInfix ''active_opacity = 0.85'' config;
 assert lib.hasInfix ''inactive_opacity = 0.80'' config;
 assert lib.hasInfix ''title = "^\\[blix-video\\] "'' config;
-assert lib.hasInfix ''apply-transparency")'' config;
+assert !(lib.hasInfix ''apply-transparency")'' config);
 assert lib.hasInfix ''hyprsunset'' (lib.concatStringsSep " " home.systemd.user.services.blix-hyprsunset.Service.ExecStart);
 assert lib.hasInfix ''apply-hyprland-nightlight'' home.systemd.user.services.blix-hyprsunset.Service.ExecStartPost;
 assert !(home.systemd.user.targets ? "blix-hyprland-session");

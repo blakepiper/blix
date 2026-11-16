@@ -3,12 +3,12 @@ import json
 import os
 import sys
 
-from core import nightlight_settings, set_nightlight, SettingsError, command, power_profiles, set_power_profile, run_nightlight, apply_hyprland_nightlight, apply_saved_display, apply_session_preferences, prepare_picom_configuration, apply_saved_transparency, preview_display, watch_input
+from core import nightlight_settings, set_nightlight, SettingsError, command, power_profiles, set_power_profile, run_nightlight, apply_hyprland_nightlight, apply_saved_display, apply_session_preferences, prepare_picom_configuration, preview_display, watch_input
 
 
 def main(gui=True):
     parser = argparse.ArgumentParser(description="Blix desktop settings")
-    parser.add_argument("action", nargs="?", choices=["display-hotplug", "apply-session", "watch-input", "display-preview", "prepare-picom", "apply-transparency", "apply-hyprland-nightlight", "nightlight", "nightlight-level", "power-mode"])
+    parser.add_argument("action", nargs="?", choices=["display-hotplug", "apply-session", "watch-input", "display-preview", "prepare-picom", "apply-hyprland-nightlight", "nightlight", "nightlight-level", "power-mode"])
     parser.add_argument("profile", nargs="?", choices=["performance", "balanced", "power-saver"])
     parser.add_argument("--intensity", type=int, help="Night light warmth from 0 (off) to 100")
     parser.add_argument("--demo", action="store_true", help="Preview the interface with simulated devices; changes stay in memory")
@@ -40,8 +40,6 @@ def main(gui=True):
                 set_nightlight(args.intensity > 0, intensity)
         elif args.action == "prepare-picom":
             prepare_picom_configuration()
-        elif args.action == "apply-transparency":
-            apply_saved_transparency()
         elif args.action == "apply-hyprland-nightlight":
             apply_hyprland_nightlight()
         elif args.action == "power-mode":
