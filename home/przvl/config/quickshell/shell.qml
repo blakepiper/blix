@@ -533,7 +533,7 @@ Scope {
                                 anchors.fill: parent
                                 radius: 10
                                 color: "#00000000"
-                                border.width: 1
+                                border.width: 0
                                 border.color: panel.activeControl === "battery" ? "transparent" : "#20c0caf5"
                                 opacity: panel.activeControl === "battery" ? 0 : controlsGlass.expansion
                                 Behavior on opacity { NumberAnimation { duration: 160 } }
@@ -577,7 +577,7 @@ Scope {
                                 anchors.fill: parent
                                 radius: 10
                                 color: "#00000000"
-                                border.width: 1
+                                border.width: 0
                                 border.color: panel.activeControl === "volume" ? "transparent" : "#20c0caf5"
                                 opacity: panel.activeControl === "volume" ? 0 : controlsGlass.expansion
                                 Behavior on opacity { NumberAnimation { duration: 160 } }
@@ -612,7 +612,7 @@ Scope {
                                 anchors.fill: parent
                                 radius: 10
                                 color: "#00000000"
-                                border.width: 1
+                                border.width: 0
                                 border.color: panel.activeControl === "brightness" ? "transparent" : "#20c0caf5"
                                 opacity: panel.activeControl === "brightness" ? 0 : controlsGlass.expansion
                                 Behavior on opacity { NumberAnimation { duration: 160 } }
