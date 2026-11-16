@@ -94,9 +94,10 @@ window.blix-glass {
 .blix-glass .page-display scale highlight, .blix-glass .page-display progressbar progress { background: #eed49f; }
 .blix-glass .page-display scale slider { border-color: #eed49f; }
 .blix-glass .page-power progressbar progress { background: #a6da95; }
-.blix-glass switch { min-width: 46px; min-height: 24px; padding: 0; border-radius: 14px; border: 1px solid rgba(192,202,245,0.20); background: rgba(192,202,245,0.14); }
+/* The Tokyo Night GTK theme's 75 ms switch transition feels abrupt at this size. */
+.blix-glass switch { min-width: 46px; min-height: 24px; padding: 0; border-radius: 14px; border: 1px solid rgba(192,202,245,0.20); background: rgba(192,202,245,0.14); transition: all 180ms ease-in-out; }
 .blix-glass switch:checked { background: rgba(138,173,244,0.50); border-color: rgba(138,173,244,0.75); }
-.blix-glass switch slider { min-width: 18px; min-height: 18px; margin: 3px; padding: 0; border-radius: 50%; background: #d4dcf4; border: 0; box-shadow: none; }
+.blix-glass switch slider { min-width: 18px; min-height: 18px; margin: 3px; padding: 0; border-radius: 50%; background: #d4dcf4; border: 0; box-shadow: none; transition: all 180ms ease-in-out; }
 .blix-glass switch:disabled slider { background: #727b96; }
 .blix-glass progressbar trough { min-height: 6px; border-radius: 12px; background: rgba(192,202,245,0.15); }
 .blix-glass progressbar progress { min-height: 6px; border-radius: 12px; }
