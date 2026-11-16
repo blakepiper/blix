@@ -55,9 +55,10 @@ let
     name = "hyprland-bar-status";
     text = builtins.readFile ../config/quickshell/status.sh;
   };
+  distroLogo = "${pkgs.nixos-icons}/share/icons/hicolor/24x24/apps/nix-snowflake.png";
   barQml = pkgs.writeText "blix-hyprland-bar.qml" (builtins.replaceStrings
-    [ "@bar-height@" "@popup-top@" "@status-command@" "@power-mode-command@" "@brightness-command@" "@has-battery@" "@has-backlight@" "@has-power-profiles@" ]
-    [ (toString barHeight) (toString popupTop) "${barStatus}/bin/hyprland-bar-status" "${blixSettings}/bin/blix-settings-apply" "${pkgs.brightnessctl}/bin/brightnessctl" (lib.boolToString config.blix.hardware.hasBattery) (lib.boolToString config.blix.hardware.hasBacklight) (lib.boolToString config.blix.hardware.hasPowerProfiles) ]
+    [ "@bar-height@" "@popup-top@" "@status-command@" "@power-mode-command@" "@brightness-command@" "@distro-logo@" "@has-battery@" "@has-backlight@" "@has-power-profiles@" ]
+    [ (toString barHeight) (toString popupTop) "${barStatus}/bin/hyprland-bar-status" "${blixSettings}/bin/blix-settings-apply" "${pkgs.brightnessctl}/bin/brightnessctl" distroLogo (lib.boolToString config.blix.hardware.hasBattery) (lib.boolToString config.blix.hardware.hasBacklight) (lib.boolToString config.blix.hardware.hasPowerProfiles) ]
     (builtins.readFile ../config/quickshell/shell.qml));
   bar = pkgs.writeShellApplication {
     name = "blix-hyprland-bar";

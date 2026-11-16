@@ -91,6 +91,7 @@ Scope {
             implicitHeight: @bar-height@
             color: "transparent"
             mask: Region {
+                Region { item: distroLogo }
                 Region { item: workspaceRow }
                 Region { item: centerClock }
                 Region { item: controlsRow }
@@ -104,10 +105,21 @@ Scope {
                 }
             }
 
+            Image {
+                id: distroLogo
+                anchors.left: parent.left
+                anchors.leftMargin: 14
+                anchors.verticalCenter: parent.verticalCenter
+                width: 24
+                height: 24
+                source: "file://@distro-logo@"
+                fillMode: Image.PreserveAspectFit
+            }
+
             Row {
                 id: workspaceRow
                 anchors.left: parent.left
-                anchors.leftMargin: 14
+                anchors.leftMargin: 46
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 5
 
