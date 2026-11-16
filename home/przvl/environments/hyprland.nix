@@ -55,10 +55,17 @@ let
     name = "hyprland-bar-status";
     text = builtins.readFile ../config/quickshell/status.sh;
   };
+  systemInfo = pkgs.writeShellApplication {
+    name = "hyprland-system-info";
+    text = ''
+      exec ${pkgs.python3}/bin/python3 ${../config/quickshell/system-info.py} \
+        ${lib.escapeShellArg (if builtins.elem "nvidia" osConfig.services.xserver.videoDrivers then "${osConfig.hardware.nvidia.package.bin}/bin/nvidia-smi" else "")}
+    '';
+  };
   distroLogo = "${pkgs.nixos-icons}/share/icons/hicolor/24x24/apps/nix-snowflake.png";
   barQml = pkgs.writeText "blix-hyprland-bar.qml" (builtins.replaceStrings
-    [ "@bar-height@" "@popup-top@" "@status-command@" "@power-mode-command@" "@brightness-command@" "@distro-logo@" "@has-battery@" "@has-backlight@" "@has-power-profiles@" ]
-    [ (toString barHeight) (toString popupTop) "${barStatus}/bin/hyprland-bar-status" "${blixSettings}/bin/blix-settings-apply" "${pkgs.brightnessctl}/bin/brightnessctl" distroLogo (lib.boolToString config.blix.hardware.hasBattery) (lib.boolToString config.blix.hardware.hasBacklight) (lib.boolToString config.blix.hardware.hasPowerProfiles) ]
+    [ "@bar-height@" "@popup-top@" "@status-command@" "@system-info-command@" "@power-mode-command@" "@brightness-command@" "@distro-logo@" "@has-battery@" "@has-backlight@" "@has-power-profiles@" ]
+    [ (toString barHeight) (toString popupTop) "${barStatus}/bin/hyprland-bar-status" "${systemInfo}/bin/hyprland-system-info" "${blixSettings}/bin/blix-settings-apply" "${pkgs.brightnessctl}/bin/brightnessctl" distroLogo (lib.boolToString config.blix.hardware.hasBattery) (lib.boolToString config.blix.hardware.hasBacklight) (lib.boolToString config.blix.hardware.hasPowerProfiles) ]
     (builtins.readFile ../config/quickshell/shell.qml));
   bar = pkgs.writeShellApplication {
     name = "blix-hyprland-bar";

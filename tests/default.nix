@@ -8,6 +8,10 @@ in
   machine-profiles = import ./machine-profiles.nix { inherit lib pkgs fixture; };
   environment-composition = import ./environment-composition.nix { inherit lib pkgs fixture; };
   phone-hardware = import ./phone-hardware.nix { inherit lib pkgs phone phoneBootstrap; };
+  system-info = pkgs.runCommand "system-info-checks" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+    python3 ${./system-info.py} ${../home/przvl/config/quickshell/system-info.py}
+    touch "$out"
+  '';
   hyprland = import ./hyprland.nix { inherit lib pkgs fixture; };
   suspend = import ./suspend.nix { inherit pkgs; };
   session-settings = import ./session-settings.nix { inherit pkgs fixture; };

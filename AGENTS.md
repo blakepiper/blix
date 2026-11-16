@@ -147,6 +147,9 @@ scope and risk rules in the Validation section.
   packages and desktop settings. It does not select the browser or terminal.
 - `home/przvl/appearance.nix` owns the shared Tokyo Night GTK/Qt theme and Nerd
   fonts; application modules own their native palettes.
+- `home/przvl/config/quickshell/system-info.py` owns portable read-only Linux
+  telemetry for the Hyprland system-info tab. It samples only while open; vendor
+  probes are optional and missing readings stay explicit. The phone keeps X11.
 - `home/przvl/config/` owns the Blix-derived OXWM, Picom, Neovim,
   Neofetch, and helper-script configuration.
 - `home/przvl/hardware/` declares typed user capabilities and display options;

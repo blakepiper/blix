@@ -103,6 +103,16 @@ Scope {
             id: panel
             required property var modelData
             property string activeControl: ""
+            property var systemStats: ({ rows: [] })
+            Process {
+                command: ["@system-info-command@"]
+                running: controlPopup.visible && panel.activeControl === "system"
+                stdout: SplitParser {
+                    onRead: data => {
+                        try { panel.systemStats = JSON.parse(data); } catch (error) { console.warn("Invalid system info:", error); }
+                    }
+                }
+            }
             function toggleControl(name) {
                 calendarPopup.visible = false;
                 if (activeControl === name && controlPopup.visible) {
@@ -458,6 +468,10 @@ Scope {
                 focusable: false
                 color: "transparent"
                 property real expansion: controlPopup.visible ? 1 : 0
+                property real expandedWidth: panel.activeControl === "system" ? 264 : 190
+                Behavior on expandedWidth {
+                    NumberAnimation { duration: 240; easing.type: Easing.OutCubic }
+                }
                 property real menuHeight: cardColumn.implicitHeight + 24
                 Behavior on expansion {
                     NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
@@ -466,18 +480,19 @@ Scope {
                     NumberAnimation { duration: 240; easing.type: Easing.OutCubic }
                 }
                 // The input mask follows the card, including when the menu is closed.
-                implicitWidth: Math.max(190, controlsRow.implicitWidth + 24)
-                implicitHeight: @bar-height@ + 162
+                implicitWidth: Math.max(264, controlsRow.implicitWidth + 24)
+                implicitHeight: Math.min(340, panel.screen.height)
                 mask: Region { item: controlsCard }
                 Item {
                     id: controlsCard
                     anchors.right: parent.right
                     y: 3
                     width: controlsRow.implicitWidth + 24
-                        + Math.max(0, 190 - controlsRow.implicitWidth - 24) * controlsGlass.expansion
+                        + Math.max(0, controlsGlass.expandedWidth - controlsRow.implicitWidth - 24) * controlsGlass.expansion
                     height: 30 + controlsGlass.menuHeight * controlsGlass.expansion
                     clip: true
-                    readonly property var selectedButton: panel.activeControl === "battery" ? batteryControl
+                    readonly property var selectedButton: panel.activeControl === "system" ? systemControl
+                        : panel.activeControl === "battery" ? batteryControl
                         : panel.activeControl === "brightness" ? brightnessControl : volumeControl
                     readonly property real tabCenter: controlsRow.x + tabOffset
                     property real tabOffset: selectedButton.x + selectedButton.width / 2
@@ -523,6 +538,24 @@ Scope {
                         anchors.rightMargin: 12
                         y: 2.5
                         spacing: 14
+
+                        Item {
+                            id: systemControl
+                            width: 25
+                            height: 25
+                            Text {
+                                anchors.centerIn: parent
+                                text: "\uf2db"
+                                color: "#f7768e"
+                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: 20
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: panel.toggleControl("system")
+                            }
+                        }
 
                         Item {
                             id: batteryControl
@@ -661,11 +694,67 @@ Scope {
                         id: cardColumn
                         x: parent.width - width - 12
                         y: 42 - 10 * (1 - controlsGlass.expansion)
-                        width: 166
+                        width: panel.activeControl === "system" ? 240 : 166
                         opacity: Math.max(0, (controlsGlass.expansion - 0.25) / 0.75)
                         visible: controlsGlass.expansion > 0
                         enabled: controlPopup.visible
                         spacing: 8
+
+                        Item {
+                            visible: panel.activeControl === "system"
+                            width: parent.width
+                            height: Math.min(280, controlsGlass.height - 60)
+                            Text {
+                                text: "SYSTEM"
+                                color: "#f7768e"
+                                font.family: "Terminus (TTF)"
+                                font.bold: true
+                                font.pixelSize: 12
+                            }
+                            Flickable {
+                                anchors { top: parent.top; topMargin: 24; bottom: parent.bottom; left: parent.left; right: parent.right }
+                                contentHeight: statsColumn.implicitHeight
+                                clip: true
+                                boundsBehavior: Flickable.StopAtBounds
+                                ScrollBar.vertical: ScrollBar { }
+                                Column {
+                                    id: statsColumn
+                                    width: parent.width - 8
+                                    spacing: 6
+                                    Repeater {
+                                        model: panel.systemStats.rows
+                                        Row {
+                                            required property var modelData
+                                            width: statsColumn.width
+                                            height: 18
+                                            Text {
+                                                width: parent.width * 0.46
+                                                text: modelData.label
+                                                elide: Text.ElideRight
+                                                color: "#a9b1d6"
+                                                font.family: "Terminus (TTF)"
+                                                font.pixelSize: 12
+                                            }
+                                            Text {
+                                                width: parent.width * 0.54
+                                                text: modelData.value
+                                                horizontalAlignment: Text.AlignRight
+                                                color: "#c0caf5"
+                                                font.family: "Terminus (TTF)"
+                                                font.pixelSize: 12
+                                            }
+                                        }
+                                    }
+                                    Text {
+                                        visible: panel.systemStats.rows.length === 0
+                                        text: "Reading sensors…"
+                                        color: "#a9b1d6"
+                                        font.family: "Terminus (TTF)"
+                                        font.pixelSize: 12
+                                    }
+                                }
+                            }
+                        }
 
                         Item {
                             visible: panel.activeControl === "battery" && @has-battery@ && root.battery !== ""

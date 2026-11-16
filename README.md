@@ -524,7 +524,14 @@ battery, volume or brightness menu. Each menu grows from its button pane as one
 continuous glass surface, with reversible eased motion and a delayed content
 reveal. The selected control forms a tab with curved shoulders that join directly into
 the menu; switching controls slides this tab and animates menu height without
-closing it. Native layer windows keep fixed dimensions throughout. The brightness menu also
+closing it. Native layer windows keep fixed dimensions throughout. A red system-info button
+sits before the battery in Quickshell. Its scrollable menu samples CPU, RAM,
+swap, GPU activity, load, uptime, root disk usage and temperature sensors every
+two seconds while open; it stops sampling when closed. GPU reporting uses
+NVIDIA's packaged tool, AMD sysfs, Intel Xe GT residency or readable DRM client
+engine counters (labeled GPU apps); unsupported readings say Unavailable.
+The collector is architecture-independent, with thermal-zone fallback for ARM;
+the phone retains its existing X11 session rather than enabling Quickshell. The brightness menu also
 includes night-light warmth (0 is off), saved through the same setting as Blix
 Settings and restored at login.
 The plugin is pinned in `packaging/hyprglass/default.nix` to the Hyprland 0.57 branch and
