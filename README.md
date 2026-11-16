@@ -494,7 +494,12 @@ Hyprland uses a 10 px outer gap and 10 px rounded window corners. A host-declare
 wallpaper is shown on every output with `swaybg`; Zen uses
 `~/Pictures/snowleopard.jpg`, which remains a local image outside the flake.
 Laptop profiles with a declared
-primary connector mirror newly connected outputs to that panel by default.
+primary connector use a connected external monitor as the mirror source at its
+native preferred mode and refresh rate. The laptop mirrors that screen, with
+letterboxing when aspect ratios differ. Unplugging restores the laptop panel
+as the source with automatic scaling. With multiple external monitors, the
+current source is retained until disconnected; otherwise connector-name order
+selects the source.
 Desktop needs a declared primary connector before mirroring can be configured.
 Hyprland has no automatic login. Its Night Light helper is owned
 by Blix Settings and runs only during the Hyprland session.

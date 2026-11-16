@@ -82,6 +82,9 @@ scope and risk rules in the Validation section.
   launcher, Blix Settings, Wofi and Quickshell control/calendar popups. The
   session's CSS/QML supplies background alpha without fading text. Update the
   compatible plugin revision with Hyprland.
+  `home/przvl/config/hyprland-monitors.lua` owns native laptop hotplug mirroring:
+  prefer an external source at its preferred mode; restore the internal panel
+  on disconnect. Desktop without a primary connector keeps compositor defaults.
   Hyprland owns no login automation or user target.
 - `modules/desktop/` supplies the optional X11/OXWM session, desktop services,
   fonts and system utilities. Profiles select it explicitly.

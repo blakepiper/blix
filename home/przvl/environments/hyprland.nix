@@ -290,11 +290,9 @@ in
       ignore_alpha = 0.0,
     })
 
-    ${lib.optionalString (primaryOutput != null) ''
-      -- Mirror newly connected outputs to the host's built-in primary panel.
-      hl.monitor({ output = "${primaryOutput}", mode = "preferred", position = "auto", scale = "auto" })
-      hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1, mirror = "${primaryOutput}" })
-    ''}
+    ${lib.optionalString (primaryOutput != null) (builtins.replaceStrings
+      [ "@primary-output@" ] [ primaryOutput ]
+      (builtins.readFile ../config/hyprland-monitors.lua))}
 
     hl.on("hyprland.start", function()
       hl.exec_cmd("${sessionStart}/bin/blix-hyprland-session-start")

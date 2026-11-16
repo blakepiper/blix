@@ -11,6 +11,9 @@ let
   home = workstation.home-manager.users.przvl;
   config = home.xdg.configFile."hypr/hyprland.lua".text;
   bar = builtins.readFile ../home/przvl/config/quickshell/shell.qml;
+  monitorPolicy = pkgs.writeText "hyprland-monitors.lua" (builtins.replaceStrings
+    [ "@primary-output@" ] [ "eDP-1" ]
+    (builtins.readFile ../home/przvl/config/hyprland-monitors.lua));
   fontConfig = home.xdg.configFile."hypr/fontconfig.conf".source;
 in
 assert workstation.programs.hyprland.enable;
@@ -57,6 +60,7 @@ assert lib.hasInfix ''hl.bind("SUPER + Return", exec('' config;
 assert lib.hasInfix ''hl.bind("SUPER + SHIFT + Q", hl.dsp.exit())'' config;
 assert lib.hasInfix "for i = 1, 9 do" config;
 pkgs.runCommand "hyprland-profile-checks" {} ''
+  ${pkgs.lua}/bin/lua ${./hyprland-monitors.lua} ${monitorPolicy}
   export FONTCONFIG_FILE=${fontConfig}
   match=$(${pkgs.fontconfig}/bin/fc-match -f '%{family}|%{style}|%{pixelsize}|%{antialias}|%{hintstyle}\n' 'JetBrainsMono Nerd Font:size=10')
   test "$match" = 'Tamsyn|Bold|16|False|3'
