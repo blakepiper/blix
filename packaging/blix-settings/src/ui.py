@@ -94,6 +94,7 @@ class Window(Gtk.ApplicationWindow):
         self.set_default_size(1060, 760)
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_icon_name("preferences-system")
+        self.glass_session = os.environ.get("BLIX_HYPRLAND_SESSION") == "1"
         self.demo = Demo() if demo else None
         self.page_definitions = PAGES
         self.preferences = DemoPreferences() if demo else core.Preferences()
@@ -139,7 +140,7 @@ class Window(Gtk.ApplicationWindow):
         provider = Gtk.CssProvider()
         provider.load_from_path(str(Path(__file__).with_name("style.css")))
         Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-        if os.environ.get("BLIX_HYPRLAND_SESSION") == "1":
+        if self.glass_session:
             # Client background alpha exposes HyprGlass without fading text.
             visual = self.get_screen().get_rgba_visual()
             if visual is not None:
@@ -151,12 +152,27 @@ class Window(Gtk.ApplicationWindow):
         Gtk.Settings.get_default().set_property("gtk-application-prefer-dark-theme", True)
         self.build_shell()
         self.initialize_radios()
-        for name, title, _, subtitle, _ in self.page_definitions:
+        for name, title, icon, subtitle, _ in self.page_definitions:
             content = box(spacing=18)
             for method in (content.set_margin_top, content.set_margin_bottom, content.set_margin_start, content.set_margin_end):
                 method(24)
-            content.pack_start(label(title, "page-title"), False, False, 0)
-            content.pack_start(label(subtitle, "subtitle", True), False, False, 0)
+            content.get_style_context().add_class("settings-page")
+            content.get_style_context().add_class("page-" + name)
+            if self.glass_session:
+                header = box(False, 16)
+                header.get_style_context().add_class("page-header")
+                image = Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.DIALOG)
+                image.set_pixel_size(28)
+                image.get_style_context().add_class("page-icon")
+                header.pack_start(image, False, False, 0)
+                headings = box(spacing=6)
+                headings.pack_start(label(title, "page-title"), False, False, 0)
+                headings.pack_start(label(subtitle, "subtitle", True), False, False, 0)
+                header.pack_start(headings, True, True, 0)
+                content.pack_start(header, False, False, 0)
+            else:
+                content.pack_start(label(title, "page-title"), False, False, 0)
+                content.pack_start(label(subtitle, "subtitle", True), False, False, 0)
             body = box(spacing=16)
             content.pack_start(body, False, False, 0)
             scroll = Gtk.ScrolledWindow()
@@ -167,6 +183,7 @@ class Window(Gtk.ApplicationWindow):
                 display_page.pack_start(scroll, True, True, 0)
                 self.display_footer = box(spacing=8)
                 self.display_footer.set_border_width(16)
+                self.display_footer.get_style_context().add_class("display-footer")
                 display_page.pack_end(self.display_footer, False, False, 0)
                 self.stack.add_named(display_page, name)
             else:
@@ -205,6 +222,17 @@ class Window(Gtk.ApplicationWindow):
         sidebar = box(spacing=18)
         sidebar.set_size_request(220, -1)
         sidebar.get_style_context().add_class("sidebar")
+        if self.glass_session:
+            brand = box(False, 10)
+            brand.get_style_context().add_class("brand")
+            mark = Gtk.Image.new_from_icon_name("preferences-system-symbolic", Gtk.IconSize.LARGE_TOOLBAR)
+            mark.get_style_context().add_class("brand-mark")
+            brand.pack_start(mark, False, False, 0)
+            titles = box(spacing=2)
+            titles.pack_start(label("BLIX", "brand-title"), False, False, 0)
+            titles.pack_start(label("Settings", "dim"), False, False, 0)
+            brand.pack_start(titles, False, False, 0)
+            sidebar.pack_start(brand, False, False, 0)
         self.search = Gtk.SearchEntry(placeholder_text="Find a setting…")
         self.search.set_margin_top(18)
         self.search.set_margin_start(12)
@@ -215,6 +243,7 @@ class Window(Gtk.ApplicationWindow):
         self.sidebar.set_selection_mode(Gtk.SelectionMode.SINGLE)
         for name, title, icon, _, keywords in self.page_definitions:
             row = Gtk.ListBoxRow()
+            row.get_style_context().add_class("nav-" + name)
             row.page_name, row.keywords = name, (title + " " + keywords).lower()
             content = box(False, 12)
             content.pack_start(Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.LARGE_TOOLBAR), False, False, 0)
@@ -229,7 +258,8 @@ class Window(Gtk.ApplicationWindow):
         sidebar.pack_end(footer, False, False, 0)
         main.pack_start(sidebar, False, False, 0)
         self.stack = Gtk.Stack()
-        self.stack.set_transition_type(Gtk.StackTransitionType.NONE)
+        self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE if self.glass_session else Gtk.StackTransitionType.NONE)
+        self.stack.set_transition_duration(160)
         main.pack_start(self.stack, True, True, 0)
         self.status = Gtk.Revealer()
         status_box = box(False, 12)
@@ -440,7 +470,7 @@ class Window(Gtk.ApplicationWindow):
     def row(self, parent, title, widget, description=None):
         content = box(False, 16)
         text = box(spacing=4)
-        text.pack_start(label(title), False, False, 0)
+        text.pack_start(label(title, "setting-label"), False, False, 0)
         if description:
             text.pack_start(label(description, "dim", True), False, False, 0)
         content.pack_start(text, True, True, 0)

@@ -1016,6 +1016,29 @@ class GuiTests(unittest.TestCase):
         self.window.search.set_text("")
         self.pump()
 
+    def test_hyprland_glass_shell_keeps_all_pages_and_search_usable(self):
+        from gi.repository import Gtk
+        from ui import Window
+        with patch.dict(os.environ, BLIX_HYPRLAND_SESSION="1"):
+            window = Window(self.app, demo=True)
+        try:
+            self.assertTrue(window.get_style_context().has_class("blix-glass"))
+            self.assertEqual(window.stack.get_transition_type(), Gtk.StackTransitionType.CROSSFADE)
+            for name, *_ in window.page_definitions:
+                window.select_page(name)
+                window.refresh()
+                self.pump(0.25)
+                self.assertEqual(window.stack.get_visible_child_name(), name)
+                self.assertTrue(window.pages[name].get_children(), name)
+            window.search.set_text("microphone")
+            self.pump(0.3)
+            self.assertEqual(window.page, "audio")
+            self.assertEqual(window.demo.calls, [])
+        finally:
+            window.close_window()
+            window.destroy()
+            self.pump()
+
     def test_about_refresh_keeps_current_system_details_visible(self):
         from gi.repository import Gtk
         self.page("about")

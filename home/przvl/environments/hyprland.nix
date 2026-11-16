@@ -34,6 +34,13 @@ let
         ${lib.optionalString (retroTerminalSize != null) ''--font-family="Terminus (TTF)" --font-style=Bold --font-size=${toString retroTerminalSize}''} "$@"
     '';
   };
+  settingsLauncher = pkgs.writeShellApplication {
+    name = "blix-hyprland-settings";
+    text = ''
+      export FONTCONFIG_FILE=${terminalFonts}
+      exec ${blixSettings}/bin/blix-settings "$@"
+    '';
+  };
   launcher = "${pkgs.wofi}/bin/wofi --show drun --allow-images --prompt 'Search applications'";
   screenshot = pkgs.writeShellApplication {
     name = "hyprland-screenshot";
@@ -211,7 +218,7 @@ in
     gtk_dark=true
   '';
 
-  config.home.packages = with pkgs; [ wofi hyprlock screenshot controlMenu bar sessionStart start ];
+  config.home.packages = with pkgs; [ settingsLauncher wofi hyprlock screenshot controlMenu bar sessionStart start ];
   config.xdg.configFile."hypr/fontconfig.conf".source = fonts;
   config.xdg.configFile."hypr/hyprland.lua".text = ''
     -- Load before configuring the plugin. Whitelist the glass-enabled app and layer surfaces.
@@ -280,6 +287,11 @@ in
       opacity = "1.0 override 1.0 override 1.0 override",
     })
     hl.window_rule({
+      name = "blix-settings-clear-material",
+      match = { class = "^[.]blix-settings-wrapped$", title = "^Blix Settings$" },
+      tag = "+hyprglass_preset_blix-bar-glass",
+    })
+    hl.window_rule({
       name = "blix-ghostty-glass",
       match = { class = "^com[.]blix[.]ghostty-glass$" },
       tag = "+hyprglass_enabled",
@@ -346,7 +358,7 @@ in
     hl.bind("SUPER + SHIFT + Space", exec("${controlMenu}/bin/hyprland-control-menu"))
     hl.bind("SUPER + D", exec("${launcher}"))
     hl.bind("SUPER + F", exec("${pkgs.thunar}/bin/thunar"))
-    hl.bind("SUPER + S", exec("${blixSettings}/bin/blix-settings"))
+    hl.bind("SUPER + S", exec("${settingsLauncher}/bin/blix-hyprland-settings"))
     hl.bind("SUPER + B", exec("${lib.getExe config.programs.firefox.package}"))
     hl.bind("SUPER + SHIFT + B", exec("${lib.getExe config.programs.firefox.package} --private-window"))
     hl.bind("SUPER + Q", hl.dsp.window.close())

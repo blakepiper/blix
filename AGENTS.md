@@ -81,7 +81,10 @@ scope and risk rules in the Validation section.
   built against the selected compositor; glass is restricted to its Ghostty
   launcher, Blix Settings, Wofi and Quickshell's
   workspace, clock and controls panes (including their expanding menus). The session's CSS/QML supplies background alpha
-  without fading text. Update the compatible plugin revision with Hyprland.
+  without fading text. Blix Settings uses the clear topbar preset and a focused
+  Hyprland-only CSS/layout treatment; its launcher selects scalable Terminus
+  fonts. Keep its X11 presentation independent. Update the compatible plugin
+  revision with Hyprland.
   `home/przvl/config/hyprland-monitors.lua` owns native laptop hotplug mirroring:
   prefer an external source at its preferred mode; restore the internal panel
   on disconnect. Desktop without a primary connector keeps compositor defaults.

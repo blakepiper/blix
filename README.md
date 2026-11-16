@@ -514,7 +514,11 @@ with HyprGlass refraction, edge highlights and light blur, while text remains
 opaque. The effect is restricted to that launcher's `com.blix.ghostty-glass`
 app ID, Blix Settings (Super+S), Wofi (Super+Space and Super+Shift+Space),
 Quickshell's workspace, clock and controls panes. These
-use contour-masked glass with opaque text. The topbar's three panes use a
+use contour-masked glass with opaque text. Blix Settings' Hyprland view
+uses the same clear glass preset as the topbar, with a floating navigation rail,
+rounded translucent cards, section-colored icons, and short page fades. Super+S
+selects the scalable Terminus font configuration so titles, labels and values
+can have distinct sizes and weights. Its X11 appearance stays independent. The topbar's three panes use a
 clearer material with lighter tint, reduced blur and gentler refraction than the
 terminal and popups. The workspace pane includes the distro logo and all regular
 workspaces, with animated insertion and removal, and text color indicating focus.
