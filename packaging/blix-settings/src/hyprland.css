@@ -84,14 +84,19 @@ window.blix-glass {
 .blix-glass entry selection { background: rgba(122,162,247,0.4); color: #ffffff; }
 .blix-glass scale trough { min-height: 6px; border-radius: 12px; background: rgba(192,202,245,0.16); }
 .blix-glass scale highlight { min-height: 6px; border-radius: 12px; background: #8aadf4; }
-.blix-glass scale slider { min-width: 15px; min-height: 15px; border-radius: 12px; background: #c0caf5; border-color: #8aadf4; box-shadow: 0 1px 3px rgba(16,24,39,0.25); }
+/* Keep the full thumb width draggable; theme margins must not collapse its hit area. */
+.blix-glass scale { padding: 12px 0; }
+.blix-glass scale slider { min-width: 18px; min-height: 18px; margin: -7px 0; padding: 0; border-radius: 50%; background: #c0caf5; border: 1px solid #8aadf4; box-shadow: 0 1px 3px rgba(16,24,39,0.25); }
+.blix-glass scale slider:hover { background: #e2e6ef; }
+.blix-glass scale slider:active { background: #8aadf4; }
+.blix-glass scale:disabled slider, .blix-glass scale:disabled highlight { background: #727b96; border-color: #727b96; }
 .blix-glass scale value { font-size: 13px; color: #d4dcf4; }
 .blix-glass .page-display scale highlight, .blix-glass .page-display progressbar progress { background: #eed49f; }
 .blix-glass .page-display scale slider { border-color: #eed49f; }
 .blix-glass .page-power progressbar progress { background: #a6da95; }
-.blix-glass switch { min-height: 22px; border-radius: 14px; border: 1px solid rgba(192,202,245,0.20); background: rgba(192,202,245,0.14); }
+.blix-glass switch { min-width: 46px; min-height: 24px; padding: 0; border-radius: 14px; border: 1px solid rgba(192,202,245,0.20); background: rgba(192,202,245,0.14); }
 .blix-glass switch:checked { background: rgba(138,173,244,0.50); border-color: rgba(138,173,244,0.75); }
-.blix-glass switch slider { border-radius: 12px; background: #d4dcf4; border: 0; }
+.blix-glass switch slider { min-width: 18px; min-height: 18px; margin: 3px; padding: 0; border-radius: 50%; background: #d4dcf4; border: 0; box-shadow: none; }
 .blix-glass switch:disabled slider { background: #727b96; }
 .blix-glass progressbar trough { min-height: 6px; border-radius: 12px; background: rgba(192,202,245,0.15); }
 .blix-glass progressbar progress { min-height: 6px; border-radius: 12px; }

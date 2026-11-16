@@ -128,32 +128,43 @@ def set_nightlight(enabled, intensity, preferences=None):
         raise SettingsError("Choose a night light intensity between 0 and 100.")
     preferences = preferences or Preferences()
     previous = nightlight_settings(preferences)
-    service = "blix-hyprsunset.service" if hyprland_session() else "blix-nightlight.service"
+    def apply():
+        if not hyprland_session():
+            command("systemctl", "--user", "restart", "blix-nightlight.service")
+            return
+        # Keep the daemon alive while dragging: restarting on each update
+        # flashes neutral colors and eventually hits systemd's start limit.
+        try:
+            apply_hyprland_nightlight(preferences, attempts=1)
+        except SettingsError:
+            command("systemctl", "--user", "reset-failed", "blix-hyprsunset.service")
+            command("systemctl", "--user", "start", "blix-hyprsunset.service")
+            apply_hyprland_nightlight(preferences)
     preferences.update("nightlight", {"enabled": enabled, "intensity": intensity})
     try:
-        command("systemctl", "--user", "restart", service)
+        apply()
     except SettingsError:
         preferences.update("nightlight", previous)
         try:
-            command("systemctl", "--user", "restart", service)
+            apply()
         except SettingsError:
             pass
         raise
 
 
-def apply_hyprland_nightlight(preferences=None):
+def apply_hyprland_nightlight(preferences=None, attempts=20):
     if "hyprctl" not in TOOLS:
         raise SettingsError("Hyprland night light controls are not available.")
     value = nightlight_settings(preferences)
     request = ("temperature", str(6500 - value["intensity"] * 40)) if value["enabled"] else ("identity",)
     error = None
-    for attempt in range(20):
+    for attempt in range(attempts):
         try:
             command("hyprctl", "hyprsunset", *request, timeout=2)
             return
         except SettingsError as failure:
             error = failure
-            if attempt < 19:
+            if attempt < attempts - 1:
                 time.sleep(0.1)
     raise error
 

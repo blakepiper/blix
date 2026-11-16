@@ -3,6 +3,11 @@
 let
   app = pkgs.callPackage ../packaging/blix-settings { };
   python = pkgs.python3.withPackages (ps: [ ps.pygobject3 ps.pycairo ps.dbus-python ]);
+  theme = pkgs.tokyonight-gtk-theme.override {
+    colorVariants = [ "dark" ];
+    sizeVariants = [ "standard" ];
+    themeVariants = [ "default" ];
+  };
 in
 pkgs.runCommand "blix-settings-checks" {
   nativeBuildInputs = [ python pkgs.xvfb pkgs.dbus pkgs.xdotool ];
@@ -12,7 +17,7 @@ pkgs.runCommand "blix-settings-checks" {
   ]);
   LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.gtk3 pkgs.glib pkgs.networkmanager pkgs.pango pkgs.cairo pkgs.atk pkgs.gdk-pixbuf ];
   FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ pkgs.dejavu_fonts ]; };
-  XDG_DATA_DIRS = "${pkgs.adwaita-icon-theme}/share:${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}:${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}";
+  XDG_DATA_DIRS = "${theme}/share:${pkgs.adwaita-icon-theme}/share:${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}:${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}";
 } ''
   export HOME="$TMPDIR/home"
   export XDG_CONFIG_HOME="$HOME/.config" XDG_RUNTIME_DIR="$TMPDIR/runtime"

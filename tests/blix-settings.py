@@ -94,13 +94,13 @@ class RuntimeTests(unittest.TestCase):
             with self.assertRaises(SettingsError):
                 core.set_nightlight(True, intensity)
 
-    def test_hyprland_nightlight_uses_hyprsunset_and_restarts_with_saved_values(self):
+    def test_hyprland_nightlight_updates_running_daemon_without_restarts(self):
         preferences = core.Preferences()
         with patch.dict(core.TOOLS, hyprctl="/test/hyprctl"), \
                 patch.dict(os.environ, BLIX_HYPRLAND_SESSION="1"), \
                 patch.object(core, "command") as command:
             core.set_nightlight(True, 47, preferences)
-            command.assert_called_once_with("systemctl", "--user", "restart", "blix-hyprsunset.service")
+            command.assert_called_once_with("hyprctl", "hyprsunset", "temperature", "4620", timeout=2)
             command.reset_mock()
             core.apply_hyprland_nightlight(preferences)
             command.assert_called_once_with("hyprctl", "hyprsunset", "temperature", "4620", timeout=2)
@@ -108,6 +108,34 @@ class RuntimeTests(unittest.TestCase):
             preferences.update("nightlight", {"enabled": False, "intensity": 47})
             core.apply_hyprland_nightlight(preferences)
             command.assert_called_once_with("hyprctl", "hyprsunset", "identity", timeout=2)
+
+    def test_hyprland_nightlight_recovers_rate_limited_service_once(self):
+        from unittest.mock import call
+        preferences = core.Preferences()
+        with patch.dict(core.TOOLS, hyprctl="/test/hyprctl"), \
+                patch.dict(os.environ, BLIX_HYPRLAND_SESSION="1"), \
+                patch.object(core, "command", side_effect=[SettingsError("not running"), "", "", ""] + [""] * 12) as command:
+            core.set_nightlight(True, 47, preferences)
+            self.assertEqual(command.call_args_list, [
+                call("hyprctl", "hyprsunset", "temperature", "4620", timeout=2),
+                call("systemctl", "--user", "reset-failed", "blix-hyprsunset.service"),
+                call("systemctl", "--user", "start", "blix-hyprsunset.service"),
+                call("hyprctl", "hyprsunset", "temperature", "4620", timeout=2),
+            ])
+            for intensity in range(10, 70, 5):
+                core.set_nightlight(True, intensity, preferences)
+            self.assertEqual(sum(args.args[0] == "systemctl" for args in command.call_args_list), 2)
+            self.assertEqual(core.nightlight_settings(preferences), {"enabled": True, "intensity": 65})
+
+    def test_hyprland_nightlight_failure_restores_preferences_and_temperature(self):
+        preferences = core.Preferences()
+        with patch.dict(core.TOOLS, hyprctl="/test/hyprctl"), \
+                patch.dict(os.environ, BLIX_HYPRLAND_SESSION="1"), \
+                patch.object(core, "command", side_effect=[SettingsError("not running"), SettingsError("start failed"), ""]) as command:
+            with self.assertRaises(SettingsError):
+                core.set_nightlight(True, 80, preferences)
+            self.assertEqual(core.nightlight_settings(preferences), {"enabled": False, "intensity": 50})
+            self.assertEqual(command.call_args.args, ("hyprctl", "hyprsunset", "identity"))
 
     def test_transparency_restarts_picom_and_survives_the_next_session(self):
         original = (source / "picom.conf").read_text()
@@ -677,7 +705,7 @@ class GuiTests(unittest.TestCase):
         self.pump()
         self.assertEqual(self.callback_errors, [], "GTK callback raised an exception")
 
-    def drag(self, widget, value):
+    def drag(self, widget, value, grab_offset=0):
         from gi.repository import Gtk
         scroll = widget.get_ancestor(Gtk.ScrolledWindow)
         adjustment = scroll.get_vadjustment()
@@ -698,10 +726,13 @@ class GuiTests(unittest.TestCase):
         def mouse(*args):
             subprocess.run(["xdotool", *map(str, args)], check=True, capture_output=True, timeout=5)
             self.pump(0.04)
-        mouse("mousemove", round(root_x + x + (start + end) / 2), round(root_y + y + area.y + area.height / 2))
+        previous = widget.get_value()
+        mouse("mousemove", round(root_x + x + (start + end) / 2 + grab_offset), round(root_y + y + area.y + area.height / 2))
         mouse("mousedown", 1)
         try:
-            mouse("mousemove", round(root_x + x + target), round(root_y + y + area.y + area.height / 2))
+            if grab_offset:
+                self.assertEqual(widget.get_value(), previous, "Grabbing the visible handle must not jump the value")
+            mouse("mousemove", round(root_x + x + target + grab_offset), round(root_y + y + area.y + area.height / 2))
         finally:
             mouse("mouseup", 1)
         self.pump(0.5)
@@ -1176,6 +1207,49 @@ class GuiTests(unittest.TestCase):
         finally:
             window.close_window()
             window.destroy()
+            self.pump()
+
+    def test_glass_sliders_and_switches_with_session_theme(self):
+        from gi.repository import Gtk
+        from ui import Window
+        settings = Gtk.Settings.get_default()
+        previous_theme = settings.get_property("gtk-theme-name")
+        original = self.window
+        settings.set_property("gtk-theme-name", "Tokyonight-Dark")
+        with patch.dict(os.environ, BLIX_HYPRLAND_SESSION="1"):
+            self.window = Window(self.app, demo=True)
+        try:
+            self.pump()
+            for width in (1060, 1200):
+                self.window.resize(width, 760)
+                self.pump()
+                self.page("display")
+                self.drag(self.window.brightness_slider, 35, grab_offset=6)
+                self.assertAlmostEqual(self.window.brightness_slider.get_value(), 35, delta=5)
+                self.assertEqual(self.window.demo.brightness_percent, round(self.window.brightness_slider.get_value()))
+                warmth = 65 if width == 1060 else 75
+                self.drag(self.window.nightlight_intensity, warmth)
+                self.assertAlmostEqual(self.window.nightlight_intensity.get_value(), warmth, delta=5)
+                self.assertEqual(core.nightlight_settings(self.window.preferences)["intensity"], round(self.window.nightlight_intensity.get_value()))
+                self.assertTrue(self.window.nightlight_switch.get_active())
+                self.click(self.window.nightlight_switch)
+                self.assertFalse(core.nightlight_settings(self.window.preferences)["enabled"])
+                self.page("audio")
+                for kind, plural in (("sink", "sinks"), ("source", "sources")):
+                    controls = self.window.controls[kind]
+                    self.drag(controls["volume"], 40)
+                    self.assertAlmostEqual(controls["volume"].get_value(), 40, delta=5)
+                    self.assertEqual(self.window.demo.audio[plural][0]["volume"], round(controls["volume"].get_value()))
+                    previous = controls["mute"].get_active()
+                    self.click(controls["mute"])
+                    self.assertEqual(controls["mute"].get_active(), not previous)
+                    self.assertLess(controls["mute"].get_allocated_width(), 80)
+                    self.assertLess(controls["mute"].get_allocated_height(), 40)
+        finally:
+            self.window.close_window()
+            self.window.destroy()
+            self.window = original
+            settings.set_property("gtk-theme-name", previous_theme)
             self.pump()
 
     def test_about_refresh_keeps_current_system_details_visible(self):
