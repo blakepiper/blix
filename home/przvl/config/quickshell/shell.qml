@@ -734,6 +734,8 @@ Scope {
                                                 color: "#a9b1d6"
                                                 font.family: "Terminus (TTF)"
                                                 font.bold: true
+                                                style: Text.Outline
+                                                styleColor: "#47a9b1d6"
                                                 font.pixelSize: 12
                                             }
                                             Text {
