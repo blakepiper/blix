@@ -20,7 +20,7 @@ from demo import Demo, DemoPreferences, DemoRadio
 
 
 PAGES = [
-    ("display", "Display", "video-display-symbolic", "Monitors, arrangement, resolution, refresh rate, brightness and transparency", "screen monitor resolution refresh rotation scale brightness transparency opacity appearance night light nightlight warmth temperature gammastep"),
+    ("display", "Display", "video-display-symbolic", "Brightness, night light, appearance and monitor arrangement", "screen monitor resolution refresh rotation scale brightness transparency opacity appearance night light nightlight warmth temperature gammastep"),
     ("audio", "Audio", "audio-volume-high-symbolic", "Speakers, headphones and microphones", "sound volume microphone mic input output mute"),
     ("bluetooth", "Bluetooth", "bluetooth-symbolic", "Pair and manage nearby devices", "wireless pair headset headphones keyboard device"),
     ("network", "Networking", "network-wireless-symbolic", "Wi-Fi, Ethernet and saved connections", "wifi wi-fi internet ethernet connection password vpn"),
@@ -79,7 +79,7 @@ def spin(value, minimum, maximum, step=1):
 
 def slider(minimum, maximum, step=1, percent=False):
     widget = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, minimum, maximum, step)
-    widget.set_size_request(300, -1)
+    widget.set_size_request(180, -1)
     widget.set_hexpand(True)
     widget.set_value_pos(Gtk.PositionType.RIGHT)
     if percent:
@@ -252,7 +252,12 @@ class Window(Gtk.ApplicationWindow):
             self.sidebar.add(row)
         self.sidebar.connect("row-selected", self.page_selected)
         sidebar.pack_start(self.sidebar, False, False, 0)
-        footer = label("Super + S  ·  Open settings", "dim", True)
+        self.search_empty = label("No matching settings.\nTry display, sound or Wi-Fi.", "dim", True)
+        self.search_empty.set_no_show_all(True)
+        self.search_empty.set_margin_start(12)
+        self.search_empty.set_margin_end(12)
+        sidebar.pack_start(self.search_empty, False, False, 0)
+        footer = label("Ctrl + F  ·  Search\nEsc  ·  Clear / close", "dim", True)
         footer.set_margin_start(18)
         footer.set_margin_bottom(18)
         sidebar.pack_end(footer, False, False, 0)
@@ -416,8 +421,10 @@ class Window(Gtk.ApplicationWindow):
             row.set_visible(visible)
             if visible:
                 matches.append(row)
+        self.search_empty.set_visible(bool(query) and not matches)
         if matches and self.sidebar.get_selected_row() not in matches:
-            self.sidebar.select_row(matches[0])
+            preferred = next((row for row in matches if row.page_name == self.page), matches[0])
+            self.sidebar.select_row(preferred)
 
     def page_selected(self, _, row):
         if not row:
@@ -470,11 +477,26 @@ class Window(Gtk.ApplicationWindow):
     def row(self, parent, title, widget, description=None):
         content = box(False, 16)
         text = box(spacing=4)
-        text.pack_start(label(title, "setting-label"), False, False, 0)
+        title_label = label(title, "setting-label")
+        title_label.set_mnemonic_widget(widget)
+        text.pack_start(title_label, False, False, 0)
         if description:
-            text.pack_start(label(description, "dim", True), False, False, 0)
+            detail = label(description, "dim", True)
+            detail.set_max_width_chars(52)
+            text.pack_start(detail, False, False, 0)
         content.pack_start(text, True, True, 0)
         content.pack_end(widget, widget.get_hexpand(), widget.get_hexpand(), 0)
+        widget.set_valign(Gtk.Align.CENTER)
+        # Stack wide fields beneath their labels on narrow tiles. Small toggles
+        # stay alongside their labels and do not stretch to description height.
+        def reflow(*_):
+            narrow = self.get_allocated_width() < 1000
+            stacked = narrow and (widget.get_hexpand() or isinstance(widget, (Gtk.ComboBox, Gtk.Box)))
+            orientation = Gtk.Orientation.VERTICAL if stacked else Gtk.Orientation.HORIZONTAL
+            if content.get_orientation() != orientation:
+                content.set_orientation(orientation)
+            widget.set_halign(Gtk.Align.FILL if widget.get_hexpand() or stacked else Gtk.Align.END)
+        content.connect("size-allocate", reflow)
         parent.pack_start(content, False, False, 0)
 
     def connect_control(self, widget, signal, callback):
@@ -573,20 +595,28 @@ class Window(Gtk.ApplicationWindow):
         for child in self.display_footer.get_children():
             self.display_footer.remove(child)
         self.available_outputs = available
+        if self.defaults.get("capabilities", {}).get("hasBacklight"):
+            card = self.card(body, "Panel brightness")
+            scale = self.brightness_slider = slider(1, 100, percent=True)
+            scale.set_sensitive(False)
+            scale.set_draw_value(False)
+            self.track_slider(scale, "brightness")
+            self.row(card, "Brightness", scale)
+            self.connect_control(scale, "value-changed", lambda widget: self.defer_slider("brightness", lambda value=round(widget.get_value()): self.command(
+                "brightnessctl", "--class=backlight", "--min-value=1", "set", f"{value}%")))
+        self.build_nightlight(body)
         appearance = self.card(body, "Appearance")
         self.transparency_switch = Gtk.Switch(active=core.transparency_enabled(self.preferences))
         self.transparency_switch.set_sensitive(not self.saving_transparency)
         if core.hyprland_session():
             transparency_description = (
-                "Hyprland: on uses 85% focused / 80% unfocused opacity; off uses 100%. "
-                "Video and game window exceptions stay opaque. Shows the live compositor state.")
+                "Make supported windows translucent. Video and game exceptions stay opaque. "
+                "Changes take effect immediately.")
         else:
             transparency_description = (
-                "OXWM / Picom: on uses the configured window opacity; off forces full opacity. "
-                "Applies immediately by restarting Picom.")
+                "Make supported windows translucent. Changes take effect immediately.")
         self.row(appearance, "Window transparency", self.transparency_switch, transparency_description)
         self.connect_control(self.transparency_switch, "notify::active", lambda *_: self.save_transparency())
-        self.build_nightlight(body)
         connected = [item for item in available if item["connected"] and item["modes"]]
         if not connected:
             body.pack_start(label("No connected displays were found."), False, False, 0)
@@ -597,7 +627,7 @@ class Window(Gtk.ApplicationWindow):
             monitor = label(item["name"] + (" · Primary" if item["primary"] else "") + "\n" + (item["mode"] or "Disabled"), "monitor")
             overview.pack_start(monitor, True, True, 0)
         body.pack_start(overview, False, False, 0)
-        settings = self.card(body)
+        settings = self.card(body, "Display arrangement")
         enabled = [item for item in connected if item["enabled"]]
         current_layout = "mirror" if len(enabled) > 1 and all(
             (item["x"], item["y"]) == (enabled[0]["x"], enabled[0]["y"]) for item in enabled) else "extend"
@@ -630,9 +660,13 @@ class Window(Gtk.ApplicationWindow):
             card.pack_start(grid, False, False, 0)
             positions = box(False, 10)
             x, y = spin(item["x"], 0, 16384), spin(item["y"], 0, 16384)
-            positions.pack_start(label("Position X / Y", "dim"), True, True, 0)
-            positions.pack_end(y, False, False, 0)
-            positions.pack_end(x, False, False, 0)
+            positions.pack_start(label("Position", "dim"), True, True, 0)
+            axes = box(False, 6)
+            for axis, widget in (("X", x), ("Y", y)):
+                axes.pack_start(label(axis, "dim"), False, False, 0)
+                axes.pack_start(widget, False, False, 0)
+                widget.set_tooltip_text(("Horizontal" if axis == "X" else "Vertical") + " offset in pixels")
+            positions.pack_end(axes, False, False, 0)
             card.pack_start(positions, False, False, 0)
             controls = {"enabled": enabled, "mode": resolution, "rate": rate, "rotation": rotation, "scale": scale, "x": x, "y": y}
             self.display_controls[item["name"]] = controls
@@ -649,22 +683,13 @@ class Window(Gtk.ApplicationWindow):
                                      lambda *_: self.display_changed())
         actions = box(False, 10)
         actions.pack_start(button("Arrange left to right", self.arrange_displays), False, False, 0)
-        self.display_apply = button("Apply…", lambda: self.apply_display(False), True)
+        self.display_apply = button("Apply display changes…", lambda: self.apply_display(False), True)
         self.display_apply.set_sensitive(False)
         self.display_restore = button("Restore defaults…", lambda: self.apply_display(True))
         actions.pack_end(self.display_apply, False, False, 0)
         actions.pack_end(self.display_restore, False, False, 0)
         self.display_footer.pack_start(actions, False, False, 0)
-        self.display_footer.pack_start(label("Changes revert after 15 seconds unless you keep them.", "dim", True), False, False, 0)
-        if self.defaults.get("capabilities", {}).get("hasBacklight"):
-            card = self.card(body, "Panel brightness")
-            scale = self.brightness_slider = slider(1, 100, percent=True)
-            scale.set_sensitive(False)
-            scale.set_draw_value(False)
-            self.track_slider(scale, "brightness")
-            self.row(card, "Brightness", scale)
-            self.connect_control(scale, "value-changed", lambda widget: self.defer_slider("brightness", lambda value=round(widget.get_value()): self.command(
-                "brightnessctl", "--class=backlight", "--min-value=1", "set", f"{value}%")))
+        self.display_footer.pack_start(label("Monitor changes revert after 15 seconds unless kept. Brightness and transparency apply immediately.", "dim", True), False, False, 0)
         self.dirty_display = False
         body.show_all()
         self.display_footer.show_all()
@@ -673,14 +698,15 @@ class Window(Gtk.ApplicationWindow):
         nightlight = core.nightlight_settings(self.preferences)
         card = self.card(body, "Night light")
         self.nightlight_switch = Gtk.Switch(active=nightlight["enabled"])
-        self.nightlight_intensity = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 100, 1)
+        self.nightlight_intensity = slider(0, 100, percent=True)
         self.nightlight_intensity.set_value(nightlight["intensity"])
-        self.nightlight_intensity.set_size_request(220, -1)
         self.nightlight_intensity.set_digits(0)
-        self.row(card, "Night light", self.nightlight_switch, "Warm display colors at any time. Off restores normal colors.")
-        self.row(card, "Intensity (%)", self.nightlight_intensity, "0 is neutral; 100 is the warmest setting.")
-        self.nightlight_apply = button("Apply intensity", self.save_nightlight)
-        card.pack_start(self.nightlight_apply, False, False, 0)
+        self.row(card, "Warm display colors", self.nightlight_switch, "Warm display colors at any time. Off restores normal colors.")
+        self.row(card, "Warmth", self.nightlight_intensity, "0 is neutral; 100 is the warmest setting.")
+        self.nightlight_apply = button("Apply warmth", self.save_nightlight)
+        actions = box(False, 10)
+        actions.pack_end(self.nightlight_apply, False, False, 0)
+        card.pack_start(actions, False, False, 0)
         for control in (self.nightlight_switch, self.nightlight_intensity, self.nightlight_apply):
             control.set_sensitive(not self.saving_nightlight)
         self.connect_control(self.nightlight_switch, "notify::active", lambda *_: self.save_nightlight())
@@ -905,15 +931,17 @@ class Window(Gtk.ApplicationWindow):
 
     def build_audio(self):
         body = self.pages["audio"]
+        self.audio_cards = {}
         for kind, title in (("sink", "Output"), ("source", "Microphone")):
             card = self.card(body, title)
+            self.audio_cards[kind] = card
             devices = combo([])
             volume = slider(0, 100, percent=True)
             self.track_slider(volume, kind)
             mute = Gtk.Switch()
             self.row(card, "Device", devices)
-            self.row(card, "Volume", volume)
-            self.row(card, "Muted", mute)
+            self.row(card, "Volume" if kind == "sink" else "Input level", volume)
+            self.row(card, "Mute output" if kind == "sink" else "Mute microphone", mute)
             self.controls[kind] = {"device": devices, "volume": volume, "mute": mute}
             for widget in self.controls[kind].values():
                 widget.set_sensitive(False)
@@ -926,7 +954,9 @@ class Window(Gtk.ApplicationWindow):
                                            self.command("pactl", f"set-{kind}-mute", name, value)))
         self.sound_button = button("Test output sound", self.test_sound)
         self.sound_button.set_sensitive(False)
-        self.pages["audio"].pack_start(self.sound_button, False, False, 0)
+        output_actions = box(False, 10)
+        output_actions.pack_end(self.sound_button, False, False, 0)
+        self.audio_cards["sink"].pack_start(output_actions, False, False, 0)
         test = box(False, 12)
         self.meter_button = button("Test microphone", self.toggle_meter)
         self.meter_button.set_sensitive(False)
@@ -934,8 +964,10 @@ class Window(Gtk.ApplicationWindow):
         self.meter_level.set_hexpand(True)
         test.pack_start(self.meter_button, False, False, 0)
         test.pack_start(self.meter_level, True, True, 0)
-        body.pack_start(test, False, False, 0)
-        body.pack_start(label("Microphone testing listens only while this page is open. No recording is saved.", "dim", True), False, False, 0)
+        self.meter_level.set_valign(Gtk.Align.CENTER)
+        self.meter_level.set_size_request(100, 8)
+        self.audio_cards["source"].pack_start(test, False, False, 0)
+        self.audio_cards["source"].pack_start(label("Microphone testing listens only while this page is open. No recording is saved.", "dim", True), False, False, 0)
 
     def set_audio_device(self, kind, name):
         if kind == "source":
@@ -1091,7 +1123,9 @@ class Window(Gtk.ApplicationWindow):
                 forget.set_sensitive(not transient)
                 actions.pack_start(forget, False, False, 0)
                 self.row(saved, item["name"], actions, transient or ("Connected" if item["active"] else None))
-        body.pack_start(button("Advanced connections…", self.advanced_connections), False, False, 0)
+        advanced = button("Advanced connections…", self.advanced_connections)
+        advanced.set_halign(Gtk.Align.END)
+        body.pack_start(advanced, False, False, 0)
 
     @staticmethod
     def network_key(item):
@@ -1178,11 +1212,11 @@ class Window(Gtk.ApplicationWindow):
         self.blank_minutes = spin(0, 0, 1440)
         self.blank_minutes.set_digits(2)
         self.blank_minutes.set_sensitive(False)
-        self.row(card, "Turn screen off after", self.blank_minutes, "Minutes of inactivity. Zero keeps the display on.")
+        self.row(card, "Screen-off delay (minutes)", self.blank_minutes, "Minutes of inactivity. Zero keeps the display on.")
         actions = box(False, 10)
         self.blank_apply = button("Apply", self.save_blank, True)
         self.blank_apply.set_sensitive(False)
-        actions.pack_start(self.blank_apply, False, False, 0)
+        actions.pack_end(self.blank_apply, False, False, 0)
         self.blank_restore = button("Restore defaults", lambda: self.save_blank(True))
         self.blank_restore.set_sensitive(False)
         actions.pack_start(self.blank_restore, False, False, 0)
@@ -1345,7 +1379,7 @@ class Window(Gtk.ApplicationWindow):
             actions = box(False, 10)
             apply = button("Apply", lambda device=device: self.save_input(device, False), True)
             apply.set_sensitive(device["key"] in self.dirty_inputs and device["key"] not in self.pending_inputs)
-            actions.pack_start(apply, False, False, 0)
+            actions.pack_end(apply, False, False, 0)
             restore = button("Restore defaults", lambda device=device: self.save_input(device, True))
             restore.set_sensitive(device["key"] not in self.pending_inputs)
             actions.pack_start(restore, False, False, 0)
@@ -1359,12 +1393,12 @@ class Window(Gtk.ApplicationWindow):
         keyboard = self.card(body, "Keyboard repeat")
         self.repeat_delay = spin(keyboard_draft["delay"], 0, max(2000, keyboard_draft["delay"]), 25)
         self.repeat_rate = spin(keyboard_draft["rate"], 1, max(100, keyboard_draft["rate"]))
-        self.row(keyboard, "Initial delay", self.repeat_delay, "Milliseconds before a held key starts repeating.")
-        self.row(keyboard, "Repeat rate", self.repeat_rate, "Characters per second.")
+        self.row(keyboard, "Initial delay (ms)", self.repeat_delay, "Milliseconds before a held key starts repeating.")
+        self.row(keyboard, "Repeat rate (keys/s)", self.repeat_rate, "Characters per second.")
         actions = box(False, 10)
         self.keyboard_apply = button("Apply", self.save_keyboard, True)
         self.keyboard_apply.set_sensitive(self.dirty_keyboard and not self.saving_keyboard)
-        actions.pack_start(self.keyboard_apply, False, False, 0)
+        actions.pack_end(self.keyboard_apply, False, False, 0)
         self.keyboard_restore = button("Restore defaults", lambda: self.save_keyboard(True))
         self.keyboard_restore.set_sensitive(not self.saving_keyboard)
         actions.pack_start(self.keyboard_restore, False, False, 0)

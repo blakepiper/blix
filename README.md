@@ -518,7 +518,10 @@ use contour-masked glass with opaque text. Blix Settings' Hyprland view
 uses the same clear glass preset as the topbar, with a floating navigation rail,
 rounded translucent cards, section-colored icons, and short page fades. Super+S
 selects the scalable Terminus font configuration so titles, labels and values
-can have distinct sizes and weights. Its X11 appearance stays independent. The topbar's three panes use a
+can have distinct sizes and weights. Its X11 appearance stays independent. Daily display controls come before monitor
+arrangement; wide fields stack in narrower windows, action buttons sit with the
+controls they affect, and search explains when no settings match. Display Apply
+only commits monitor changes; brightness, transparency and audio act immediately. The topbar's three panes use a
 clearer material with lighter tint, reduced blur and gentler refraction than the
 terminal and popups. The workspace pane includes the distro logo and all regular
 workspaces, with animated insertion and removal, and text color indicating focus.

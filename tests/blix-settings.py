@@ -681,7 +681,11 @@ class GuiTests(unittest.TestCase):
         from gi.repository import Gtk
         scroll = widget.get_ancestor(Gtk.ScrolledWindow)
         adjustment = scroll.get_vadjustment()
-        adjustment.set_value(adjustment.get_upper() - adjustment.get_page_size())
+        content = scroll.get_child()
+        if isinstance(content, Gtk.Viewport):
+            content = content.get_child()
+        _, content_y = widget.translate_coordinates(content, 0, 0)
+        adjustment.set_value(content_y)
         self.pump(0.05)
         x, y = widget.translate_coordinates(self.window, 0, 0)
         _, root_x, root_y = self.window.get_window().get_origin()
@@ -713,6 +717,52 @@ class GuiTests(unittest.TestCase):
         from gi.repository import Gtk
         return [widget for widget in self.widgets(self.window.pages[page])
                 if isinstance(widget, Gtk.Button) and widget.get_label() == text]
+
+    def test_display_prioritizes_daily_controls_and_labels_monitor_axes(self):
+        from gi.repository import Gtk
+        self.page("display")
+        cards = self.window.pages["display"].get_children()
+        titles = [child.get_children()[0].get_text() for child in cards[:3]]
+        self.assertEqual(titles, ["Panel brightness", "Night light", "Appearance"])
+        self.assertEqual(self.window.nightlight_intensity.get_value_pos(), Gtk.PositionType.RIGHT)
+        self.assertIn("display", self.window.display_apply.get_label().lower())
+        for axis in ("x", "y"):
+            self.assertIn("pixels", self.window.display_controls["eDP-1"][axis].get_tooltip_text())
+
+    def test_audio_test_actions_belong_to_their_devices(self):
+        self.page("audio")
+        self.assertTrue(self.window.sound_button.is_ancestor(self.window.audio_cards["sink"]))
+        self.assertTrue(self.window.meter_button.is_ancestor(self.window.audio_cards["source"]))
+        self.assertTrue(self.window.meter_level.is_ancestor(self.window.audio_cards["source"]))
+
+    def test_empty_search_explains_no_results_and_restores_current_page(self):
+        self.page("audio")
+        self.window.search.set_text("nosuchsettingxyz")
+        self.pump()
+        self.assertTrue(self.window.search_empty.get_visible())
+        self.window.search.set_text("")
+        self.pump()
+        self.assertFalse(self.window.search_empty.get_visible())
+        self.assertEqual(self.window.page, "audio")
+
+    def test_wide_fields_stack_in_narrow_windows_and_toggles_stay_compact(self):
+        from gi.repository import Gtk
+        self.page("audio")
+        original = self.window.get_size()
+        try:
+            self.window.resize(800, 640)
+            self.pump()
+            volume = self.window.controls["sink"]["volume"]
+            mute = self.window.controls["sink"]["mute"]
+            self.assertEqual(volume.get_parent().get_orientation(), Gtk.Orientation.VERTICAL)
+            self.assertEqual(mute.get_parent().get_orientation(), Gtk.Orientation.HORIZONTAL)
+            self.assertEqual(mute.get_valign(), Gtk.Align.CENTER)
+            self.window.resize(1200, 760)
+            self.pump()
+            self.assertEqual(volume.get_parent().get_orientation(), Gtk.Orientation.HORIZONTAL)
+        finally:
+            self.window.resize(*original)
+            self.pump()
 
     def test_sidebar_brand_is_removed(self):
         from gi.repository import Gtk

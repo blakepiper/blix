@@ -102,3 +102,9 @@ window.blix-glass {
 .blix-glass scrollbar { background: transparent; }
 .blix-glass scrollbar slider { min-width: 4px; min-height: 28px; border-radius: 8px; background: rgba(192,202,245,0.25); }
 .blix-glass separator { background: rgba(192,202,245,0.15); }
+
+/* A compact live meter belongs beside the microphone test action. */
+.blix-glass levelbar trough { background: rgba(192,202,245,0.13); border-radius: 8px; padding: 0; }
+.blix-glass levelbar block { min-height: 6px; border: 0; border-radius: 8px; }
+.blix-glass levelbar block.filled { background: #8aadf4; }
+.blix-glass levelbar block.empty { background: transparent; }
