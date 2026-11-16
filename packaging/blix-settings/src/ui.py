@@ -110,6 +110,8 @@ class Window(Gtk.ApplicationWindow):
         self.revisions = {}
         self.page = None
         self.saving_nightlight = False
+        self.nightlight_timer = None
+        self.nightlight_pending = None
         self.dirty_display = False
         self.preview = None
         self.applying_display = False
@@ -557,7 +559,7 @@ class Window(Gtk.ApplicationWindow):
         return True
 
     def update_display(self, state, versions=None):
-        if not self.dirty_display and not self.applying_display and not self.saving_nightlight and not self.slider_busy("brightness", versions):
+        if not self.dirty_display and not self.applying_display and not self.saving_nightlight and self.nightlight_pending is None and self.nightlight_timer is None and not self.slider_busy("brightness", versions):
             self.build_devices("display", state["outputs"])
         if hasattr(self, "brightness_slider") and not self.slider_busy("brightness", versions):
             self.syncing = True
@@ -702,23 +704,33 @@ class Window(Gtk.ApplicationWindow):
         self.nightlight_intensity.set_value(nightlight["intensity"])
         self.nightlight_intensity.set_digits(0)
         self.row(card, "Warm display colors", self.nightlight_switch, "Warm display colors at any time. Off restores normal colors.")
-        self.row(card, "Warmth", self.nightlight_intensity, "0 is neutral; 100 is the warmest setting.")
-        self.nightlight_apply = button("Apply warmth", self.save_nightlight)
-        actions = box(False, 10)
-        actions.pack_end(self.nightlight_apply, False, False, 0)
-        card.pack_start(actions, False, False, 0)
-        for control in (self.nightlight_switch, self.nightlight_intensity, self.nightlight_apply):
-            control.set_sensitive(not self.saving_nightlight)
-        self.connect_control(self.nightlight_switch, "notify::active", lambda *_: self.save_nightlight())
+        self.row(card, "Warmth", self.nightlight_intensity, "Applies automatically. Zero turns night light off; 100 is warmest.")
+        self.connect_control(self.nightlight_switch, "notify::active", lambda *_: self.queue_nightlight(toggle=True))
+        self.connect_control(self.nightlight_intensity, "value-changed", lambda *_: self.queue_nightlight())
 
-    def save_nightlight(self):
-        if self.saving_nightlight:
-            return
-        enabled = self.nightlight_switch.get_active()
+    def queue_nightlight(self, toggle=False):
         intensity = round(self.nightlight_intensity.get_value())
+        enabled = self.nightlight_switch.get_active() if toggle else intensity > 0
+        if enabled and intensity == 0:
+            intensity = 50
+        self.syncing = True
+        try:
+            self.nightlight_switch.set_active(enabled)
+            self.nightlight_intensity.set_value(intensity)
+        finally:
+            self.syncing = False
+        self.nightlight_pending = (enabled, intensity)
+        if self.nightlight_timer is not None:
+            GLib.source_remove(self.nightlight_timer)
+        self.nightlight_timer = GLib.timeout_add(1 if toggle else 300, self.flush_nightlight)
+
+    def flush_nightlight(self):
+        self.nightlight_timer = None
+        if self.saving_nightlight or self.nightlight_pending is None or self.closed:
+            return False
+        enabled, intensity = self.nightlight_pending
+        self.nightlight_pending = None
         self.saving_nightlight = True
-        for control in (self.nightlight_switch, self.nightlight_intensity, self.nightlight_apply):
-            control.set_sensitive(False)
         def apply():
             if self.demo:
                 self.preferences.update("nightlight", {"enabled": enabled, "intensity": intensity})
@@ -726,19 +738,23 @@ class Window(Gtk.ApplicationWindow):
                 core.set_nightlight(enabled, intensity, self.preferences)
         def finished(result, error=False):
             self.saving_nightlight = False
+            if error:
+                self.notify(str(result), True)
+            if self.nightlight_pending is not None:
+                if self.nightlight_timer is None:
+                    self.flush_nightlight()
+                return
             value = core.nightlight_settings(self.preferences)
             self.syncing = True
             try:
                 self.nightlight_switch.set_active(value["enabled"])
                 self.nightlight_intensity.set_value(value["intensity"])
-                for control in (self.nightlight_switch, self.nightlight_intensity, self.nightlight_apply):
-                    control.set_sensitive(True)
             finally:
                 self.syncing = False
-            self.notify(str(result) if error else "Night light settings saved.", error)
             self.invalidate("display", rebuild=False)
             self.refresh()
         self.run(apply, finished, lambda error: finished(error, True))
+        return False
 
     def save_transparency(self):
         if self.saving_transparency:
@@ -1503,6 +1519,10 @@ class Window(Gtk.ApplicationWindow):
     def close_window(self, *_):
         if self.closed:
             return False
+        if self.nightlight_timer is not None:
+            GLib.source_remove(self.nightlight_timer)
+            self.nightlight_timer = None
+        self.nightlight_pending = None
         self.closed = True
         if self.poll is not None:
             GLib.source_remove(self.poll)

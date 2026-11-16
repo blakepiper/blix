@@ -35,7 +35,9 @@ def main(gui=True):
                 value = nightlight_settings()
                 print(value["intensity"] if value["enabled"] else 0)
             else:
-                set_nightlight(args.intensity > 0, args.intensity)
+                # Zero means off, not forgetting the warmth to restore next time.
+                intensity = args.intensity if args.intensity != 0 else nightlight_settings()["intensity"] or 50
+                set_nightlight(args.intensity > 0, intensity)
         elif args.action == "prepare-picom":
             prepare_picom_configuration()
         elif args.action == "apply-transparency":

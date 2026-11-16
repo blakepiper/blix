@@ -67,7 +67,7 @@ class RuntimeTests(unittest.TestCase):
             with self.assertRaises(SystemExit) as error:
                 invoke("--intensity", "101")
         self.assertEqual(error.exception.code, 1)
-        self.assertEqual(core.nightlight_settings(), {"enabled": False, "intensity": 0})
+        self.assertEqual(core.nightlight_settings(), {"enabled": False, "intensity": 60})
 
     def test_nightlight_persistence_and_failure_recovery(self):
         self.assertEqual(core.nightlight_settings(), {"enabled": False, "intensity": 50})
@@ -706,6 +706,21 @@ class GuiTests(unittest.TestCase):
             mouse("mouseup", 1)
         self.pump(0.5)
 
+    def click(self, widget):
+        from gi.repository import Gtk
+        scroll = widget.get_ancestor(Gtk.ScrolledWindow)
+        content = scroll.get_child()
+        if isinstance(content, Gtk.Viewport):
+            content = content.get_child()
+        _, y = widget.translate_coordinates(content, 0, 0)
+        scroll.get_vadjustment().set_value(y)
+        self.pump(0.05)
+        x, y = widget.translate_coordinates(self.window, widget.get_allocated_width() // 2, widget.get_allocated_height() // 2)
+        _, root_x, root_y = self.window.get_window().get_origin()
+        subprocess.run(["xdotool", "mousemove", str(root_x + x), str(root_y + y), "click", "1"],
+                       check=True, capture_output=True, timeout=5)
+        self.pump(0.5)
+
     @staticmethod
     def widgets(root):
         yield root
@@ -725,6 +740,7 @@ class GuiTests(unittest.TestCase):
         titles = [child.get_children()[0].get_text() for child in cards[:3]]
         self.assertEqual(titles, ["Panel brightness", "Night light", "Appearance"])
         self.assertEqual(self.window.nightlight_intensity.get_value_pos(), Gtk.PositionType.RIGHT)
+        self.assertFalse(self.buttons("display", "Apply warmth"))
         self.assertIn("display", self.window.display_apply.get_label().lower())
         for axis in ("x", "y"):
             self.assertIn("pixels", self.window.display_controls["eDP-1"][axis].get_tooltip_text())
@@ -775,18 +791,91 @@ class GuiTests(unittest.TestCase):
         self.window.display_controls["eDP-1"]["x"].set_value(80)
         self.window.nightlight_intensity.set_value(75)
         self.window.nightlight_switch.set_active(True)
-        self.pump()
+        self.pump(0.6)
         self.assertEqual(core.nightlight_settings(self.window.preferences), {"enabled": True, "intensity": 75})
         self.assertTrue(self.window.nightlight_switch.get_sensitive())
         self.window.nightlight_intensity.set_value(30)
-        self.window.nightlight_apply.clicked()
-        self.pump()
+        self.pump(0.6)
         self.assertEqual(core.nightlight_settings(self.window.preferences)["intensity"], 30)
         self.window.nightlight_switch.set_active(False)
         self.pump()
         self.assertFalse(core.nightlight_settings(self.window.preferences)["enabled"])
         self.assertEqual(self.window.display_controls["eDP-1"]["x"].get_value(), 80)
         self.assertFalse(self.window.demo.calls)
+
+    def test_nightlight_real_clicks_and_drag_restore_and_auto_apply_warmth(self):
+        self.page("display")
+        self.window.syncing = True
+        self.window.nightlight_intensity.set_value(0)
+        self.window.syncing = False
+        self.click(self.window.nightlight_switch)
+        self.assertEqual(core.nightlight_settings(self.window.preferences), {"enabled": True, "intensity": 50})
+        self.drag(self.window.nightlight_intensity, 75)
+        state = core.nightlight_settings(self.window.preferences)
+        self.assertTrue(state["enabled"])
+        self.assertAlmostEqual(state["intensity"], 75, delta=2)
+        self.click(self.window.nightlight_switch)
+        self.assertFalse(core.nightlight_settings(self.window.preferences)["enabled"])
+        self.drag(self.window.nightlight_intensity, 35)
+        state = core.nightlight_settings(self.window.preferences)
+        self.assertTrue(state["enabled"])
+        self.assertAlmostEqual(state["intensity"], 35, delta=2)
+        self.drag(self.window.nightlight_intensity, 0)
+        self.assertFalse(core.nightlight_settings(self.window.preferences)["enabled"])
+        self.assertTrue(self.window.nightlight_switch.get_sensitive())
+        self.assertFalse(self.window.demo.calls)
+
+    def test_nightlight_drag_writes_are_serialized_and_keep_latest_value(self):
+        self.page("display")
+        demo = self.window.demo
+        snapshot = demo.snapshot("display")
+        started, release = threading.Event(), threading.Event()
+        calls = []
+        def save(enabled, intensity, preferences):
+            calls.append((enabled, intensity))
+            if len(calls) == 1:
+                started.set()
+                release.wait(4)
+            preferences.update("nightlight", {"enabled": enabled, "intensity": intensity})
+        self.window.demo = None
+        try:
+            with patch.object(core, "set_nightlight", side_effect=save), \
+                    patch.object(core, "display_state", return_value=snapshot):
+                self.window.nightlight_intensity.set_value(20)
+                self.pump(0.45)
+                self.assertTrue(started.is_set())
+                self.window.nightlight_intensity.set_value(70)
+                self.pump(0.4)
+                self.assertEqual(calls, [(True, 20)])
+                self.assertEqual(self.window.nightlight_intensity.get_value(), 70)
+                self.assertTrue(self.window.nightlight_intensity.get_sensitive())
+                release.set()
+                self.pump(0.6)
+                self.assertEqual(calls, [(True, 20), (True, 70)])
+                self.assertEqual(core.nightlight_settings(self.window.preferences), {"enabled": True, "intensity": 70})
+        finally:
+            release.set()
+            self.pump(0.2)
+            self.window.demo = demo
+
+    def test_nightlight_service_failure_restores_ui_and_preserves_display_draft(self):
+        self.page("display")
+        self.window.display_controls["eDP-1"]["x"].set_value(80)
+        previous = core.nightlight_settings(self.window.preferences)
+        snapshot = self.window.demo.snapshot("display")
+        with patch.object(core, "set_nightlight", side_effect=SettingsError("service failed")), \
+                patch.object(core, "display_state", return_value=snapshot):
+            demo = self.window.demo
+            self.window.demo = None
+            try:
+                self.window.nightlight_switch.set_active(True)
+                self.pump(0.6)
+            finally:
+                self.window.demo = demo
+        self.assertEqual(self.window.nightlight_switch.get_active(), previous["enabled"])
+        self.assertTrue(self.window.nightlight_switch.get_sensitive())
+        self.assertEqual(self.window.display_controls["eDP-1"]["x"].get_value(), 80)
+        self.assertIn("service failed", self.window.status_label.get_text())
 
     def test_transparency_applies_immediately_without_discarding_monitor_edits(self):
         self.page("display")
