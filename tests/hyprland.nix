@@ -43,7 +43,7 @@ assert lib.hasInfix ''Qt.formatDateTime(new Date(), "HH:mm")'' bar;
 assert lib.hasInfix ''color: "#00000000"'' bar;
 assert builtins.length (lib.strings.splitString "#00000000" bar) == 4;
 assert lib.hasInfix ''active: controlPopup.visible || calendarPopup.visible'' bar;
-assert lib.hasInfix ''windows: [panel, controlPopup, calendarPopup]'' bar;
+assert lib.hasInfix ''windows: [panel, workspaceGlass, clockGlass, controlsGlass, controlPopup, calendarPopup]'' bar;
 assert lib.hasInfix ''controlPopup.visible = false;'' bar;
 assert lib.hasInfix ''calendarPopup.visible = false;'' bar;
 assert lib.hasInfix ''onClicked: panel.toggleCalendar()'' bar;

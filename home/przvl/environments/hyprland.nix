@@ -232,8 +232,32 @@ in
           adaptive_dim = 0.25,
         },
       })
+      -- Clearer material for the small topbar panes; keep popup glass richer.
+      hg.preset("blix-bar-glass", {
+        inherits = "blix-glass",
+        blur_strength = 0.25,
+        edge_thickness_px = 5,
+        edge_height = 8,
+        refraction_strength = 0.25,
+        chromatic_aberration = 0.02,
+        dark = {
+          tint_color = 0x10182718,
+          brightness = 1.0,
+          contrast = 1.0,
+          saturation = 1.0,
+          adaptive_dim = 0.08,
+        },
+      })
+      for _, namespace in ipairs({ "blix-workspace-glass", "blix-clock-glass", "blix-controls-glass" }) do
+        hg.layer(namespace, {
+          preset = "blix-bar-glass",
+          mask_mode = "contour",
+          mask_threshold = 0.05,
+          mask_feather = 0.03,
+        })
+      end
       -- Alpha masks follow rounded cards and exclude transparent layer margins.
-      for _, namespace in ipairs({ "wofi", "blix-control-popup", "blix-calendar-popup", "blix-workspace-glass" }) do
+      for _, namespace in ipairs({ "wofi", "blix-control-popup", "blix-calendar-popup" }) do
         hg.layer(namespace, {
           preset = "blix-glass",
           mask_mode = "contour",
@@ -290,12 +314,14 @@ in
       blur = true,
       ignore_alpha = 0.0,
     })
-    hl.layer_rule({
-      name = "blix-workspace-glass",
-      match = { namespace = "^blix-workspace-glass$" },
-      blur = true,
-      ignore_alpha = 0.0,
-    })
+    for _, namespace in ipairs({ "blix-workspace-glass", "blix-clock-glass", "blix-controls-glass" }) do
+      hl.layer_rule({
+        name = namespace,
+        match = { namespace = "^" .. namespace .. "$" },
+        blur = true,
+        ignore_alpha = 0.0,
+      })
+    end
 
     ${lib.optionalString (primaryOutput != null) (builtins.replaceStrings
       [ "@primary-output@" ] [ primaryOutput ]

@@ -90,13 +90,10 @@ Scope {
             anchors { top: true; left: true; right: true }
             implicitHeight: @bar-height@
             color: "transparent"
-            mask: Region {
-                Region { item: centerClock }
-                Region { item: controlsRow }
-            }
+            mask: Region {}
             HyprlandFocusGrab {
                 active: controlPopup.visible || calendarPopup.visible
-                windows: [panel, controlPopup, calendarPopup]
+                windows: [panel, workspaceGlass, clockGlass, controlsGlass, controlPopup, calendarPopup]
                 onCleared: {
                     controlPopup.visible = false;
                     calendarPopup.visible = false;
@@ -143,8 +140,8 @@ Scope {
                     width: 44 + workspaceList.width + 8
                     height: 30
                     radius: 15
-                    color: "#2e101827"
-                    border.color: "#55c0caf5"
+                    color: "#18101827"
+                    border.color: "#40c0caf5"
                     border.width: 1
 
                     Image {
@@ -201,17 +198,12 @@ Scope {
                             }
                             width: Math.max(28, workspaceLabel.implicitWidth + 16)
                             height: 26
-                            radius: 13
-                            color: workspace.focused ? "#406ee7a0" : workspaceMouse.containsMouse ? "#20c0caf5" : "transparent"
-                            border.width: 1
-                            border.color: workspace.focused ? "#886ee7a0" : "transparent"
-                            Behavior on color { ColorAnimation { duration: 180 } }
-                            Behavior on border.color { ColorAnimation { duration: 180 } }
+                            color: "transparent"
                             Text {
                                 id: workspaceLabel
                                 anchors.centerIn: parent
                                 text: workspace.name
-                                color: workspace.focused ? "#e2ffef" : "#a9b1d6"
+                                color: workspace.focused ? "#ffffff" : workspaceMouse.containsMouse ? "#c0caf5" : "#77819d"
                                 font.family: "Terminus (TTF)"
                                 font.bold: true
                                 font.pixelSize: 16
@@ -235,21 +227,42 @@ Scope {
                 }
             }
 
-            Text {
-                id: centerClock
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.verticalCenter: parent.verticalCenter
-                property string currentTime: Qt.formatDateTime(new Date(), "HH:mm")
-                text: currentTime
-                color: "#c0caf5"
-                font.family: "Terminus (TTF)"
-                font.bold: true
-                font.pixelSize: 16
+            PanelWindow {
+                id: clockGlass
+                screen: panel.screen
+                WlrLayershell.namespace: "blix-clock-glass"
+                anchors.top: true
+                exclusionMode: ExclusionMode.Ignore
+                focusable: false
+                color: "transparent"
+                implicitWidth: centerClock.implicitWidth + 28
+                implicitHeight: @bar-height@
+                mask: Region { item: clockCard }
+                Rectangle {
+                    id: clockCard
+                    anchors.centerIn: parent
+                    width: parent.width
+                    height: 30
+                    radius: 15
+                    color: "#18101827"
+                    border.color: "#40c0caf5"
+                    border.width: 1
+                    Text {
+                        id: centerClock
+                        anchors.centerIn: parent
+                        property string currentTime: Qt.formatDateTime(new Date(), "HH:mm")
+                        text: currentTime
+                        color: "#c0caf5"
+                        font.family: "Terminus (TTF)"
+                        font.bold: true
+                        font.pixelSize: 16
 
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: panel.toggleCalendar()
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: panel.toggleCalendar()
+                        }
+                    }
                 }
             }
 
@@ -264,126 +277,147 @@ Scope {
                 }
             }
 
-            Row {
-                id: controlsRow
-                anchors.right: parent.right
-                anchors.rightMargin: 14
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 14
-
-                Item {
-                    id: batteryControl
-                    visible: @has-battery@ && root.battery !== ""
-                    width: 25
-                    height: 25
-                    Rectangle {
-                        anchors.fill: parent
-                        color: "#00000000"
-                    }
-                    Text {
+            PanelWindow {
+                id: controlsGlass
+                screen: panel.screen
+                WlrLayershell.namespace: "blix-controls-glass"
+                anchors { top: true; right: true }
+                margins.right: 10
+                exclusionMode: ExclusionMode.Ignore
+                focusable: false
+                color: "transparent"
+                implicitWidth: controlsRow.implicitWidth + 24
+                implicitHeight: @bar-height@
+                mask: Region { item: controlsCard }
+                Rectangle {
+                    id: controlsCard
+                    anchors.centerIn: parent
+                    width: parent.width
+                    height: 30
+                    radius: 15
+                    color: "#18101827"
+                    border.color: "#40c0caf5"
+                    border.width: 1
+                    Row {
+                        id: controlsRow
                         anchors.centerIn: parent
-                        text: Number(root.battery) <= 10 ? "\uf244"
-                            : Number(root.battery) <= 35 ? "\uf243"
-                            : Number(root.battery) <= 60 ? "\uf242"
-                            : Number(root.battery) <= 85 ? "\uf241" : "\uf240"
-                        color: Number(root.battery) <= 20 ? "#f7768e" : "#a6da95"
-                        font.family: "JetBrainsMono Nerd Font"
-                        font.pixelSize: 21
-                    }
-                    Text {
-                        visible: root.batteryStatus === "Charging"
-                        anchors.right: parent.right
-                        anchors.bottom: parent.bottom
-                        text: "\uf0e7"
-                        color: "#eed49f"
-                        font.family: "JetBrainsMono Nerd Font"
-                        font.pixelSize: 11
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            powerModeProcess.exec(["@power-mode-command@", "power-mode"]);
-                            panel.toggleControl("battery");
-                        }
-                    }
-                }
+                        spacing: 14
 
-                Item {
-                    id: volumeControl
-                    width: 25
-                    height: 25
-                    readonly property var audio: Pipewire.defaultAudioSink && Pipewire.defaultAudioSink.audio
-                        ? Pipewire.defaultAudioSink.audio : null
-                    Rectangle {
-                        anchors.fill: parent
-                        color: "#00000000"
-                    }
-                    Text {
-                        anchors.centerIn: parent
-                        text: !volumeControl.audio || volumeControl.audio.muted || volumeControl.audio.volume === 0 ? "\uf6a9"
-                            : volumeControl.audio.volume < 0.35 ? "\uf026"
-                            : volumeControl.audio.volume < 0.7 ? "\uf027" : "\uf028"
-                        color: "#8aadf4"
-                        font.family: "JetBrainsMono Nerd Font"
-                        font.pixelSize: 21
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: panel.toggleControl("volume")
-                        onWheel: {
-                            if (!volumeControl.audio) return;
-                            const step = wheel.angleDelta.y > 0 ? 0.05 : -0.05;
-                            volumeControl.audio.volume = Math.max(0, Math.min(1, volumeControl.audio.volume + step));
-                        }
-                    }
-                }
-
-                Item {
-                    id: brightnessControl
-                    visible: @has-backlight@ && root.brightness !== ""
-                    width: 25
-                    height: 25
-                    Rectangle {
-                        anchors.fill: parent
-                        color: "#00000000"
-                    }
-                    Canvas {
-                        id: sunIcon
-                        anchors.fill: parent
-                        property real level: Number(root.brightness)
-                        onLevelChanged: requestPaint()
-                        onPaint: {
-                            const ctx = getContext("2d");
-                            ctx.clearRect(0, 0, width, height);
-                            ctx.strokeStyle = "#eed49f";
-                            ctx.fillStyle = "#eed49f";
-                            ctx.lineWidth = 2;
-                            ctx.lineCap = "round";
-                            ctx.globalAlpha = 0.5 + Math.min(100, level) / 200;
-                            const center = width / 2;
-                            ctx.beginPath();
-                            ctx.arc(center, center, 3.5, 0, Math.PI * 2);
-                            ctx.fill();
-                            const rays = level < 30 ? 4 : 8;
-                            const outer = level < 30 ? 9 : level < 70 ? 10.5 : 12;
-                            for (let i = 0; i < rays; i++) {
-                                const angle = i * 2 * Math.PI / rays;
-                                ctx.beginPath();
-                                ctx.moveTo(center + Math.cos(angle) * 7, center + Math.sin(angle) * 7);
-                                ctx.lineTo(center + Math.cos(angle) * outer, center + Math.sin(angle) * outer);
-                                ctx.stroke();
+                        Item {
+                            id: batteryControl
+                            visible: @has-battery@ && root.battery !== ""
+                            width: 25
+                            height: 25
+                            Rectangle {
+                                anchors.fill: parent
+                                color: "#00000000"
+                            }
+                            Text {
+                                anchors.centerIn: parent
+                                text: Number(root.battery) <= 10 ? "\uf244"
+                                    : Number(root.battery) <= 35 ? "\uf243"
+                                    : Number(root.battery) <= 60 ? "\uf242"
+                                    : Number(root.battery) <= 85 ? "\uf241" : "\uf240"
+                                color: Number(root.battery) <= 20 ? "#f7768e" : "#a6da95"
+                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: 21
+                            }
+                            Text {
+                                visible: root.batteryStatus === "Charging"
+                                anchors.right: parent.right
+                                anchors.bottom: parent.bottom
+                                text: "\uf0e7"
+                                color: "#eed49f"
+                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: 11
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    powerModeProcess.exec(["@power-mode-command@", "power-mode"]);
+                                    panel.toggleControl("battery");
+                                }
                             }
                         }
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: panel.toggleControl("brightness")
-                        onWheel: {
-                            brightnessProcess.exec(["@brightness-command@", "--class=backlight", "set",
-                                wheel.angleDelta.y > 0 ? "5%+" : "5%-"]);
+
+                        Item {
+                            id: volumeControl
+                            width: 25
+                            height: 25
+                            readonly property var audio: Pipewire.defaultAudioSink && Pipewire.defaultAudioSink.audio
+                                ? Pipewire.defaultAudioSink.audio : null
+                            Rectangle {
+                                anchors.fill: parent
+                                color: "#00000000"
+                            }
+                            Text {
+                                anchors.centerIn: parent
+                                text: !volumeControl.audio || volumeControl.audio.muted || volumeControl.audio.volume === 0 ? "\uf6a9"
+                                    : volumeControl.audio.volume < 0.35 ? "\uf026"
+                                    : volumeControl.audio.volume < 0.7 ? "\uf027" : "\uf028"
+                                color: "#8aadf4"
+                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: 21
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: panel.toggleControl("volume")
+                                onWheel: {
+                                    if (!volumeControl.audio) return;
+                                    const step = wheel.angleDelta.y > 0 ? 0.05 : -0.05;
+                                    volumeControl.audio.volume = Math.max(0, Math.min(1, volumeControl.audio.volume + step));
+                                }
+                            }
+                        }
+
+                        Item {
+                            id: brightnessControl
+                            visible: @has-backlight@ && root.brightness !== ""
+                            width: 25
+                            height: 25
+                            Rectangle {
+                                anchors.fill: parent
+                                color: "#00000000"
+                            }
+                            Canvas {
+                                id: sunIcon
+                                anchors.fill: parent
+                                property real level: Number(root.brightness)
+                                onLevelChanged: requestPaint()
+                                onPaint: {
+                                    const ctx = getContext("2d");
+                                    ctx.clearRect(0, 0, width, height);
+                                    ctx.strokeStyle = "#eed49f";
+                                    ctx.fillStyle = "#eed49f";
+                                    ctx.lineWidth = 2;
+                                    ctx.lineCap = "round";
+                                    ctx.globalAlpha = 0.5 + Math.min(100, level) / 200;
+                                    const center = width / 2;
+                                    ctx.beginPath();
+                                    ctx.arc(center, center, 3.5, 0, Math.PI * 2);
+                                    ctx.fill();
+                                    const rays = level < 30 ? 4 : 8;
+                                    const outer = level < 30 ? 9 : level < 70 ? 10.5 : 12;
+                                    for (let i = 0; i < rays; i++) {
+                                        const angle = i * 2 * Math.PI / rays;
+                                        ctx.beginPath();
+                                        ctx.moveTo(center + Math.cos(angle) * 7, center + Math.sin(angle) * 7);
+                                        ctx.lineTo(center + Math.cos(angle) * outer, center + Math.sin(angle) * outer);
+                                        ctx.stroke();
+                                    }
+                                }
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: panel.toggleControl("brightness")
+                                onWheel: {
+                                    brightnessProcess.exec(["@brightness-command@", "--class=backlight", "set",
+                                        wheel.angleDelta.y > 0 ? "5%+" : "5%-"]);
+                                }
+                            }
                         }
                     }
                 }
