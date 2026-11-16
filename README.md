@@ -492,7 +492,7 @@ immediately when changed. Hyprsunset starts with the session and follows the
 saved night-light switch and intensity.
 Hyprland uses a 10 px outer gap and 10 px rounded window corners. A host-declared
 wallpaper is shown on every output with `swaybg`; Zen uses
-`~/Pictures/snowleopard.jpg`, which remains a local image outside the flake.
+`~/Pictures/forest.jpg`, which remains a local image outside the flake.
 Laptop profiles with a declared
 primary connector use a connected external monitor as the mirror source at its
 native preferred mode and refresh rate. The laptop mirrors that screen, with
