@@ -733,6 +733,7 @@ Scope {
                                                 elide: Text.ElideRight
                                                 color: "#a9b1d6"
                                                 font.family: "Terminus (TTF)"
+                                                font.bold: true
                                                 font.pixelSize: 12
                                             }
                                             Text {
